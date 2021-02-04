@@ -9,6 +9,11 @@ Background
 ----------
 `p-winds` is largely based on the theoretical framework of [Oklopčić & Hirata (2018)](https://ui.adsabs.harvard.edu/abs/2018ApJ...855L..11O/abstract) and [Lampón et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020A%26A...636A..13L/abstract), which themselves based their work on the stellar wind model of [Parker (1958)](https://ui.adsabs.harvard.edu/abs/1958ApJ...128..664P/abstract).
 
+Remarks
+-------
+- `p-winds` accepts ``astropy.Quantity`` as input.
+- You can also input values without ``astropy.Units``, i.e. just normal `float` or `numpy.ndarray`, but then you need to keep track of the units yourself.
+
 Installation
 ------------
 First, clone the repository:

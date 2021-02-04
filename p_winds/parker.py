@@ -17,13 +17,15 @@ __all__ = ["sound_speed", "radius_sonic_point", "velocity_profile",
 
 
 # Speed of sound
-def sound_speed(T_0, mean_molecular_weight):
+def sound_speed(temperature, mean_molecular_weight):
     """
     Speed of sound in an isothermal ideal gas.
 
     Parameters
     ----------
-    T_0 (``float``): Constant temperature of the gas.
+    temperature (``float``): Constant temperature of the gas. Assumed to be
+        close to the maximum thermospheric temperature (see Oklopčić & Hirata
+        2018 and Lampón et al. 2020 for more details).
 
     mean_molecular_weight (``float``): Mean molecular weight of the gas.
 
@@ -32,7 +34,7 @@ def sound_speed(T_0, mean_molecular_weight):
     sound_speed (``float``): Sound speed in the gas
 
     """
-    return (c.k_B * T_0 / mean_molecular_weight) ** 0.5
+    return (c.k_B * temperature / mean_molecular_weight) ** 0.5
 
 
 # Radius of sonic point
