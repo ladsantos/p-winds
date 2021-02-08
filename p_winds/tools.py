@@ -68,10 +68,23 @@ def fetch_planet_system(name):
                  'distance': planet_table['st_dist'],
                  'effective_temperature': planet_table['st_teff']}
 
+    # Check if one or more of the retrieved parameters is not "good" and warn
+    # the user
+    _items = planet_info.items()
+    for line in _items:
+        if line[1].value < 1E-5:
+            warn("Planetary parameter '{}' of {} requires your "
+                 "attention.".format(line[0], name), Warning)
+    _items = star_info.items()
+    for line in _items:
+        if line[1].value < 1E-5:
+            warn("Stellar parameter '{}' of {} requires your "
+                 "attention.".format(line[0], name), Warning)
+
     return planet_info, star_info
 
 
-def make_spectrum_dict(filename, units, path=''):
+def make_spectrum_dict(filename, units, path='', skiprows=0):
     """
     Construct a dictionary containing an input spectrum from a text file. The
     input file must have two or more columns, in which the first is the
@@ -92,13 +105,17 @@ def make_spectrum_dict(filename, units, path=''):
 
     path (``str``, optional): Path to the spectrum data file.
 
+    skiprows (``int``, optional): Number of rows to skip corresponding to the
+        header of the input text file.
+
     Returns
     -------
     spectrum (``dict``): Spectrum dictionary with entries for the wavelength
         and flux, and their units.
 
     """
-    spectrum_table = np.loadtxt(path + filename, usecols=(0, 1))
+    spectrum_table = np.loadtxt(path + filename, usecols=(0, 1),
+                                skiprows=skiprows)
     spectrum = {'wavelength': spectrum_table[:, 0],
                 'flux_1au': spectrum_table[:, 1],
                 'wavelength_unit': units['wavelength'],
