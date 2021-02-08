@@ -11,8 +11,7 @@ Background
 
 Remarks
 -------
-- `p-winds` accepts ``astropy.Quantity`` as input.
-- You can also input values without ``astropy.Units``, i.e. just normal `float` or `numpy.ndarray`, but then you need to keep track of the units yourself.
+- `p-winds` requires ``astropy.Quantity`` as input. Using physical quantities without their respective units will yield errors.
 
 Installation
 ------------
