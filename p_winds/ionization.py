@@ -11,7 +11,7 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp
-from . import parker, tools
+from p_winds import parker, tools
 
 
 __all__ = ["hydrogen_photoionization_rate", "hydrogen_recombination_rate",
@@ -26,14 +26,15 @@ def hydrogen_photoionization_rate(spectrum_at_planet):
 
     Parameters
     ----------
-    spectrum_at_planet (``dict``): Spectrum of the host star arriving at the
-        planet covering fluxes at least up to the wavelength corresponding to
-        the energy to ionize hydrogen (13.6 eV, or 911.65 Angstrom).
+    spectrum_at_planet (``dict``):
+        Spectrum of the host star arriving at the planet covering fluxes at
+        least up to the wavelength corresponding to the energy to ionize
+        hydrogen (13.6 eV, or 911.65 Angstrom).
 
     Returns
     -------
-    ionization_rate (``float``): Ionization rate of hydrogen at null optical
-        depth.
+    ionization_rate (``float``):
+        Ionization rate of hydrogen at null optical depth.
     """
     wavelength = (spectrum_at_planet['wavelength'] *
                   spectrum_at_planet['wavelength_unit']).to(u.angstrom).value
@@ -69,12 +70,13 @@ def hydrogen_recombination_rate(temperature):
 
     Parameters
     ----------
-    temperature (``astropy.Quantity``): Isothermal temperature of the upper
-        atmosphere.
+    temperature (``astropy.Quantity``):
+        Isothermal temperature of the upper atmosphere.
 
     Returns
     -------
-    alpha_rec (``astropy.Quantity``): Recombination rate of hydrogen.
+    alpha_rec (``astropy.Quantity``):
+        Recombination rate of hydrogen.
 
     """
     alpha_rec = 2.59E-13 * (temperature.to(u.K).value / 1E4) ** (-0.7) * \
@@ -92,40 +94,45 @@ def neutral_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
 
     Parameters
     ----------
-    radius_profile (``numpy.ndarray``): Radius in unit of planetary radii. Not
-        a `astropy.Quantity`.
+    radius_profile (``numpy.ndarray``):
+        Radius in unit of planetary radii. Not a ``astropy.Quantity``.
 
-    planet_radius (``astropy.Quantity``): Planetary radius.
+    planet_radius (``astropy.Quantity``):
+        Planetary radius.
 
-    temperature (``astropy.Quantity``): Isothermal temperature of the upper
-        atmosphere.
+    temperature (``astropy.Quantity``):
+        Isothermal temperature of the upper atmosphere.
 
-    h_he_fraction (``float``): H/He fraction of the atmosphere.
+    h_he_fraction (``float``):
+        H/He fraction of the atmosphere.
 
-    mass_loss_rate (``astropy.Quantity``): Mass loss rate of the planet.
+    mass_loss_rate (``astropy.Quantity``):
+        Mass loss rate of the planet.
 
-    planet_mass (``astropy.Quantity``): Planetary mass.
+    planet_mass (``astropy.Quantity``):
+        Planetary mass.
 
-    spectrum_at_planet (``dict``): Spectrum of the host star arriving at the
-        planet covering fluxes at least up to the wavelength corresponding to
-        the energy to ionize hydrogen (13.6 eV, or 911.65 Angstrom). Can be
-        generated using `tools.make_spectrum_dict`.
+    spectrum_at_planet (``dict``):
+        Spectrum of the host star arriving at the planet covering fluxes at
+        least up to the wavelength corresponding to the energy to ionize
+        hydrogen (13.6 eV, or 911.65 Angstrom). Can be generated using
+        ``tools.make_spectrum_dict``.
 
-    initial_state (``numpy.ndarray``, optional): The initial state is the `y0`
-        of the differential equation to be solved. This array has two items: the
-        initial value of `f_ion` (ionization fraction) and `tau` (optical depth)
-        at the outer layer of the atmosphere. The standard value for this
-        parameter is `numpy.array([1.0, 0.0])`, i.e., completely ionized at the
-        outer layer and with null optical depth.
+    initial_state (``numpy.ndarray``, optional):
+        The initial state is the `y0` of the differential equation to be solved.
+        This array has two items: the initial value of `f_ion` (ionization
+        fraction) and `tau` (optical depth) at the outer layer of the
+        atmosphere. The standard value for this parameter is
+        ``numpy.array([1.0, 0.0])``, i.e., completely ionized at the outer layer
+        and with null optical depth.
 
     Returns
     -------
-    f_r (``numpy.ndarray``): Values of the fraction of ionized hydrogen in
-        function of the radius.
+    f_r (``numpy.ndarray``):
+        Values of the fraction of ionized hydrogen in function of the radius.
 
-    tau_r (``numpy.ndarray``): Values of the optical depth in function of the
-        radius.
-
+    tau_r (``numpy.ndarray``):
+        Values of the optical depth in function of the radius.
     """
     # First calculate the sound speed, radius at the sonic point and the
     # density at the sonic point. They will be useful to change the units of

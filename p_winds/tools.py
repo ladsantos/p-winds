@@ -7,8 +7,6 @@ This module contains useful tools to facilitate numerical calculations.
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 import numpy as np
-import astropy.units as u
-import astropy.constants as c
 from warnings import warn
 
 try:
@@ -18,17 +16,24 @@ except ModuleNotFoundError:
          Warning)
 
 
+__all__ = ["nearest_index", "fetch_planet_system", "make_spectrum_dict"]
+
+
 def nearest_index(array, target_value):
     """
     Finds the index of a value in ``array`` that is closest to ``target_value``.
 
-    Args:
-        array (``numpy.array``): Target array.
-        target_value (``float``): Target value.
+    Parameters
+    ----------
+    array (``numpy.array``):
+        Target array.
+    target_value (``float``):
+        Target value.
 
-    Returns:
-        index (``int``): Index of the value in ``array`` that is closest to
-            ``target_value``.
+    Returns
+    -------
+    index (``int``):
+        Index of the value in ``array`` that is closest to ``target_value``.
     """
     index = array.searchsorted(target_value)
     index = np.clip(index, 1, len(array) - 1)
@@ -40,18 +45,21 @@ def nearest_index(array, target_value):
 
 def fetch_planet_system(name):
     """
-    Use `astroquery` to fetch the planetary and stellar parameters of a given
+    Use ``astroquery`` to fetch the planetary and stellar parameters of a given
     exoplanet from the NASA Exoplanet Database.
 
     Parameters
     ----------
-    name (`str`): Name of the planet.
+    name (``str``):
+        Name of the planet.
 
     Returns
     -------
-    planet_info (`dict`): Dictionary containing the planetary parameters.
+    planet_info (``dict``):
+        Dictionary containing the planetary parameters.
 
-    star_info (`dict): Dictionary containing the stellar parameters.
+    star_info (``dict``):
+        Dictionary containing the stellar parameters.
 
     """
     try:
@@ -95,27 +103,26 @@ def make_spectrum_dict(filename, units, path='', skiprows=0):
 
     Parameters
     ----------
-    filename (``str``): Name of the file containing the spectrum data.
+    filename (``str``):
+        Name of the file containing the spectrum data.
 
-    units (``dict``): Units of the spectrum. This dictionary must have the
-        entries `'wavelength'` and `'flux'`, or `'frequency'` and `'flux'`.
-        The units must be set in `astropy.units`. Example:
-        ```
-        units = {'wavelength': u.angstrom,
-                 'flux': u.erg / u.s / u.cm ** 2 / u.angstrom}
-        units = {'frequency': u.Hz,
-                 'flux': u.erg / u.s / u.cm ** 2 / u.Hz}
-        ```
+    units (``dict``):
+        Units of the spectrum. This dictionary must have the entries
+        ``'wavelength'`` and ``'flux'``, or ``'frequency'`` and ``'flux'``.
+        The units must be set in ``astropy.units``.
 
-    path (``str``, optional): Path to the spectrum data file.
+    path (``str``, optional):
+        Path to the spectrum data file.
 
-    skiprows (``int``, optional): Number of rows to skip corresponding to the
-        header of the input text file.
+    skiprows (``int``, optional):
+        Number of rows to skip corresponding to the header of the input text
+        file.
 
     Returns
     -------
-    spectrum (``dict``): Spectrum dictionary with entries for the wavelength
-        and flux, and their units.
+    spectrum (``dict``):
+        Spectrum dictionary with entries for the wavelength and flux, and their
+        units.
 
     """
     spectrum_table = np.loadtxt(path + filename, usecols=(0, 1),
