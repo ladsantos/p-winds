@@ -12,11 +12,12 @@ import astropy.constants as c
 import scipy.optimize as so
 
 
-__all__ = ["sound_speed", "radius_sonic_point", "velocity", "density"]
+__all__ = ["sound_speed", "radius_sonic_point", "density_sonic_point",
+           "structure"]
 
 
 # Speed of sound
-def sound_speed(temperature, mean_molecular_weight):
+def sound_speed(temperature, h_he_fraction):
     """
     Speed of sound in an isothermal ideal gas. The input values must be
     `astropy.Quantity`.
@@ -27,13 +28,15 @@ def sound_speed(temperature, mean_molecular_weight):
         close to the maximum thermospheric temperature (see Oklopčić & Hirata
         2018 and Lampón et al. 2020 for more details).
 
-    mean_molecular_weight (``float``): Mean molecular weight of the gas.
+    h_he_fraction (``float``): Average H/He fraction of the upper atmosphere.
 
     Returns
     -------
     sound_speed (``float``): Sound speed in the gas
 
     """
+    # H has one proton, He has 2 protons and 2 neutrons
+    mean_molecular_weight = c.m_p * (h_he_fraction + (1 - h_he_fraction) * 4)
     return (c.k_B * temperature / mean_molecular_weight) ** 0.5
 
 
@@ -60,8 +63,8 @@ def radius_sonic_point(planet_mass, sound_speed_0):
 # Density at the sonic point
 def density_sonic_point(mass_loss_rate, radius_sp, sound_speed_0):
     """
-    Density at the sonic point, where the wind speed matches the speed of sound.
-    The input values must be `astropy.Quantity`.
+    Density at the sonic point, where the wind speed matches the speed of
+    sound. The input values must be `astropy.Quantity`.
 
     Parameters
     ----------
@@ -79,11 +82,12 @@ def density_sonic_point(mass_loss_rate, radius_sp, sound_speed_0):
     return rho_sp
 
 
-# Velocity in function of radius
-def velocity(r):
+# Velocity and density in function of radius at the sonic point
+def structure(r):
     """
-    Calculate the velocity of the atmosphere in function of radius in unit of
-    sound speed.
+    Calculate the velocity and density of the atmosphere in function of radius
+    at the sonic point (r_s), and in units of sound speed (v_s) and density at
+    the sonic point (rho_s), respectively.
 
     Parameters
     ----------
@@ -95,37 +99,21 @@ def velocity(r):
     velocity_r (``np.ndarray`` or ``float``): `numpy` array or a single value
         of velocity at the given radius or radii in unit of sound speed.
 
-    """
-    def _eq_to_solve(v, r):
-        eq = v * np.exp(-0.5 * v ** 2) - (1 / r) ** 2 * np.exp(
-            -2 * 1 / r + 3 / 2)
-        return eq
-
-    try:
-        velocity_r = np.array([so.newton(_eq_to_solve, x0=1E-1, args=(rk,))
-                        for rk in r])
-    except TypeError:
-        velocity_r = so.newton(_eq_to_solve, x0=1E-1, args=(r,))
-    return velocity_r
-
-
-# Density in function of radius
-def density(r):
-    """
-    Calculate the density profile of the atmosphere in function of radius and in
-    unit of density at the sonic point.
-
-    Parameters
-    ----------
-    r (``numpy.ndarray`` or ``float``): Radius in unit of radius of the sonic
-        point.
-
-    Returns
-    -------
     density_r (``numpy.ndarray`` or ``float``): Density sampled at the radius
         or radii `r` and in unit of density at the sonic point.
 
     """
-    v_r = velocity(r)
-    density_r = np.exp(2 * 1 / r - 3 / 2 - 0.5 * v_r ** 2)
-    return density_r
+    def _eq_to_solve(v, r_k):
+        eq = v * np.exp(-0.5 * v ** 2) - (1 / r_k) ** 2 * np.exp(
+            -2 * 1 / r_k + 3 / 2)
+        return eq
+
+    try:
+        velocity_r = np.array([so.newton(_eq_to_solve, x0=1E-1, args=(rk,))
+                               for rk in r])
+    except TypeError:
+        velocity_r = so.newton(_eq_to_solve, x0=1E-1, args=(r,))
+
+    density_r = np.exp(2 * 1 / r - 3 / 2 - 0.5 * velocity_r ** 2)
+
+    return velocity_r, density_r

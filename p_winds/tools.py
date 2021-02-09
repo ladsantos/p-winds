@@ -88,19 +88,23 @@ def make_spectrum_dict(filename, units, path='', skiprows=0):
     """
     Construct a dictionary containing an input spectrum from a text file. The
     input file must have two or more columns, in which the first is the
-    wavelength bin center and the second is the flux at 1 au per unit of
-    wavelength.
+    wavelength or frequency bin center and the second is the flux per bin of
+    wavelength or frequency. The code automatically figures out if the input
+    spectra are binned in wavelength or frequency based on the units the user
+    passes.
 
     Parameters
     ----------
     filename (``str``): Name of the file containing the spectrum data.
 
     units (``dict``): Units of the spectrum. This dictionary must have the
-        entries `'wavelength'` and `'flux'`, and the units must be set in
-        `astropy.units`. Example:
+        entries `'wavelength'` and `'flux'`, or `'frequency'` and `'flux'`.
+        The units must be set in `astropy.units`. Example:
         ```
         units = {'wavelength': u.angstrom,
                  'flux': u.erg / u.s / u.cm ** 2 / u.angstrom}
+        units = {'frequency': u.Hz,
+                 'flux': u.erg / u.s / u.cm ** 2 / u.Hz}
         ```
 
     path (``str``, optional): Path to the spectrum data file.
@@ -116,8 +120,19 @@ def make_spectrum_dict(filename, units, path='', skiprows=0):
     """
     spectrum_table = np.loadtxt(path + filename, usecols=(0, 1),
                                 skiprows=skiprows)
-    spectrum = {'wavelength': spectrum_table[:, 0],
-                'flux_1au': spectrum_table[:, 1],
-                'wavelength_unit': units['wavelength'],
-                'flux_unit': units['flux']}
+
+    try:
+        x_axis = 'wavelength'
+        x_axis_unit = units.pop(x_axis)
+        y_axis = 'flux_lambda'
+    except KeyError:
+        x_axis = 'frequency'
+        x_axis_unit = units.pop(x_axis)
+        y_axis = 'flux_nu'
+    y_axis_unit = units.pop('flux')
+
+    spectrum = {x_axis: spectrum_table[:, 0],
+                y_axis: spectrum_table[:, 1],
+                '{}_unit'.format(x_axis): x_axis_unit,
+                'flux_unit': y_axis_unit}
     return spectrum
