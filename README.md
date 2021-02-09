@@ -11,7 +11,7 @@ Background
 
 Remarks
 -------
-- `p-winds` requires ``astropy.Quantity`` as input. Using physical quantities without their respective units will yield errors.
+- `p-winds` requires ``astropy.Quantity`` as input for some functions. Using physical quantities without their respective units will yield errors.
 
 Installation
 ------------
@@ -24,3 +24,11 @@ And then navigate to it, and install it:
 cd p-winds
 python setup.py install
 ```
+
+Future features being considered
+--------
+* Helium ionization steady-state
+* Ray tracing to calculate transit depths
+* Allow a non-isothemal temperature profile as input
+* Explicitly calculate cross-sections in function of wavelength instead of using a flux-averaged value
+* Explicitly calculate the mean molecular weight in function of radius instead of assuming an average value

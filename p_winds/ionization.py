@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-This module computes the neutral and ionized populations of H and He in the
+This module computes the neutral and ionized populations of H in the
 upper atmosphere.
 """
 
@@ -14,6 +14,11 @@ from scipy.integrate import simps, solve_ivp
 from . import parker, tools
 
 
+__all__ = ["hydrogen_photoionization_rate", "hydrogen_recombination_rate",
+           "neutral_fraction"]
+
+
+# Hydrogen photoionization rate
 def hydrogen_photoionization_rate(spectrum_at_planet):
     """
     Calculate the photoionization rate of hydrogen at null optical depth based
@@ -79,8 +84,11 @@ def hydrogen_recombination_rate(temperature):
 
 # Hydrogen neutral-fraction profile
 def neutral_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
-                     mass_loss_rate, planet_mass, spectrum_at_planet):
+                     mass_loss_rate, planet_mass, spectrum_at_planet,
+                     initial_state=np.array([1.0, 0.0])):
     """
+    Calculate the fraction of ionized hydrogen in the upper atmosphere in
+    function of the radius in unit of planetary radius.
 
     Parameters
     ----------
@@ -102,6 +110,13 @@ def neutral_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         planet covering fluxes at least up to the wavelength corresponding to
         the energy to ionize hydrogen (13.6 eV, or 911.65 Angstrom). Can be
         generated using `tools.make_spectrum_dict`.
+
+    initial_state (``numpy.ndarray``, optional): The initial state is the `y0`
+        of the differential equation to be solved. This array has two items: the
+        initial value of `f_ion` (ionization fraction) and `tau` (optical depth)
+        at the outer layer of the atmosphere. The standard value for this
+        parameter is `numpy.array([1.0, 0.0])`, i.e., completely ionized at the
+        outer layer and with null optical depth.
 
     Returns
     -------
@@ -160,12 +175,8 @@ def neutral_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         dt_dtheta = (1. - f) * rho
         return np.array([df_dtheta, dt_dtheta])
 
-    # At the outer border (theta[0]), assume the gas is completely ionized
-    # (f = 1.0) and the optical depth is null (t = 0.0)
-    y0 = np.array([1.0, 0.0])
-
     # We solve it using `scipy.solve_ivp`
-    sol = solve_ivp(_fun, (theta[0], theta[-1],), y0, t_eval=theta)
+    sol = solve_ivp(_fun, (theta[0], theta[-1],), initial_state, t_eval=theta)
 
     # Finally retrieve the neutral fraction and optical depth arrays. Since we
     # integrated f and tau from the outside, we have to flip them back to the

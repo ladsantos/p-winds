@@ -7,7 +7,6 @@ This module computes an isothermal Parker (planetary) wind model.
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 import numpy as np
-import astropy.units as u
 import astropy.constants as c
 import scipy.optimize as so
 
@@ -24,16 +23,15 @@ def sound_speed(temperature, h_he_fraction):
 
     Parameters
     ----------
-    temperature (``float``): Constant temperature of the gas. Assumed to be
-        close to the maximum thermospheric temperature (see Oklopčić & Hirata
-        2018 and Lampón et al. 2020 for more details).
+    temperature (``astropy.Quantity``): Constant temperature of the gas. Assumed
+        to be close to the maximum thermospheric temperature (see Oklopčić &
+        Hirata 2018 and Lampón et al. 2020 for more details).
 
     h_he_fraction (``float``): Average H/He fraction of the upper atmosphere.
 
     Returns
     -------
-    sound_speed (``float``): Sound speed in the gas
-
+    sound_speed (``astropy.Quantity``): Sound speed in the gas
     """
     # H has one proton, He has 2 protons and 2 neutrons
     mean_molecular_weight = c.m_p * (h_he_fraction + (1 - h_he_fraction) * 4)
@@ -48,14 +46,13 @@ def radius_sonic_point(planet_mass, sound_speed_0):
 
     Parameters
     ----------
-    planet_mass (``float``): Planetary mass.
+    planet_mass (``astropy.Quantity``): Planetary mass.
 
-    sound_speed (``float``): Constant speed of sound.
+    sound_speed (``astropy.Quantity``): Constant speed of sound.
 
     Returns
     -------
-    radius_sonic_point (``float``): Radius of the sonic point
-
+    radius_sonic_point (``astropy.Quantity``): Radius of the sonic point
     """
     return c.G * planet_mass / 2 / sound_speed_0 ** 2
 
@@ -68,14 +65,16 @@ def density_sonic_point(mass_loss_rate, radius_sp, sound_speed_0):
 
     Parameters
     ----------
-    mass_loss_rate (``float``): Total mass loss rate of the planet
+    mass_loss_rate (``astropy.Quantity``): Total mass loss rate of the planet.
 
-    radius_sp (``float``):
+    radius_sp (``astropy.Quantity``): Radius at the sonic point.
 
-    sound_speed_0 (``float``):
+    sound_speed_0 (``astropy.Quantity``): Speed of sound, assumed to be
+        constant.
 
     Returns
     -------
+    rho_sp (``astropy.Quantity``): Density at the sonic point.
 
     """
     rho_sp = mass_loss_rate / 4 / np.pi / radius_sp ** 2 / sound_speed_0
