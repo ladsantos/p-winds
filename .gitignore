@@ -67,6 +67,7 @@ instance/
 
 # PyCharm stuff
 .idea/
+.DS_Store
 
 # Scrapy stuff:
 .scrapy
