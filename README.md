@@ -1,6 +1,8 @@
 # p-winds
  Python implementation of Parker wind models for planetary atmospheres.
 
+[![Documentation Status](https://readthedocs.org/projects/p-winds/badge/?version=latest)](https://p-winds.readthedocs.io/en/latest/?badge=latest)
+
 Aims
 ----
 The main objective of this code is to produce a simplified, 1-D model of the upper atmosphere of a planet.
