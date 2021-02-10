@@ -126,7 +126,7 @@ def make_spectrum_dict(filename, units, path='', skiprows=0):
 
     """
     spectrum_table = np.loadtxt(path + filename, usecols=(0, 1),
-                                skiprows=skiprows)
+                                skiprows=skiprows, dtype=float)
 
     try:
         x_axis = 'wavelength'
