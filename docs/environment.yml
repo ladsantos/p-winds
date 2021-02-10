@@ -7,3 +7,8 @@ dependencies:
   - pip
   - pip:
     - nbsphinx
+    - numpydoc
+    - numpy
+    - scipy
+    - astropy
+    - astroquery
