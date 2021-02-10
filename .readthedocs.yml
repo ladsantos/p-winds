@@ -1,4 +1,9 @@
 version: 2
 formats: all
-conda:
-  environment: docs/environment.yml
+python:
+  version: 3
+  install:
+    - requirements: docs/pip-readthedocs-requirements.txt
+    - method: setuptools
+      path: .
+  system_packages: true

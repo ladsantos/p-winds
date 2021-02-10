@@ -1,6 +1,7 @@
-numpydoc>=1.0
-nbsphinx>=0.3
 numpy>=1.14
 scipy>=1.5
 astropy>=4.0
 astroquery>=0.3
+ipykernel
+nbsphinx
+numpydoc

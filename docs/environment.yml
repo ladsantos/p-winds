@@ -12,3 +12,5 @@ dependencies:
     - scipy
     - astropy
     - astroquery
+  - setuptools:
+    - .
