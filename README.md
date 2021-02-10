@@ -31,6 +31,7 @@ Future features being considered
 --------
 * Helium ionization steady-state
 * Ray tracing to calculate transit depths
+* Hydrogen excitation distribution
 * Allow a non-isothemal temperature profile as input
 * Explicitly calculate cross-sections in function of wavelength instead of using a flux-averaged value
 * Explicitly calculate the mean molecular weight in function of radius instead of assuming an average value
