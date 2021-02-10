@@ -27,6 +27,10 @@ cd p-winds
 python setup.py install
 ```
 
+Quickstart
+----------
+Check out a quickstart [Google Colab Notebook here](https://colab.research.google.com/drive/1mTh6_YEgCRl6DAKqnmRp2XMOW8CTCvm7?usp=sharing).
+
 Future features being considered
 --------
 * Helium ionization steady-state

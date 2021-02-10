@@ -11,7 +11,7 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp
-from . import parker, tools
+from p_winds import parker, tools
 
 
 __all__ = ["hydrogen_photoionization_rate", "hydrogen_recombination_rate",
