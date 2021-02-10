@@ -1,0 +1,2 @@
+numpydoc>=1.0
+nbsphinx>=0.3
