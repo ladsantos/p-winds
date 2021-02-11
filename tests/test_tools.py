@@ -16,3 +16,11 @@ def test_fetch_planet_system(planet_name='HD 209458 b',
     planet_info, star_info = tools.fetch_planet_system(planet_name)
     period = planet_info['period'].to(u.d).value
     assert abs(period - 3.52474859) < precision_threshold
+
+
+# Test roche_radius()
+def test_roche_radius(precision_threshold=1E-6):
+    q_ratio_hd209458b = 0.00056655
+    a_hd209458b = 0.04707 * u.au
+    roche_r = tools.roche_radius(q_ratio_hd209458b, a_hd209458b)
+    assert abs(roche_r.value - 0.82040874) < precision_threshold

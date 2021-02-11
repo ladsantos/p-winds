@@ -7,6 +7,7 @@ This module contains useful tools to facilitate numerical calculations.
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 import numpy as np
+import astropy.units as u
 from warnings import warn
 
 try:
@@ -144,3 +145,33 @@ def make_spectrum_dict(filename, units, path='', skiprows=0):
                 '{}_unit'.format(x_axis): x_axis_unit,
                 'flux_unit': y_axis_unit}
     return spectrum
+
+
+# Approximate Roche radius around a planet in a star-planet system
+def roche_radius(q_ratio, semi_major_axis):
+    """
+    Calculate the approximate Roche radius around a planet in a star-planet
+    system.
+
+    Parameters
+    ----------
+    q_ratio (``float``):
+        Ratio of planet mass over host star mass.
+
+    semi_major_axis (``astropy.Quantity``):
+        Semi-major axis of the planetary orbit.
+
+    Returns
+    -------
+    roche_r (``astropy.Quantity``):
+        Roche radius around the planet.
+    """
+    try:
+        q = q_ratio.decompose()
+    except AttributeError:
+        q = q_ratio
+    a = semi_major_axis.to(u.au).value
+    k1 = 0.49 * np.power(q, 2 / 3) / 0.6 / np.power(q, 2 / 3)
+    k2 = np.log(1.0 + np.power(q, 1 / 3)) * a
+    roche_r = (k1 + k2) * u.au
+    return roche_r
