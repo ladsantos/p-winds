@@ -14,12 +14,11 @@ from scipy.integrate import simps, solve_ivp
 from p_winds import parker, tools
 
 
-__all__ = ["hydrogen_photoionization_rate", "hydrogen_recombination_rate",
-           "neutral_fraction"]
+__all__ = ["photoionization_rate", "recombination_rate", "ion_fraction"]
 
 
 # Hydrogen photoionization rate
-def hydrogen_photoionization_rate(spectrum_at_planet):
+def photoionization_rate(spectrum_at_planet):
     """
     Calculate the photoionization rate of hydrogen at null optical depth based
     on the EUV spectrum arriving at the planet.
@@ -63,7 +62,7 @@ def hydrogen_photoionization_rate(spectrum_at_planet):
 
 
 # Case-B hydrogen recombination rate
-def hydrogen_recombination_rate(temperature):
+def recombination_rate(temperature):
     """
     Calculates the case-B hydrogen recombination rate for a gas at a certain
     temperature.
@@ -84,10 +83,10 @@ def hydrogen_recombination_rate(temperature):
     return alpha_rec
 
 
-# Hydrogen neutral-fraction profile
-def neutral_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
-                     mass_loss_rate, planet_mass, spectrum_at_planet,
-                     initial_state=np.array([1.0, 0.0])):
+# Fraction of ionized hydrogen vs. radius profile
+def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
+                 mass_loss_rate, planet_mass, spectrum_at_planet,
+                 initial_state=np.array([1.0, 0.0])):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
     function of the radius in unit of planetary radius.
@@ -144,21 +143,21 @@ def neutral_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
 
     # Hydrogen recombination rate in unit of rs ** 2 * vs
     alpha_rec_unit = (rs ** 2 * vs).to(u.cm ** 3 / u.s)
-    alpha_rec = (hydrogen_recombination_rate(temperature) /
+    alpha_rec = (recombination_rate(temperature) /
                  alpha_rec_unit).decompose().value
 
     # Hydrogen mass in unit of rhos * rs ** 3
-    m_H_unit = (rhos * rs ** 3).to(u.g)
-    m_H = (c.m_p / m_H_unit).decompose().value
+    m_h_unit = (rhos * rs ** 3).to(u.g)
+    m_h = (c.m_p / m_h_unit).decompose().value
 
     # Multiplicative factor of the second term in the right-hand side of Eq.
     # 13 of Oklopcic & Hirata 2018
-    k2 = h_he_fraction / (1 + (1 - h_he_fraction) * 4) * alpha_rec / m_H
+    k2 = h_he_fraction / (1 + (1 - h_he_fraction) * 4) * alpha_rec / m_h
 
     # Photoionization rate at null optical depth at the distance of the planet
     # from the host star, in unit of vs / rs
     phi_unit = (vs / rs).to(1 / u.s)
-    phi = (hydrogen_photoionization_rate(spectrum_at_planet) /
+    phi = (photoionization_rate(spectrum_at_planet) /
            phi_unit).decompose().value
 
     # Now let's solve the differential eq. 13 of Oklopcic & Hirata 2018
@@ -167,7 +166,7 @@ def neutral_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     r = (radius_profile * planet_radius / rs).decompose().value
     # We are going to integrate from outside inwards, so it is useful to define
     # a new variable called theta, which is simply 1 / r
-    theta = np.flip(1 / r)
+    _theta = np.flip(1 / r)
 
     # The differential equation
     def _fun(theta, y):
@@ -183,7 +182,8 @@ def neutral_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         return np.array([df_dtheta, dt_dtheta])
 
     # We solve it using `scipy.solve_ivp`
-    sol = solve_ivp(_fun, (theta[0], theta[-1],), initial_state, t_eval=theta)
+    sol = solve_ivp(_fun, (_theta[0], _theta[-1],), initial_state,
+                    t_eval=_theta)
 
     # Finally retrieve the neutral fraction and optical depth arrays. Since we
     # integrated f and tau from the outside, we have to flip them back to the

@@ -147,11 +147,10 @@ def make_spectrum_dict(filename, units, path='', skiprows=0):
     return spectrum
 
 
-# Approximate Roche radius around a planet in a star-planet system
+# Approximate Roche radius in a star-planet system
 def roche_radius(q_ratio, semi_major_axis):
     """
-    Calculate the approximate Roche radius around a planet in a star-planet
-    system.
+    Calculate the approximate Roche radius in a star-planet system.
 
     Parameters
     ----------
@@ -164,7 +163,7 @@ def roche_radius(q_ratio, semi_major_axis):
     Returns
     -------
     roche_r (``astropy.Quantity``):
-        Roche radius around the planet.
+        Roche radius.
     """
     try:
         q = q_ratio.decompose()

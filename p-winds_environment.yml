@@ -13,6 +13,7 @@ dependencies:
   - astroquery>=0.4
   - pytest>=6.2
   - sphinx>=3.4
+  - jupyter>=1.0
   - ipykernel
   - nbsphinx
   - numpydoc

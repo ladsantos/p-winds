@@ -6,5 +6,5 @@ p-winds API
    :caption: Modules:
 
    api/parker
-   api/ionization
+   api/hydrogen
    api/tools
