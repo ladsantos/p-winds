@@ -17,25 +17,36 @@ Remarks
 
 Installation
 ------------
-First, clone the repository:
+First, clone the repository and then navigate to it:
 ```angular2html
 git clone https://github.com/ladsantos/p-winds.git
-```
-And then navigate to it, and install it:
-```angular2html
 cd p-winds
+```
+(Optional, but recommended) Create the `p_env` environment and activate it:
+```angular2html
+conda env create -f p-winds_environment.yml
+conda activate p_env
+```
+And then compile it from source:
+```angular2html
 python setup.py install
 ```
 
 Quickstart
 ----------
-Check out a quickstart [Google Colab Notebook here](https://colab.research.google.com/drive/1mTh6_YEgCRl6DAKqnmRp2XMOW8CTCvm7?usp=sharing).
+Check out a quickstart [Google Colab Notebook here](https://colab.research.google.com/drive/1mTh6_YEgCRl6DAKqnmRp2XMOW8CTCvm7?usp=sharing). A similar quickstart Jupyter notebook is also available inside the `docs/source/` folder
 
 Future features being considered
 --------
+Planned for the alpha release:
 * Helium ionization steady-state
+  
+Planned for the beta release:
+* Packaging with `conda-forge`
 * Ray tracing to calculate transit depths
-* Hydrogen excitation distribution
+  
+Planned after main release:
+* Hydrogen excitation
 * Allow a non-isothemal temperature profile as input
 * Explicitly calculate cross-sections in function of wavelength instead of using a flux-averaged value
 * Explicitly calculate the mean molecular weight in function of radius instead of assuming an average value
