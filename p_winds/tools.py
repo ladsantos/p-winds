@@ -63,14 +63,15 @@ def fetch_planet_system(name):
 
     """
     try:
-        planet_table = NasaExoplanetArchive.query_planet(name)
+        planet_table = NasaExoplanetArchive.query_object(name)
     except NameError:
         raise RuntimeError('`astroquery` is necessary to run '
                            '`fetch_planet_system.`')
 
     planet_info = {'radius': planet_table['pl_radj'],
                    'mass': planet_table['pl_bmassj'],
-                   'semi_major_axis': planet_table['pl_orbsmax']}
+                   'semi_major_axis': planet_table['pl_orbsmax'],
+                   'period': planet_table['pl_orbper']}
     star_info = {'radius': planet_table['st_rad'],
                  'mass': planet_table['st_mass'],
                  'distance': planet_table['st_dist'],
