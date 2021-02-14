@@ -26,6 +26,9 @@ on the cloud (see `this Google Colaboratory quickstart notebook
 Otherwise, check out the :ref:`installation` guide, or the :ref:`quickstart`
 Jupyter Notebook.
 
+You can `contribute <https://github.com/ladsantos/p-winds>`_ to the project
+using GitHub.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
