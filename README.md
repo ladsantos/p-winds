@@ -36,17 +36,6 @@ Quickstart
 ----------
 Check out a quickstart [Google Colab Notebook here](https://colab.research.google.com/drive/1mTh6_YEgCRl6DAKqnmRp2XMOW8CTCvm7?usp=sharing). A similar quickstart Jupyter notebook is also available inside the `docs/source/` folder
 
-Future features being considered
+Future features and known problems
 --------
-Planned for the alpha release:
-* Helium ionization steady-state
-  
-Planned for the beta release:
-* Packaging with `conda-forge`
-* Ray tracing to calculate transit depths
-  
-Planned after main release:
-* Hydrogen excitation
-* Allow a non-isothemal temperature profile as input
-* Explicitly calculate cross-sections in function of wavelength instead of using a flux-averaged value
-* Explicitly calculate the mean molecular weight in function of radius instead of assuming an average value
+Check out the [open issues](https://github.com/ladsantos/p-winds/issues).
