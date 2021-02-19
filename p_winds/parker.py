@@ -9,6 +9,7 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 import astropy.constants as c
 import scipy.optimize as so
+from p_winds import tools
 
 
 __all__ = ["sound_speed", "radius_sonic_point", "density_sonic_point",
@@ -125,11 +126,27 @@ def structure(r):
             -2 * 1 / r_k + 3 / 2)
         return eq
 
-    try:
-        velocity_r = np.array([so.newton(_eq_to_solve, x0=1E-1, args=(rk,))
-                               for rk in r])
-    except TypeError:
+    # The transcendental equation above has many solutions. In order to converge
+    # to the physical solution for a planetary wind, we need to provide
+    # different first guesses depending if the radius at which we are evaluating
+    # the velocity is either above or below the sonic radius. If the radius is
+    # below, the first guess is 0.1. If the radius is above, the first guess
+    # is 2.0. This is a hacky solution, but it seems to work well.
+
+    if isinstance(r, np.ndarray):
+        # If r is a ``numpy.ndarray``, we do a dirty little hack to setup an
+        # array of first guesses `x0` whose values are 0.1 for r <= 1, and 2 if
+        # r > 1.
+        ind = tools.nearest_index(r, 1.0)  # Find the index where r == 1.0
+        x0_array = np.ones_like(r) * 0.1   # Setup the array of first guesses
+        x0_array[ind:] *= 20.0
+        velocity_r = np.array([so.newton(_eq_to_solve, x0=x0_array[k],
+                                         args=(r[k],)) for k in range(len(r))])
+    # If r is float, just do a simple if statement
+    elif r <= 1.0:
         velocity_r = so.newton(_eq_to_solve, x0=1E-1, args=(r,))
+    else:
+        velocity_r = so.newton(_eq_to_solve, x0=2.0, args=(r,))
 
     density_r = np.exp(2 * 1 / r - 3 / 2 - 0.5 * velocity_r ** 2)
 
