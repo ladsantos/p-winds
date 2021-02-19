@@ -16,7 +16,7 @@ __all__ = ["sound_speed", "radius_sonic_point", "density_sonic_point",
 
 
 # Speed of sound
-def sound_speed(temperature, h_he_fraction):
+def sound_speed(temperature, h_he_fraction, ion_fraction=0.0):
     """
     Speed of sound in an isothermal ideal gas. The input values must be
     ``astropy.Quantity``.
@@ -31,13 +31,19 @@ def sound_speed(temperature, h_he_fraction):
     h_he_fraction (``float``):
         Average H/He fraction of the upper atmosphere.
 
+    ion_fraction (``float``):
+        Average ionization fraction of the upper atmosphere.
+
     Returns
     -------
     sound_speed (``astropy.Quantity``):
         Sound speed in the gas.
     """
-    # H has one proton, He has 2 protons and 2 neutrons
-    mean_molecular_weight = c.m_p * (h_he_fraction + (1 - h_he_fraction) * 4)
+    # H has one proton and one electron
+    # He has 2 protons and 2 neutrons, and 2 electrons
+    he_h_fraction = 1 - h_he_fraction
+    mu = (1 + 4 * he_h_fraction) / (1 + he_h_fraction + ion_fraction)
+    mean_molecular_weight = c.m_p * mu
     return (c.k_B * temperature / mean_molecular_weight) ** 0.5
 
 
