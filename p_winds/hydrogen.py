@@ -46,7 +46,7 @@ def photoionization(spectrum_at_planet):
     # Wavelength corresponding to the energy to ionize H
     wl_break = (c.h * c.c / (13.6 * u.eV)).to(u.angstrom).value
 
-    # Index of the nu_0 in the frequency array
+    # Index of the lambda_0 in the wavelength array
     i_break = tools.nearest_index(wavelength, wl_break)
 
     # Auxiliary definitions
