@@ -14,11 +14,11 @@ from scipy.integrate import simps, solve_ivp
 from p_winds import parker, tools
 
 
-__all__ = ["photoionization_rate", "recombination_rate", "ion_fraction"]
+__all__ = ["photoionization", "recombination", "ion_fraction"]
 
 
 # Hydrogen photoionization rate
-def photoionization_rate(spectrum_at_planet):
+def photoionization(spectrum_at_planet):
     """
     Calculate the photoionization rate of hydrogen at null optical depth based
     on the EUV spectrum arriving at the planet.
@@ -32,8 +32,11 @@ def photoionization_rate(spectrum_at_planet):
 
     Returns
     -------
-    ionization_rate (``float``):
+    phi (``astropy.Quantity``):
         Ionization rate of hydrogen at null optical depth.
+
+    a_0 (``astropy.Quantity``):
+        Flux-averaged photoionization cross-section of hydrogen.
     """
     wavelength = (spectrum_at_planet['wavelength'] *
                   spectrum_at_planet['wavelength_unit']).to(u.angstrom).value
@@ -56,13 +59,17 @@ def photoionization_rate(spectrum_at_planet):
         (1 - np.exp(-2 * np.pi / epsilon)) *
         (wavelength_cut / wl_break) ** 4) * u.cm ** 2
 
+    # Flux-averaged photoionization cross-section
+    a_0 = simps(flux_lambda_cut * a_lambda, wavelength_cut) / \
+        simps(flux_lambda_cut, wavelength_cut) * u.cm ** 2
+
     # Finally calculate the photoionization rate
     phi = simps(flux_lambda_cut * a_lambda , wavelength_cut) / u.s
-    return phi
+    return phi, a_0
 
 
 # Case-B hydrogen recombination rate
-def recombination_rate(temperature):
+def recombination(temperature):
     """
     Calculates the case-B hydrogen recombination rate for a gas at a certain
     temperature.
@@ -76,7 +83,6 @@ def recombination_rate(temperature):
     -------
     alpha_rec (``astropy.Quantity``):
         Recombination rate of hydrogen.
-
     """
     alpha_rec = 2.59E-13 * (temperature.to(u.K).value / 1E4) ** (-0.7) * \
         u.cm ** 3 / u.s
@@ -147,22 +153,25 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
 
     # Hydrogen recombination rate in unit of rs ** 2 * vs
     alpha_rec_unit = (rs ** 2 * vs).to(u.cm ** 3 / u.s)
-    alpha_rec = (recombination_rate(temperature) /
-                 alpha_rec_unit).decompose().value
+    alpha_rec = (recombination(temperature) / alpha_rec_unit).decompose().value
 
     # Hydrogen mass in unit of rhos * rs ** 3
     m_h_unit = (rhos * rs ** 3).to(u.g)
     m_h = (c.m_p / m_h_unit).decompose().value
 
-    # Multiplicative factor of the second term in the right-hand side of Eq.
-    # 13 of Oklopcic & Hirata 2018
-    k2 = h_he_fraction / (1 + (1 - h_he_fraction) * 4) * alpha_rec / m_h
-
     # Photoionization rate at null optical depth at the distance of the planet
     # from the host star, in unit of vs / rs
     phi_unit = (vs / rs).to(1 / u.s)
-    phi = (photoionization_rate(spectrum_at_planet) /
-           phi_unit).decompose().value
+    phi, a_0 = photoionization(spectrum_at_planet)
+    phi = (phi / phi_unit).decompose().value
+    a_0 = (a_0 / rs ** 2).decompose().value
+
+    # Multiplicative factor of Eq. 11 of Oklopcic & Hirata 2018
+    k1 = h_he_fraction * a_0 / (1 + (1 - h_he_fraction) * 4) / m_h
+
+    # Multiplicative factor of the second term in the right-hand side of Eq.
+    # 13 of Oklopcic & Hirata 2018
+    k2 = h_he_fraction / (1 + (1 - h_he_fraction) * 4) * alpha_rec / m_h
 
     # Now let's solve the differential eq. 13 of Oklopcic & Hirata 2018
 
@@ -182,7 +191,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         term2 = k2 * rho * f ** 2 / velocity
         # The DE system is the following
         df_dtheta = term1 - term2
-        dt_dtheta = (1. - f) * rho
+        dt_dtheta = k1 * (1. - f) * rho
         return np.array([df_dtheta, dt_dtheta])
 
     # We solve it using `scipy.solve_ivp`
