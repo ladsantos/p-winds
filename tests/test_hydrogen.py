@@ -24,7 +24,7 @@ def test_ion_fraction(precision_threshold=1E-5):
     h_he = 0.9
     average_f_ion = 0.7
 
-    r = np.linspace(1, 15, 10)
+    r = np.linspace(1, 15, 500)
     f_r, tau_r = hydrogen.ion_fraction(r, R_pl, T_0, h_he, m_dot, M_pl,
                                        spectrum, average_f_ion)
     assert abs(f_r[-1] - 1.0) < precision_threshold
