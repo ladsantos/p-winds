@@ -86,7 +86,7 @@ def recombination_rate(temperature):
 # Fraction of ionized hydrogen vs. radius profile
 def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
                  mass_loss_rate, planet_mass, spectrum_at_planet,
-                 initial_state=np.array([1.0, 0.0])):
+                 average_ion_fraction=0.0, initial_state=np.array([1.0, 0.0])):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
     function of the radius in unit of planetary radius.
@@ -117,6 +117,9 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         hydrogen (13.6 eV, or 911.65 Angstrom). Can be generated using
         ``tools.make_spectrum_dict``.
 
+    average_ion_fraction (``float``):
+        Average ion fraction in the upper atmosphere.
+
     initial_state (``numpy.ndarray``, optional):
         The initial state is the `y0` of the differential equation to be solved.
         This array has two items: the initial value of `f_ion` (ionization
@@ -136,7 +139,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     # First calculate the sound speed, radius at the sonic point and the
     # density at the sonic point. They will be useful to change the units of
     # the calculation aiming to avoid numerical overflows
-    vs = parker.sound_speed(temperature, h_he_fraction).to(u.km / u.s)
+    vs = parker.sound_speed(temperature, h_he_fraction, average_ion_fraction
+                            ).to(u.km / u.s)
     rs = parker.radius_sonic_point(planet_mass, vs).to(u.jupiterRad)
     rhos = parker.density_sonic_point(mass_loss_rate, rs, vs).to(
         u.g / u.cm ** 3)
