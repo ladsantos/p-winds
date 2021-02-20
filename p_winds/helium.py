@@ -11,15 +11,15 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp
-from p_winds import parker, tools, hydrogen
+from p_winds import parker, tools
 
 
-__all__ = ["photoionization", "recombination", "collision",
+__all__ = ["radiative_processes", "recombination", "collision",
            "singlet_triplet_fraction"]
 
 
 # Helium photoionization
-def photoionization(spectrum_at_planet):
+def radiative_processes(spectrum_at_planet):
     """
     Calculate the photoionization rate of helium at null optical depth based
     on the EUV spectrum arriving at the planet.
@@ -29,7 +29,7 @@ def photoionization(spectrum_at_planet):
     spectrum_at_planet (``dict``):
         Spectrum of the host star arriving at the planet covering fluxes at
         least up to the wavelength corresponding to the energy to ionize
-        helium (4.8 eV, or 911.65 Angstrom).
+        helium (4.8 eV, or 2593 Angstrom).
 
     Returns
     -------
@@ -44,6 +44,14 @@ def photoionization(spectrum_at_planet):
 
     a_3 (``astropy.Quantity``):
         Flux-averaged photoionization cross-section of helium triplet.
+
+    a_h_1 (``astropy.Quantity``):
+        Flux-averaged photoionization cross-section of hydrogen in the range
+        absorbed by helium singlet.
+
+    a_h_3 (``astropy.Quantity``):
+        Flux-averaged photoionization cross-section of hydrogen in the range
+        absorbed by helium triplet.
     """
     wavelength = (spectrum_at_planet['wavelength'] *
                   spectrum_at_planet['wavelength_unit']).to(u.angstrom).value
@@ -53,29 +61,39 @@ def photoionization(spectrum_at_planet):
 
     # Wavelength corresponding to the energy to ionize He in singlet and triplet
     wl_break_1 = (c.h * c.c / (24.6 * u.eV)).to(u.angstrom).value
+    wl_break_0 = (c.h * c.c / (13.6 * u.eV)).to(u.angstrom).value  # For H
 
-    # Index of the lambda_1 and lambda_3 in the wavelength array
+    # Index of the lambda_1 and lambda_0 in the wavelength array
     i1 = tools.nearest_index(wavelength, wl_break_1)
+    i0 = tools.nearest_index(wavelength, wl_break_0)
 
     # Auxiliary definitions
     wavelength_cut_1 = wavelength[:i1 + 1]
     flux_lambda_cut_1 = flux_lambda[:i1 + 1]
     epsilon_1 = (wl_break_1 / wavelength_cut_1 - 1) ** 0.5
+    wavelength_cut_0 = wavelength[:i0 + 1]
+    flux_lambda_cut_0 = flux_lambda[:i0 + 1]
+    epsilon_0 = (wl_break_0 / wavelength_cut_0 - 1) ** 0.5
     i2 = tools.nearest_index(energy, 65.4)  # Threshold to excite He+ to n = 2
 
     # Photoionization cross-section of H in function of frequency (this is
     # important because the cross-section for He singlet can be derived from
     # that of H
-    a_lambda_h = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon_1)) / epsilon_1) /
-        (1 - np.exp(-2 * np.pi / epsilon_1)) *
-        (wavelength_cut_1 / wl_break_1) ** 4) * u.cm ** 2
+    def _a_lambda_h(wl_array, wl_break, epsilon):
+        a = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon)) / epsilon) /
+             (1 - np.exp(-2 * np.pi / epsilon)) *
+             (wl_array / wl_break) ** 4) * u.cm ** 2
+        return a
+
+    a_lambda_h_1 = _a_lambda_h(wavelength_cut_1, wl_break_1, epsilon_1)
+    a_lambda_h_3 = _a_lambda_h(wavelength_cut_0, wl_break_0, epsilon_0)
 
     # Photoionization cross-section of He singlet (some hard-coding here; the
     # numbers originate from the paper Brown 1971, ADS 1971ApJ...164..387B)
     scale = np.ones_like(wavelength_cut_1)
     scale[:i2] *= 37.0 - 19.1 * (energy[:i2] / 65.4) ** (-0.76)
     scale[i2:] *= 6.53 * (energy[i2:] / 24.6) - 0.22
-    a_lambda_1 = a_lambda_h * scale
+    a_lambda_1 = a_lambda_h_1 * scale
 
     # The photoionization cross-section of He triplet is hard-coded with the
     # values calculated by Norcross 1971 (ADS 1971JPhB....4..652N). The
@@ -90,17 +108,26 @@ def photoionization(spectrum_at_planet):
     # from Norcross 1971
     flux_lambda_cut_3 = np.interp(wavelength_cut_3, wavelength, flux_lambda)
 
-    # Flux-averaged photoionization cross-sections
-    # XXX TODO: Need to correct the cross-section due to absorption of flux by H
+    # Flux-averaged photoionization cross-sections of He
     a_1 = simps(flux_lambda_cut_1 * a_lambda_1, wavelength_cut_1) / \
         simps(flux_lambda_cut_1, wavelength_cut_1) * u.cm ** 2
     a_3 = simps(flux_lambda_cut_3 * a_lambda_3, wavelength_cut_3) / \
         simps(flux_lambda_cut_3, wavelength_cut_3) * u.cm ** 2
 
+    # The flux-averaged photoionization cross-section of H is also going to be
+    # needed because it adds to the optical depth that the He atoms see.
+    # Contribution to the optical depth seen by He singlet atoms:
+    a_h_1 = simps(flux_lambda_cut_1 * a_lambda_h_1, wavelength_cut_1) / \
+        simps(flux_lambda_cut_1, wavelength_cut_1) * u.cm ** 2
+    # Contribution to the optical depth seen by He triplet atoms:
+    a_h_3 = simps(flux_lambda_cut_0 * a_lambda_h_3, wavelength_cut_0) / \
+        simps(flux_lambda_cut_3, wavelength_cut_3) * u.cm ** 2
+
     # Calculate the photoionization rates
     phi_1 = simps(flux_lambda_cut_1 * a_lambda_1, wavelength_cut_1) / u.s
     phi_3 = simps(flux_lambda_cut_3 * a_lambda_3, wavelength_cut_3) / u.s
-    return phi_1, phi_3, a_1, a_3
+
+    return phi_1, phi_3, a_1, a_3, a_h_1, a_h_3
 
 
 # Helium recombination
@@ -157,10 +184,10 @@ def collision(temperature):
         with free electrons.
 
     big_q_he (``astropy.Quantity``):
-        Rate of charge exchange between ionized helium and atomic hydrogen.
+        Rate of charge exchange between helium singlet and ionized hydrogen.
 
     big_q_he_plus (``astropy.Quantity``):
-        Rate of charge exchange between helium singlet and ionized hydrogen.
+        Rate of charge exchange between ionized helium and atomic hydrogen.
     """
     # The effective collision strengths are hard-coded from the values provided
     # by Bray et al. (2000, ADS:2000A&AS..146..481B), which are binned to
@@ -202,7 +229,7 @@ def collision(temperature):
 def singlet_triplet_fraction(radius_profile, planet_radius, temperature,
                              h_he_fraction, mass_loss_rate, planet_mass,
                              spectrum_at_planet, hydrogen_ion_fraction,
-                             initial_state=np.array([1.0, 1.0, 0.0, 0.0])):
+                             initial_state=np.array([0.5, 0.5, 0.0, 0.0])):
     """
 
     Parameters
@@ -239,14 +266,23 @@ def singlet_triplet_fraction(radius_profile, planet_radius, temperature,
     m_h_unit = (rhos * rs ** 3).to(u.g)
     m_h = (c.m_p / m_h_unit).decompose().value
 
+    # XXX Things start to get very complicated from here, so brace yourself.
+    # There are lots of variables to keep track of, since the population of the
+    # helium triplet and singlet depend on many processes, including whatever
+    # happens with hydrogen as well.
+
     # Photoionization rates at null optical depth at the distance of the planet
-    # from the host star, in unit of vs / rs
+    # from the host star, in unit of vs / rs, and the flux-averaged
+    # cross-sections in units of rs ** 2
     phi_unit = (vs / rs).to(1 / u.s)
-    phi_1, phi_3, a_1, a_3 = photoionization(spectrum_at_planet)
+    phi_1, phi_3, a_1, a_3, a_h_1, a_h_3 = radiative_processes(
+        spectrum_at_planet)
     phi_1 = (phi_1 / phi_unit).decompose().value
     phi_3 = (phi_3 / phi_unit).decompose().value
     a_1 = (a_1 / rs ** 2).decompose().value
     a_3 = (a_3 / rs ** 2).decompose().value
+    a_h_1 = (a_h_1 / rs ** 2).decompose().value
+    a_h_3 = (a_h_3 / rs ** 2).decompose().value
 
     # Collision-induced transition rates for helium triplet and singlet, in the
     # same unit as the recombination rates
@@ -311,9 +347,10 @@ def singlet_triplet_fraction(radius_profile, planet_radius, temperature,
                       - term_17) / velocity
 
         # The other two differential equations in our system are the gradients
-        # of the optical depth with 1 / radius
-        dt1_dtheta = a_1 * n_he * f_1
-        dt3_dtheta = a_3 * n_he * f_3
+        # of the optical depth with 1 / radius, with the contribution of the
+        # optical depth of H as well
+        dt1_dtheta = a_1 * n_he * f_1 + a_h_1 * n_h0
+        dt3_dtheta = a_3 * n_he * f_3 + a_h_3 * n_h0
 
         return np.array([df1_dtheta, df3_dtheta, dt1_dtheta, dt3_dtheta])
 

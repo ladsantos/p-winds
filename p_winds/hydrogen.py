@@ -14,11 +14,11 @@ from scipy.integrate import simps, solve_ivp
 from p_winds import parker, tools
 
 
-__all__ = ["photoionization", "recombination", "ion_fraction"]
+__all__ = ["radiative_processes", "recombination", "ion_fraction"]
 
 
 # Hydrogen photoionization
-def photoionization(spectrum_at_planet):
+def radiative_processes(spectrum_at_planet):
     """
     Calculate the photoionization rate of hydrogen at null optical depth based
     on the EUV spectrum arriving at the planet.
@@ -57,7 +57,7 @@ def photoionization(spectrum_at_planet):
     # Photoionization cross-section in function of frequency
     a_lambda = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon)) / epsilon) /
         (1 - np.exp(-2 * np.pi / epsilon)) *
-        (wavelength_cut / wl_break) ** 4) * u.cm ** 2
+        (wavelength_cut / wl_break) ** 4)
 
     # Flux-averaged photoionization cross-section
     a_0 = simps(flux_lambda_cut * a_lambda, wavelength_cut) / \
@@ -162,7 +162,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     # Photoionization rate at null optical depth at the distance of the planet
     # from the host star, in unit of vs / rs
     phi_unit = (vs / rs).to(1 / u.s)
-    phi, a_0 = photoionization(spectrum_at_planet)
+    phi, a_0 = radiative_processes(spectrum_at_planet)
     phi = (phi / phi_unit).decompose().value
     a_0 = (a_0 / rs ** 2).decompose().value
 
