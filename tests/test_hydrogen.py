@@ -13,8 +13,8 @@ from p_winds import hydrogen, tools
 def test_ion_fraction(precision_threshold=1E-5):
     units = {'wavelength': u.angstrom, 'flux': u.erg / u.s / u.cm ** 2 /
                                                u.angstrom}
-    spectrum = tools.make_spectrum_dict('../data/HD209458b_spectrum_lambda.dat',
-                                        units)
+    spectrum = tools.make_spectrum_dict(
+        '../data/solar_spectrum_scaled_lambda.dat', units)
 
     # HD 209458 b
     R_pl = 1.39 * u.jupiterRad

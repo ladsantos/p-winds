@@ -68,11 +68,11 @@ def radiative_processes(spectrum_at_planet):
     i0 = tools.nearest_index(wavelength, wl_break_0)
 
     # Auxiliary definitions
-    wavelength_cut_1 = wavelength[:i1 + 1]
-    flux_lambda_cut_1 = flux_lambda[:i1 + 1]
+    wavelength_cut_1 = wavelength[:i1]
+    flux_lambda_cut_1 = flux_lambda[:i1]
     epsilon_1 = (wl_break_1 / wavelength_cut_1 - 1) ** 0.5
-    wavelength_cut_0 = wavelength[:i0 + 1]
-    flux_lambda_cut_0 = flux_lambda[:i0 + 1]
+    wavelength_cut_0 = wavelength[:i0]
+    flux_lambda_cut_0 = flux_lambda[:i0]
     epsilon_0 = (wl_break_0 / wavelength_cut_0 - 1) ** 0.5
     i2 = tools.nearest_index(energy, 65.4)  # Threshold to excite He+ to n = 2
 
@@ -91,8 +91,9 @@ def radiative_processes(spectrum_at_planet):
     # Photoionization cross-section of He singlet (some hard-coding here; the
     # numbers originate from the paper Brown 1971, ADS 1971ApJ...164..387B)
     scale = np.ones_like(wavelength_cut_1)
-    scale[:i2] *= 37.0 - 19.1 * (energy[:i2] / 65.4) ** (-0.76)
-    scale[i2:] *= 6.53 * (energy[i2:] / 24.6) - 0.22
+    scale *= 37.0 - 19.1 * (energy[:i1] / 65.4) ** (-0.76)
+    # Clip negative values of scale
+    scale[scale < 0] = 0.0
     a_lambda_1 = a_lambda_h_1 * scale
 
     # The photoionization cross-section of He triplet is hard-coded with the
@@ -100,9 +101,9 @@ def radiative_processes(spectrum_at_planet):
     # differential oscillator strength is calculated for bins of wavelength that
     # are not necessarily the same as the stellar spectrum wavelength bins.
     data_path = '../data/He_2_3_S_diff_osc_strength.dat'
-    wavelength_cut_3 = np.loadtxt(data_path, skiprows=1, usecols=(0,))
-    differential_oscillator_strength = np.loadtxt(data_path, skiprows=1,
-                                                  usecols=(1,))
+    wavelength_cut_3 = np.flip(np.loadtxt(data_path, skiprows=1, usecols=(0,)))
+    differential_oscillator_strength = np.flip(np.loadtxt(data_path, skiprows=1,
+                                               usecols=(1,)))
     a_lambda_3 = 8.0670E-18 * differential_oscillator_strength
     # Let's interpolate the stellar spectrum to the bins of the cross-section
     # from Norcross 1971
