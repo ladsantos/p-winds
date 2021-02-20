@@ -14,7 +14,8 @@ from scipy.integrate import simps, solve_ivp
 from p_winds import parker, tools, hydrogen
 
 
-__all__ = ["photoionization", "recombination", "collision", "ion_fraction"]
+__all__ = ["photoionization", "recombination", "collision",
+           "singlet_triplet_fraction"]
 
 
 # Helium photoionization
@@ -90,6 +91,7 @@ def photoionization(spectrum_at_planet):
     flux_lambda_cut_3 = np.interp(wavelength_cut_3, wavelength, flux_lambda)
 
     # Flux-averaged photoionization cross-sections
+    # XXX TODO: Need to correct the cross-section due to absorption of flux by H
     a_1 = simps(flux_lambda_cut_1 * a_lambda_1, wavelength_cut_1) / \
         simps(flux_lambda_cut_1, wavelength_cut_1) * u.cm ** 2
     a_3 = simps(flux_lambda_cut_3 * a_lambda_3, wavelength_cut_3) / \
@@ -196,11 +198,11 @@ def collision(temperature):
     return q_13, q_31a, q_31b, big_q_he, big_q_he_plus
 
 
-# Fraction of ionized helium singlet and triplet vs. radius profile
-def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
-                 mass_loss_rate, planet_mass, spectrum_at_planet,
-                 hydrogen_ion_fraction,
-                 initial_state=np.array([1.0, 1.0, 0.0, 0.0])):
+# Fraction of helium in singlet and triplet vs. radius profile
+def singlet_triplet_fraction(radius_profile, planet_radius, temperature,
+                             h_he_fraction, mass_loss_rate, planet_mass,
+                             spectrum_at_planet, hydrogen_ion_fraction,
+                             initial_state=np.array([1.0, 1.0, 0.0, 0.0])):
     """
 
     Parameters
@@ -270,8 +272,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
 
     # The differential equation
     def _fun(theta, y):
-        f_1 = y[0]  # Fraction of ionized helium singlet
-        f_3 = y[1]  # Fraction of ionized helium triplet
+        f_1 = y[0]  # Fraction of helium in singlet
+        f_3 = y[1]  # Fraction of helium in triplet
         t_1 = y[2]  # Optical depth for helium singlet
         t_3 = y[3]  # Optical depth for helium triplet
         velocity, rho = parker.structure(1 / theta)
@@ -310,8 +312,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
 
         # The other two differential equations in our system are the gradients
         # of the optical depth with 1 / radius
-        dt1_dtheta = a_1 * n_he * (1.0 - f_1)
-        dt3_dtheta = a_3 * n_he * (1.0 - f_3)
+        dt1_dtheta = a_1 * n_he * f_1
+        dt3_dtheta = a_3 * n_he * f_3
 
         return np.array([df1_dtheta, df3_dtheta, dt1_dtheta, dt3_dtheta])
 
