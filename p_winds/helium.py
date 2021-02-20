@@ -186,20 +186,145 @@ def collision(temperature):
     # al. (2020).
     kt = c.k_B.to(u.eV / u.K).value * temperature
     k1 = 2.10E-8 * (13.6 / kt) ** 0.5
-    q_13 = k1 * gamma_13 * np.exp(-19.81 / kt) / u.s
-    q_31a = k1 * gamma_31a / 3 * np.exp(-0.80 / kt) / u.s
-    q_31b = k1 * gamma_31b / 3 * np.exp(-1.40 / kt) / u.s
+    q_13 = k1 * gamma_13 * np.exp(-19.81 / kt) * u.cm ** 3 / u.s
+    q_31a = k1 * gamma_31a / 3 * np.exp(-0.80 / kt) * u.cm ** 3 / u.s
+    q_31b = k1 * gamma_31b / 3 * np.exp(-1.40 / kt) * u.cm ** 3 / u.s
     big_q_he = 1.75E-11 * (300 / temperature) ** 0.75 * \
-        np.exp(-128E3 / temperature) / u.s
-    big_q_he_plus = 1.25E-15 * (300 / temperature) ** (-0.25)
+        np.exp(-128E3 / temperature) * u.cm ** 3 / u.s
+    big_q_he_plus = 1.25E-15 * (300 / temperature) ** (-0.25) * u.cm ** 3 / u.s
 
     return q_13, q_31a, q_31b, big_q_he, big_q_he_plus
 
 
 # Fraction of ionized helium singlet and triplet vs. radius profile
-def ion_fraction():
+def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
+                 mass_loss_rate, planet_mass, spectrum_at_planet,
+                 hydrogen_ion_fraction,
+                 initial_state=np.array([1.0, 1.0, 0.0, 0.0])):
+    """
+
+    Parameters
+    ----------
+    radius_profile
+    planet_radius
+    temperature
+    h_he_fraction
+    mass_loss_rate
+    planet_mass
+    spectrum_at_planet
+    hydrogen_ion_fraction
+    initial_state
+
+    Returns
+    -------
+
+    """
+    # Calculate sound speed, radius and density at the sonic point
+    average_ion_fraction = np.mean(hydrogen_ion_fraction)
+    vs = parker.sound_speed(temperature, h_he_fraction, average_ion_fraction
+                            ).to(u.km / u.s)
+    rs = parker.radius_sonic_point(planet_mass, vs).to(u.jupiterRad)
+    rhos = parker.density_sonic_point(mass_loss_rate, rs, vs).to(
+        u.g / u.cm ** 3)
+
+    # Recombination rates of helium singlet and triplet in unit of rs ** 2 * vs
+    alpha_rec_unit = (rs ** 2 * vs).to(u.cm ** 3 / u.s)
+    alpha_rec_1, alpha_rec_3 = recombination(temperature)
+    alpha_rec_1 = (alpha_rec_1 / alpha_rec_unit).decompose().value
+    alpha_rec_3 = (alpha_rec_3 / alpha_rec_unit).decompose().value
+
+    # Hydrogen mass in unit of rhos * rs ** 3
+    m_h_unit = (rhos * rs ** 3).to(u.g)
+    m_h = (c.m_p / m_h_unit).decompose().value
+
+    # Photoionization rates at null optical depth at the distance of the planet
+    # from the host star, in unit of vs / rs
+    phi_unit = (vs / rs).to(1 / u.s)
+    phi_1, phi_3, a_1, a_3 = photoionization(spectrum_at_planet)
+    phi_1 = (phi_1 / phi_unit).decompose().value
+    phi_3 = (phi_3 / phi_unit).decompose().value
+    a_1 = (a_1 / rs ** 2).decompose().value
+    a_3 = (a_3 / rs ** 2).decompose().value
+
+    # Collision-induced transition rates for helium triplet and singlet, in the
+    # same unit as the recombination rates
+    q_13, q_31a, q_31b, big_q_he, big_q_he_plus = collision(temperature)
+    q_13 = (q_13 / alpha_rec_unit).decompose().value
+    q_31a = (q_31a / alpha_rec_unit).decompose().value
+    q_31b = (q_31b / alpha_rec_unit).decompose().value
+    big_q_he = (big_q_he / alpha_rec_unit).decompose().value
+    big_q_he_plus = (big_q_he_plus / alpha_rec_unit).decompose().value
+
     # Some hard-coding here. The numbers come from Oklopcic & Hirata (2018) and
     # Lampón et al. (2020).
-    big_q_31 = 5E-10 / u.s
-    big_a_31 = 1.272E-4 / u.s
-    pass
+    big_q_31 = (5E-10 * u.cm ** 3 / u.s / alpha_rec_unit).decompose().value
+    big_a_31 = (1.272E-4 * u.cm ** 3 / u.s / alpha_rec_unit).decompose().value
+
+    # Now let's solve the differential eq. 15 of Oklopcic & Hirata 2018
+
+    # The radius in unit of radius at the sonic point
+    r = (radius_profile * planet_radius / rs).decompose().value
+    # We are going to integrate from outside inwards, so it is useful to define
+    # a new variable called theta, which is simply 1 / r
+    _theta = np.flip(1 / r)
+
+    # The differential equation
+    def _fun(theta, y):
+        f_1 = y[0]  # Fraction of ionized helium singlet
+        f_3 = y[1]  # Fraction of ionized helium triplet
+        t_1 = y[2]  # Optical depth for helium singlet
+        t_3 = y[3]  # Optical depth for helium triplet
+        velocity, rho = parker.structure(1 / theta)
+
+        # Assume the number density of electrons is equal to the number density
+        # of H ions
+        k1 = h_he_fraction / (h_he_fraction + 4 * (1 - h_he_fraction)) / m_h
+        n_e = k1 * rho * hydrogen_ion_fraction
+        n_h_plus = k1 * rho * hydrogen_ion_fraction
+        n_h0 = k1 * rho * (1 - hydrogen_ion_fraction)
+        n_he = k1 * rho * h_he_fraction  # Number density of helium nuclei
+
+        # Terms of df1_dr
+        term_11 = (1 - f_1 - f_3) * n_e * alpha_rec_1  # Recombination
+        term_12 = f_3 * big_a_31  # Radiative transition rate
+        term_13 = f_1 * phi_1 * np.exp(-t_1)  # Photoionization
+        term_14 = f_1 * n_e * q_13  # Transition rate due to collision with e
+        term_15 = f_3 * n_e * q_31a  # Transition rate due to collision with e
+        term_16 = f_3 * n_e * q_31b  # Transition rate due to collision with e
+        term_17 = f_3 * n_h0 * big_q_31  # Combined rate of associative
+                                         # ionization and Penning ionization
+        term_18 = f_1 * n_h_plus * big_q_he  # Charge exchange consuming He
+                                             # singlet
+        term_19 = f_1 * n_h0 * big_q_he_plus  # Charge exchange producing He
+                                              # singlet
+
+        # Terms of df3_dr
+        term_31 = (1 - f_1 - f_3) * n_e * alpha_rec_3  # Recombination
+        term_33 = f_3 * phi_3 * np.exp(-t_3)  # Photoionization
+
+        # Finally assemble the equations for df3_dtheta and df3_dtheta
+        df1_dtheta = (term_11 + term_12 - term_13 - term_14 + term_15 + term_16
+                      + term_17 - term_18 + term_19) / velocity
+        df3_dtheta = (term_31 - term_12 - term_33 + term_14 - term_15 - term_16
+                      - term_17) / velocity
+
+        # The other two differential equations in our system are the gradients
+        # of the optical depth with 1 / radius
+        dt1_dtheta = a_1 * n_he * (1.0 - f_1)
+        dt3_dtheta = a_3 * n_he * (1.0 - f_3)
+
+        return np.array([df1_dtheta, df3_dtheta, dt1_dtheta, dt3_dtheta])
+
+    # We solve it using `scipy.solve_ivp`
+    sol = solve_ivp(_fun, (_theta[0], _theta[-1],), initial_state,
+                    t_eval=_theta)
+
+    # Finally retrieve the ion fraction and optical depth arrays. Since we
+    # integrated f and tau from the outside, we have to flip them back to the
+    # same order as the radius variable
+    f_1_r = np.flip(sol['y'][0])
+    f_3_r = np.flip(sol['y'][1])
+    tau_1_r = np.flip(sol['y'][2])
+    tau_3_r = np.flip(sol['y'][3])
+
+    return f_1_r, f_3_r, tau_1_r, tau_3_r

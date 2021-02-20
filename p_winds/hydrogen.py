@@ -198,7 +198,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     sol = solve_ivp(_fun, (_theta[0], _theta[-1],), initial_state,
                     t_eval=_theta)
 
-    # Finally retrieve the neutral fraction and optical depth arrays. Since we
+    # Finally retrieve the ion fraction and optical depth arrays. Since we
     # integrated f and tau from the outside, we have to flip them back to the
     # same order as the radius variable
     f_r = np.flip(sol['y'][0])
