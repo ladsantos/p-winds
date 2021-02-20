@@ -11,6 +11,7 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp
+from scipy.interpolate import interp1d
 from p_winds import parker, tools
 
 
@@ -230,7 +231,7 @@ def collision(temperature):
 def singlet_triplet_fraction(radius_profile, planet_radius, temperature,
                              h_he_fraction, mass_loss_rate, planet_mass,
                              spectrum_at_planet, hydrogen_ion_fraction,
-                             initial_state=np.array([0.5, 0.5, 0.0, 0.0])):
+                             initial_state=np.array([0.1, 0.1, 0.0, 0.0])):
     """
 
     Parameters
@@ -307,6 +308,13 @@ def singlet_triplet_fraction(radius_profile, planet_radius, temperature,
     # a new variable called theta, which is simply 1 / r
     _theta = np.flip(1 / r)
 
+    # The way we solve the differential equation requires us to pass the H ion
+    # fraction at specific values of theta (or r), and it can be cumbersome to
+    # parse this inside the callable function _fun(). Instead, let's create
+    # a "mock function" that returns the value of f_H_ion in function
+    # of theta (essentially a scipy.interp1d function)
+    mock_f_h_ion = interp1d(_theta, hydrogen_ion_fraction)
+
     # The differential equation
     def _fun(theta, y):
         f_1 = y[0]  # Fraction of helium in singlet
@@ -314,13 +322,14 @@ def singlet_triplet_fraction(radius_profile, planet_radius, temperature,
         t_1 = y[2]  # Optical depth for helium singlet
         t_3 = y[3]  # Optical depth for helium triplet
         velocity, rho = parker.structure(1 / theta)
+        f_h_ion = mock_f_h_ion(np.array([theta, ]))[0]
 
         # Assume the number density of electrons is equal to the number density
         # of H ions
         k1 = h_he_fraction / (h_he_fraction + 4 * (1 - h_he_fraction)) / m_h
-        n_e = k1 * rho * hydrogen_ion_fraction
-        n_h_plus = k1 * rho * hydrogen_ion_fraction
-        n_h0 = k1 * rho * (1 - hydrogen_ion_fraction)
+        n_e = k1 * rho * f_h_ion
+        n_h_plus = k1 * rho * f_h_ion
+        n_h0 = k1 * rho * (1 - f_h_ion)
         n_he = k1 * rho * h_he_fraction  # Number density of helium nuclei
 
         # Terms of df1_dr
