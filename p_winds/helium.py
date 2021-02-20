@@ -12,7 +12,7 @@ import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp
 from scipy.interpolate import interp1d
-from p_winds import parker, tools
+from p_winds import parker, tools, data
 
 
 __all__ = ["radiative_processes", "recombination", "collision",
@@ -75,7 +75,6 @@ def radiative_processes(spectrum_at_planet):
     wavelength_cut_0 = wavelength[:i0]
     flux_lambda_cut_0 = flux_lambda[:i0]
     epsilon_0 = (wl_break_0 / wavelength_cut_0 - 1) ** 0.5
-    i2 = tools.nearest_index(energy, 65.4)  # Threshold to excite He+ to n = 2
 
     # Photoionization cross-section of H in function of frequency (this is
     # important because the cross-section for He singlet can be derived from
@@ -101,10 +100,9 @@ def radiative_processes(spectrum_at_planet):
     # values calculated by Norcross 1971 (ADS 1971JPhB....4..652N). The
     # differential oscillator strength is calculated for bins of wavelength that
     # are not necessarily the same as the stellar spectrum wavelength bins.
-    data_path = '../data/He_2_3_S_diff_osc_strength.dat'
-    wavelength_cut_3 = np.flip(np.loadtxt(data_path, skiprows=1, usecols=(0,)))
-    differential_oscillator_strength = np.flip(np.loadtxt(data_path, skiprows=1,
-                                               usecols=(1,)))
+    data_array = data.he_2_3_s_oscillator_strength()
+    wavelength_cut_3 = np.flip(data_array[:, 0])
+    differential_oscillator_strength = np.flip(data_array[:, 1])
     a_lambda_3 = 8.0670E-18 * differential_oscillator_strength
     # Let's interpolate the stellar spectrum to the bins of the cross-section
     # from Norcross 1971
@@ -197,11 +195,11 @@ def collision(temperature):
     # temperature of our gas.
     temperature = temperature.to(u.K).value
     # Parse the tabulated data
-    data_path = '../data/He_collisional_strengths.dat'
-    tabulated_temp = 10 ** np.loadtxt(data_path, skiprows=1, usecols=(0,))
-    tabulated_gamma_13 = np.loadtxt(data_path, skiprows=1, usecols=(1,))
-    tabulated_gamma_31a = np.loadtxt(data_path, skiprows=1, usecols=(2,))
-    tabulated_gamma_31b = np.loadtxt(data_path, skiprows=1, usecols=(3,))
+    data_array = data.he_collisional_strength()
+    tabulated_temp = 10 ** data_array[:, 0]
+    tabulated_gamma_13 = data_array[:, 1]
+    tabulated_gamma_31a = data_array[:, 2]
+    tabulated_gamma_31b = data_array[:, 3]
     # And interpolate to our desired temperature
     gamma_13 = np.interp(temperature, tabulated_temp, tabulated_gamma_13,
                          left=tabulated_gamma_13[0],
@@ -359,6 +357,7 @@ def singlet_triplet_fraction(radius_profile, planet_radius, temperature,
         # The other two differential equations in our system are the gradients
         # of the optical depth with 1 / radius, with the contribution of the
         # optical depth of H as well
+        # XXX TODO: I think there is a problem with the optical depth
         dt1_dtheta = a_1 * n_he * f_1 + a_h_1 * n_h0
         dt3_dtheta = a_3 * n_he * f_3 + a_h_3 * n_h0
 
