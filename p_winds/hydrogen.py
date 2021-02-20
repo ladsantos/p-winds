@@ -17,7 +17,7 @@ from p_winds import parker, tools
 __all__ = ["photoionization", "recombination", "ion_fraction"]
 
 
-# Hydrogen photoionization rate
+# Hydrogen photoionization
 def photoionization(spectrum_at_planet):
     """
     Calculate the photoionization rate of hydrogen at null optical depth based
@@ -64,11 +64,11 @@ def photoionization(spectrum_at_planet):
         simps(flux_lambda_cut, wavelength_cut) * u.cm ** 2
 
     # Finally calculate the photoionization rate
-    phi = simps(flux_lambda_cut * a_lambda , wavelength_cut) / u.s
+    phi = simps(flux_lambda_cut * a_lambda, wavelength_cut) / u.s
     return phi, a_0
 
 
-# Case-B hydrogen recombination rate
+# Case-B hydrogen recombination
 def recombination(temperature):
     """
     Calculates the case-B hydrogen recombination rate for a gas at a certain
