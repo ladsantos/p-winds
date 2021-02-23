@@ -229,7 +229,7 @@ def collision(temperature):
 def singlet_triplet_fraction(radius_profile, planet_radius, temperature,
                              h_he_fraction, mass_loss_rate, planet_mass,
                              spectrum_at_planet, hydrogen_ion_fraction,
-                             initial_state=np.array([0.1, 0.1, 0.0, 0.0])):
+                             initial_state=np.array([0.5, 0.0, 0.0, 0.0])):
     """
 
     Parameters
@@ -301,34 +301,33 @@ def singlet_triplet_fraction(radius_profile, planet_radius, temperature,
     # Now let's solve the differential eq. 15 of Oklopcic & Hirata 2018
 
     # The radius in unit of radius at the sonic point
-    r = (radius_profile * planet_radius / rs).decompose().value
-    # We are going to integrate from outside inwards, so it is useful to define
-    # a new variable called theta, which is simply 1 / r
-    _theta = np.flip(1 / r)
+    _r = (radius_profile * planet_radius / rs).decompose().value
 
     # The way we solve the differential equation requires us to pass the H ion
-    # fraction at specific values of theta (or r), and it can be cumbersome to
-    # parse this inside the callable function _fun(). Instead, let's create
-    # a "mock function" that returns the value of f_H_ion in function
-    # of theta (essentially a scipy.interp1d function)
-    mock_f_h_ion = interp1d(_theta, hydrogen_ion_fraction)
+    # fraction at specific values of r, and it can be cumbersome to  parse this
+    # inside the callable function _fun(). Instead, let's create a "mock
+    # function" that returns the value of f_H_ion in function of r (essentially
+    # a scipy.interp1d function)
+    mock_f_h_ion = interp1d(_r, hydrogen_ion_fraction)
 
     # The differential equation
-    def _fun(theta, y):
+    def _fun(r, y):
         f_1 = y[0]  # Fraction of helium in singlet
         f_3 = y[1]  # Fraction of helium in triplet
         t_1 = y[2]  # Optical depth for helium singlet
         t_3 = y[3]  # Optical depth for helium triplet
-        velocity, rho = parker.structure(1 / theta)
-        f_h_ion = mock_f_h_ion(np.array([theta, ]))[0]
+        velocity, rho = parker.structure(r)
+        f_h_ion = mock_f_h_ion(np.array([r, ]))[0]  # Fraction of H ions
 
         # Assume the number density of electrons is equal to the number density
         # of H ions
         k1 = h_he_fraction / (h_he_fraction + 4 * (1 - h_he_fraction)) / m_h
-        n_e = k1 * rho * f_h_ion
-        n_h_plus = k1 * rho * f_h_ion
-        n_h0 = k1 * rho * (1 - f_h_ion)
-        n_he = k1 * rho * h_he_fraction  # Number density of helium nuclei
+        k2 = (1 - h_he_fraction) / (h_he_fraction + 4 * (1 - h_he_fraction)) / \
+            m_h
+        n_e = k1 * rho * f_h_ion         # Number density of electrons
+        n_h_plus = k1 * rho * f_h_ion    # Number density of ionized H
+        n_h0 = k1 * rho * (1 - f_h_ion)  # Number density of atomic H
+        n_he = k2 * rho * h_he_fraction  # Number density of helium nuclei
 
         # Terms of df1_dr
         term_11 = (1 - f_1 - f_3) * n_e * alpha_rec_1  # Recombination
@@ -349,30 +348,32 @@ def singlet_triplet_fraction(radius_profile, planet_radius, temperature,
         term_33 = f_3 * phi_3 * np.exp(-t_3)  # Photoionization
 
         # Finally assemble the equations for df3_dtheta and df3_dtheta
-        df1_dtheta = (term_11 + term_12 - term_13 - term_14 + term_15 + term_16
-                      + term_17 - term_18 + term_19) / velocity
-        df3_dtheta = (term_31 - term_12 - term_33 + term_14 - term_15 - term_16
-                      - term_17) / velocity
+        df1_dr = (term_11 + term_12 - term_13 - term_14 + term_15 + term_16
+                  + term_17 - term_18 + term_19) / velocity
+        df3_dr = (term_31 - term_12 - term_33 + term_14 - term_15 - term_16
+                  - term_17) / velocity
 
         # The other two differential equations in our system are the gradients
         # of the optical depth with 1 / radius, with the contribution of the
         # optical depth of H as well
-        # XXX TODO: I think there is a problem with the optical depth
-        dt1_dtheta = a_1 * n_he * f_1 + a_h_1 * n_h0
-        dt3_dtheta = a_3 * n_he * f_3 + a_h_3 * n_h0
+        dt1_dr = a_1 * n_he * f_1 + a_h_1 * n_h0
+        dt3_dr = a_3 * n_he * f_3 + a_h_3 * n_h0
 
-        return np.array([df1_dtheta, df3_dtheta, dt1_dtheta, dt3_dtheta])
+        return np.array([df1_dr, df3_dr, dt1_dr, dt3_dr])
 
     # We solve it using `scipy.solve_ivp`
-    sol = solve_ivp(_fun, (_theta[0], _theta[-1],), initial_state,
-                    t_eval=_theta)
+    sol = solve_ivp(_fun, (_r[0], _r[-1],), initial_state,
+                    t_eval=_r, method='Radau', dense_output=False,
+                    rtol=1E-5, atol=1E-8)
 
     # Finally retrieve the ion fraction and optical depth arrays. Since we
     # integrated f and tau from the outside, we have to flip them back to the
     # same order as the radius variable
-    f_1_r = np.flip(sol['y'][0])
-    f_3_r = np.flip(sol['y'][1])
-    tau_1_r = np.flip(sol['y'][2])
-    tau_3_r = np.flip(sol['y'][3])
+    f_1_r = sol['y'][0]
+    f_3_r = sol['y'][1]
+    f_ion = 1 - f_1_r - f_3_r
+    tau_1_r = sol['y'][2]
+    tau_3_r = sol['y'][3]
 
-    return f_1_r, f_3_r, tau_1_r, tau_3_r
+    return f_1_r, f_3_r, f_ion, tau_1_r, tau_3_r
+
