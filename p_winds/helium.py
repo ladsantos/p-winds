@@ -16,7 +16,7 @@ from p_winds import parker, tools, data
 
 
 __all__ = ["radiative_processes", "recombination", "collision",
-           "singlet_triplet_fraction"]
+           "population_fraction"]
 
 
 # Helium photoionization
@@ -226,27 +226,75 @@ def collision(temperature):
 
 
 # Fraction of helium in singlet and triplet vs. radius profile
-def singlet_triplet_fraction(radius_profile, planet_radius, temperature,
-                             h_he_fraction, mass_loss_rate, planet_mass,
-                             spectrum_at_planet, hydrogen_ion_fraction,
-                             initial_state=np.array([0.5, 0.0, 0.0, 0.0])):
+def population_fraction(radius_profile, planet_radius, temperature,
+                        h_he_fraction, mass_loss_rate, planet_mass,
+                        spectrum_at_planet, hydrogen_ion_fraction,
+                        initial_state=np.array([0.5, 0.0, 0.0, 0.0]),
+                        **options_solve_ivp):
     """
+    Calculate the fraction of helium in singlet and triplet state in the upper
+    atmosphere in function of the radius in unit of planetary radius. The solver
+    is already set to the method ``'Radau'``.
 
     Parameters
     ----------
-    radius_profile
-    planet_radius
-    temperature
-    h_he_fraction
-    mass_loss_rate
-    planet_mass
-    spectrum_at_planet
-    hydrogen_ion_fraction
-    initial_state
+    radius_profile (``numpy.ndarray``):
+        Radius in unit of planetary radii. Not a ``astropy.Quantity``.
+
+    planet_radius (``astropy.Quantity``):
+        Planetary radius.
+
+    temperature (``astropy.Quantity``):
+        Isothermal temperature of the upper atmosphere.
+
+    h_he_fraction (``float``):
+        H/He fraction of the atmosphere.
+
+    mass_loss_rate (``astropy.Quantity``):
+        Mass loss rate of the planet.
+
+    planet_mass (``astropy.Quantity``):
+        Planetary mass.
+
+    spectrum_at_planet (``dict``):
+        Spectrum of the host star arriving at the planet covering fluxes at
+        least up to the wavelength corresponding to the energy to ionize
+        hydrogen (13.6 eV, or 911.65 Angstrom). Can be generated using
+        ``tools.make_spectrum_dict``.
+
+    hydrogen_ion_fraction (``numpy.ndarray``):
+        Hydrogen ion fraction in the upper atmosphere in function of radius (can
+        be calculated with ``hydrogen.ion_fraction()``).
+
+    initial_state (``numpy.ndarray``, optional):
+        The initial state is the `y0` of the differential equation to be solved.
+        This array has two items: the initial value of `f_ion` (ionization
+        fraction) and `tau` (optical depth) at the outer layer of the
+        atmosphere. The standard value for this parameter is
+        ``numpy.array([0.5, 0.0, 0.0, 0.0])``, i.e., 50% ionized at the  surface
+        layer and with null optical depth.
+
+    **options_solve_ivp:
+        Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
+        may want to change the options ``atol`` (absolute tolerance; default is
+        1E-6) or ``rtol`` (relative tolerance; default is 1E-3). If you are
+        having numerical issues, you may want to decrease the tolerance by a
+        factor of 10 or 100, or 1000 in extreme cases. The option ``method`` is
+        already set to ``'Radau'`` and cannot be changed.
 
     Returns
     -------
+    f_1_r (``numpy.ndarray``):
+        Fraction of helium in singlet state in function of radius.
 
+    f_3_r (``numpy.ndarray``):
+        Fraction of helium in triplet state in function of radius.
+
+    tau_1_r (``numpy.ndarray``):
+        Optical depth of helium in singlet state in function of radius.
+
+    tau_3_r (``numpy.ndarray``):
+        Optical depth of helium in triplet state in function of radius.
     """
     # Calculate sound speed, radius and density at the sonic point
     average_ion_fraction = np.mean(hydrogen_ion_fraction)
@@ -302,22 +350,23 @@ def singlet_triplet_fraction(radius_profile, planet_radius, temperature,
 
     # The radius in unit of radius at the sonic point
     _r = (radius_profile * planet_radius / rs).decompose().value
+    _theta = np.flip(1 / _r)
 
     # The way we solve the differential equation requires us to pass the H ion
     # fraction at specific values of r, and it can be cumbersome to  parse this
     # inside the callable function _fun(). Instead, let's create a "mock
     # function" that returns the value of f_H_ion in function of r (essentially
     # a scipy.interp1d function)
-    mock_f_h_ion = interp1d(_r, hydrogen_ion_fraction)
+    mock_f_h_ion_theta = interp1d(_theta, hydrogen_ion_fraction)
 
     # The differential equation
-    def _fun(r, y):
+    def _fun(theta, y):
         f_1 = y[0]  # Fraction of helium in singlet
         f_3 = y[1]  # Fraction of helium in triplet
         t_1 = y[2]  # Optical depth for helium singlet
         t_3 = y[3]  # Optical depth for helium triplet
-        velocity, rho = parker.structure(r)
-        f_h_ion = mock_f_h_ion(np.array([r, ]))[0]  # Fraction of H ions
+        velocity, rho = parker.structure(1 / theta)
+        f_h_ion = mock_f_h_ion_theta(np.array([theta, ]))[0]  # Fraction of H+
 
         # Assume the number density of electrons is equal to the number density
         # of H ions
@@ -348,32 +397,29 @@ def singlet_triplet_fraction(radius_profile, planet_radius, temperature,
         term_33 = f_3 * phi_3 * np.exp(-t_3)  # Photoionization
 
         # Finally assemble the equations for df3_dtheta and df3_dtheta
-        df1_dr = (term_11 + term_12 - term_13 - term_14 + term_15 + term_16
-                  + term_17 - term_18 + term_19) / velocity
-        df3_dr = (term_31 - term_12 - term_33 + term_14 - term_15 - term_16
-                  - term_17) / velocity
+        df1_dtheta = (term_11 + term_12 - term_13 - term_14 + term_15 + term_16
+                      + term_17 - term_18 + term_19) / velocity
+        df3_dtheta = (term_31 - term_12 - term_33 + term_14 - term_15 - term_16
+                      - term_17) / velocity
 
         # The other two differential equations in our system are the gradients
         # of the optical depth with 1 / radius, with the contribution of the
         # optical depth of H as well
-        dt1_dr = a_1 * n_he * f_1 + a_h_1 * n_h0
-        dt3_dr = a_3 * n_he * f_3 + a_h_3 * n_h0
+        dt1_dtheta = a_1 * n_he * f_1 + a_h_1 * n_h0
+        dt3_dtheta = a_3 * n_he * f_3 + a_h_3 * n_h0
 
-        return np.array([df1_dr, df3_dr, dt1_dr, dt3_dr])
+        return np.array([df1_dtheta, df3_dtheta, dt1_dtheta, dt3_dtheta])
 
     # We solve it using `scipy.solve_ivp`
-    sol = solve_ivp(_fun, (_r[0], _r[-1],), initial_state,
-                    t_eval=_r, method='Radau', dense_output=False,
-                    rtol=1E-5, atol=1E-8)
+    sol = solve_ivp(_fun, (_theta[0], _theta[-1],), initial_state,
+                    t_eval=_theta, method='Radau', **options_solve_ivp)
 
-    # Finally retrieve the ion fraction and optical depth arrays. Since we
-    # integrated f and tau from the outside, we have to flip them back to the
+    # Finally retrieve the population fraction and optical depth arrays. Since
+    # we integrated f and tau from the outside, we have to flip them back to the
     # same order as the radius variable
-    f_1_r = sol['y'][0]
-    f_3_r = sol['y'][1]
-    f_ion = 1 - f_1_r - f_3_r
-    tau_1_r = sol['y'][2]
-    tau_3_r = sol['y'][3]
+    f_1_r = np.flip(sol['y'][0])
+    f_3_r = np.flip(sol['y'][1])
+    tau_1_r = np.flip(sol['y'][2])
+    tau_3_r = np.flip(sol['y'][3])
 
-    return f_1_r, f_3_r, f_ion, tau_1_r, tau_3_r
-
+    return f_1_r, f_3_r, tau_1_r, tau_3_r

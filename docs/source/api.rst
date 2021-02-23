@@ -7,4 +7,5 @@ p-winds API
 
    api/parker
    api/hydrogen
+   api/helium
    api/tools

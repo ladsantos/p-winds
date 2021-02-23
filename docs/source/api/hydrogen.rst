@@ -2,6 +2,6 @@
 `hydrogen`
 ============
 
-.. autofunction:: hydrogen.photoionization_rate
-.. autofunction:: hydrogen.recombination_rate
+.. autofunction:: hydrogen.radiative_processes
+.. autofunction:: hydrogen.recombination
 .. autofunction:: hydrogen.ion_fraction

@@ -92,7 +92,8 @@ def recombination(temperature):
 # Fraction of ionized hydrogen vs. radius profile
 def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
                  mass_loss_rate, planet_mass, spectrum_at_planet,
-                 average_ion_fraction=0.0, initial_state=np.array([1.0, 0.0])):
+                 average_ion_fraction=0.0, initial_state=np.array([1.0, 0.0]),
+                 **options_solve_ivp):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
     function of the radius in unit of planetary radius.
@@ -133,6 +134,14 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         atmosphere. The standard value for this parameter is
         ``numpy.array([1.0, 0.0])``, i.e., completely ionized at the outer layer
         and with null optical depth.
+
+    **options_solve_ivp:
+        Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
+        may want to change the options ``method`` (integration method; default
+        is ``'RK45'``), ``atol`` (absolute tolerance; default is 1E-6) or
+        ``rtol`` (relative tolerance; default is 1E-3). If you are having
+        numerical issues, you may want to decrease the tolerance by a factor of
+        10 or 100, or 1000 in extreme cases.
 
     Returns
     -------
@@ -196,7 +205,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
 
     # We solve it using `scipy.solve_ivp`
     sol = solve_ivp(_fun, (_theta[0], _theta[-1],), initial_state,
-                    t_eval=_theta)
+                    t_eval=_theta, **options_solve_ivp)
 
     # Finally retrieve the ion fraction and optical depth arrays. Since we
     # integrated f and tau from the outside, we have to flip them back to the
