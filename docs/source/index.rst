@@ -6,6 +6,9 @@
 p-winds: Documentation
 ======================
 
+.. image:: https://img.shields.io/badge/GitHub-ladsantos%2Fp%E2%88%92winds-blue.svg?style=flat
+    :target: https://github.com/ladsantos/p-winds
+
 ``p-winds`` is an open-source Python implementation of Parker wind models for
 planetary atmospheres, more specifically their upper atmosphere or corona. The
 code is largely based on the theoretical framework of `Oklopčić & Hirata

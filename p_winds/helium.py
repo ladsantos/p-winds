@@ -59,6 +59,7 @@ def radiative_processes(spectrum_at_planet):
     flux_lambda = (spectrum_at_planet['flux_lambda'] * spectrum_at_planet[
         'flux_unit']).to(u.erg / u.s / u.cm ** 2 / u.angstrom).value
     energy = ((c.h * (c.c / wavelength / u.angstrom).to(u.Hz)).to(u.eV)).value
+    energy_erg = (energy * u.eV).to(u.erg).value
 
     # Wavelength corresponding to the energy to ionize He in singlet and triplet
     wl_break_1 = (c.h * c.c / (24.6 * u.eV)).to(u.angstrom).value
@@ -71,6 +72,7 @@ def radiative_processes(spectrum_at_planet):
     # Auxiliary definitions
     wavelength_cut_1 = wavelength[:i1]
     flux_lambda_cut_1 = flux_lambda[:i1]
+    energy_cut_1 = energy_erg[:i1]
     epsilon_1 = (wl_break_1 / wavelength_cut_1 - 1) ** 0.5
     wavelength_cut_0 = wavelength[:i0]
     flux_lambda_cut_0 = flux_lambda[:i0]
@@ -102,6 +104,7 @@ def radiative_processes(spectrum_at_planet):
     # are not necessarily the same as the stellar spectrum wavelength bins.
     data_array = data.he_2_3_s_oscillator_strength()
     wavelength_cut_3 = np.flip(data_array[:, 0])
+    energy_cut_3 = ((c.h * c.c).to(u.erg * u.angstrom) / wavelength_cut_3).value
     differential_oscillator_strength = np.flip(data_array[:, 1])
     a_lambda_3 = 8.0670E-18 * differential_oscillator_strength
     # Let's interpolate the stellar spectrum to the bins of the cross-section
@@ -124,8 +127,10 @@ def radiative_processes(spectrum_at_planet):
         simps(flux_lambda_cut_3, wavelength_cut_3) * u.cm ** 2
 
     # Calculate the photoionization rates
-    phi_1 = simps(flux_lambda_cut_1 * a_lambda_1, wavelength_cut_1) / u.s
-    phi_3 = simps(flux_lambda_cut_3 * a_lambda_3, wavelength_cut_3) / u.s
+    phi_1 = simps(flux_lambda_cut_1 * a_lambda_1 / energy_cut_1,
+                  wavelength_cut_1) / u.s
+    phi_3 = simps(flux_lambda_cut_3 * a_lambda_3 / energy_cut_3,
+                  wavelength_cut_3) / u.s
 
     return phi_1, phi_3, a_1, a_3, a_h_1, a_h_3
 
@@ -258,8 +263,8 @@ def population_fraction(radius_profile, planet_radius, temperature,
 
     spectrum_at_planet (``dict``):
         Spectrum of the host star arriving at the planet covering fluxes at
-        least up to the wavelength corresponding to the energy to ionize
-        hydrogen (13.6 eV, or 911.65 Angstrom). Can be generated using
+        least up to the wavelength corresponding to the energy to populate the
+        helium states (4.8 eV, or 2593 Angstrom). Can be generated using
         ``tools.make_spectrum_dict``.
 
     hydrogen_ion_fraction (``numpy.ndarray``):

@@ -14,7 +14,8 @@ from scipy.integrate import simps, solve_ivp
 from p_winds import parker, tools
 
 
-__all__ = ["radiative_processes", "recombination", "ion_fraction"]
+__all__ = ["radiative_processes", "radiative_processes_mono", "recombination",
+           "ion_fraction"]
 
 
 # Hydrogen photoionization
@@ -42,6 +43,7 @@ def radiative_processes(spectrum_at_planet):
                   spectrum_at_planet['wavelength_unit']).to(u.angstrom).value
     flux_lambda = (spectrum_at_planet['flux_lambda'] * spectrum_at_planet[
         'flux_unit']).to(u.erg / u.s / u.cm ** 2 / u.angstrom).value
+    energy = (c.h * c.c).to(u.erg * u.angstrom).value / wavelength
 
     # Wavelength corresponding to the energy to ionize H
     wl_break = (c.h * c.c / (13.6 * u.eV)).to(u.angstrom).value
@@ -52,9 +54,10 @@ def radiative_processes(spectrum_at_planet):
     # Auxiliary definitions
     wavelength_cut = wavelength[:i_break + 1]
     flux_lambda_cut = flux_lambda[:i_break + 1]
+    energy_cut = energy[:i_break + 1]
     epsilon = (wl_break / wavelength_cut - 1) ** 0.5
 
-    # Photoionization cross-section in function of frequency
+    # Photoionization cross-section in function of wavelength
     a_lambda = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon)) / epsilon) /
         (1 - np.exp(-2 * np.pi / epsilon)) *
         (wavelength_cut / wl_break) ** 4)
@@ -64,7 +67,38 @@ def radiative_processes(spectrum_at_planet):
         simps(flux_lambda_cut, wavelength_cut) * u.cm ** 2
 
     # Finally calculate the photoionization rate
-    phi = simps(flux_lambda_cut * a_lambda, wavelength_cut) / u.s
+    phi = simps(flux_lambda_cut * a_lambda / energy_cut, wavelength_cut) / u.s
+    return phi, a_0
+
+
+# Hydrogen photoionization if you have only a monochromatic channel flux
+def radiative_processes_mono(flux_euv):
+    """
+    Calculate the photoionization rate of hydrogen at null optical depth based
+    on the monochromatic EUV flux arriving at the planet.
+
+    Parameters
+    ----------
+    flux_euv (``astropy.Quantity``):
+        Monochromatic extreme-ultraviolet (0 - 912 Angstrom) flux arriving at
+        the planet.
+
+    Returns
+    -------
+    phi (``astropy.Quantity``):
+        Ionization rate of hydrogen at null optical depth.
+
+    a_0 (``astropy.Quantity``):
+        Flux-averaged photoionization cross-section of hydrogen.
+    """
+    energy = np.logspace(np.log10(13.61), 3, 1000)
+    epsilon = (energy / 13.6 - 1) ** 0.5
+
+    # Photoionization cross-section in function of frequency
+    a_nu = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon)) / epsilon) /
+        (1 - np.exp(-2 * np.pi / epsilon)) * (13.6 / energy) ** 4)
+    a_0 = np.mean(a_nu) * u.cm ** 2
+    phi = flux_euv.to(u.eV / u.s / u.cm ** 2) * a_0 / np.mean(energy) / u.eV
     return phi, a_0
 
 
