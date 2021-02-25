@@ -19,7 +19,7 @@ __all__ = ["radiative_processes", "recombination", "collision",
            "population_fraction"]
 
 
-# Helium photoionization
+# Helium radiative processes
 def radiative_processes(spectrum_at_planet):
     """
     Calculate the photoionization rate of helium at null optical depth based
@@ -131,6 +131,90 @@ def radiative_processes(spectrum_at_planet):
                   wavelength_cut_1) / u.s
     phi_3 = simps(flux_lambda_cut_3 * a_lambda_3 / energy_cut_3,
                   wavelength_cut_3) / u.s
+
+    return phi_1, phi_3, a_1, a_3, a_h_1, a_h_3
+
+
+# Helium radiative processes if you have only monochromatic fluxes
+def radiative_processes_mono(flux_euv, flux_fuv):
+    """
+    Calculate the photoionization rate of helium at null optical depth based
+    on the EUV spectrum arriving at the planet.
+
+    Parameters
+    ----------
+    flux_euv (``astropy.Quantity``):
+        Monochromatic extreme-ultraviolet (0 - 1200 Angstrom) flux arriving at
+        the planet.
+
+    flux_fuv (``astropy.Quantity``):
+        Monochromatic far- to middle-ultraviolet (1200 - 2600 Angstrom) flux
+        arriving at the planet.
+
+    Returns
+    -------
+    phi_1 (``astropy.Quantity``):
+        Ionization rate of helium singlet at null optical depth.
+
+    phi_3 (``astropy.Quantity``):
+        Ionization rate of helium triplet at null optical depth.
+
+    a_1 (``astropy.Quantity``):
+        Flux-averaged photoionization cross-section of helium singlet.
+
+    a_3 (``astropy.Quantity``):
+        Flux-averaged photoionization cross-section of helium triplet.
+
+    a_h_1 (``astropy.Quantity``):
+        Flux-averaged photoionization cross-section of hydrogen in the range
+        absorbed by helium singlet.
+
+    a_h_3 (``astropy.Quantity``):
+        Flux-averaged photoionization cross-section of hydrogen in the range
+        absorbed by helium triplet.
+    """
+    energy_1 = np.logspace(np.log10(24.6), 3, 1000)
+    epsilon_1 = (energy_1 / 13.6 - 1) ** 0.5
+
+    # Hydrogen cross-section within the range important to helium singlet
+    a_nu_h_1 = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon_1)) / epsilon_1) /
+        (1 - np.exp(-2 * np.pi / epsilon_1)) * (13.6 / energy_1) ** 4)
+
+    # Photoionization cross-section of He singlet (some hard-coding here; the
+    # numbers originate from the paper Brown 1971, ADS 1971ApJ...164..387B)
+    scale = np.ones_like(energy_1)
+    scale *= 37.0 - 19.1 * (energy_1 / 65.4) ** (-0.76)
+    # Clip negative values of scale
+    scale[scale < 0] = 0.0
+    a_nu_1 = a_nu_h_1 * scale
+    # Average cross-section to ionize helium singlet
+    a_1 = np.mean(a_nu_1) * u.cm ** 2
+
+    # The photoionization cross-section of He triplet is hard-coded with the
+    # values calculated by Norcross 1971 (ADS 1971JPhB....4..652N). The
+    # differential oscillator strength is calculated for bins of wavelength that
+    # are not necessarily the same as the stellar spectrum wavelength bins.
+    data_array = data.he_2_3_s_oscillator_strength()
+    wavelength = np.flip(data_array[:6, 0])
+    energy_3 = ((c.h * c.c).to(u.erg * u.angstrom) / wavelength).value
+    differential_oscillator_strength = np.flip(data_array[:, 1])
+    a_lambda_3 = 8.0670E-18 * differential_oscillator_strength
+    # Average cross-section to ionize helium triplet
+    a_3 = np.mean(a_lambda_3) * u.cm ** 2
+
+    # The flux-averaged photoionization cross-section of H is also going to be
+    # needed because it adds to the optical depth that the He atoms see.
+    # Contribution to the optical depth seen by He singlet atoms:
+    a_h_1 = np.mean(a_nu_h_1) * u.cm ** 2
+    # Contribution to the optical depth seen by He triplet atoms:
+    epsilon_3 = (energy_3 / 13.6 - 1) ** 0.5
+    a_nu_h_3 = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon_3)) / epsilon_3) /
+                (1 - np.exp(-2 * np.pi / epsilon_3)) * (13.6 / energy_3) ** 4)
+    a_h_3 = np.mean(a_nu_h_3) * u.cm ** 2
+
+    # Calculate the photoionization rates
+    phi_1 = flux_euv.to(u.eV / u.s / u.cm ** 2) * a_1 / np.mean(energy_1) / u.eV
+    phi_3 = flux_fuv.to(u.eV / u.s / u.cm ** 2) * a_3 / np.mean(energy_3) / u.eV
 
     return phi_1, phi_3, a_1, a_3, a_h_1, a_h_3
 

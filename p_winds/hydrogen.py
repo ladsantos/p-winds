@@ -97,7 +97,11 @@ def radiative_processes_mono(flux_euv):
     # Photoionization cross-section in function of frequency
     a_nu = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon)) / epsilon) /
         (1 - np.exp(-2 * np.pi / epsilon)) * (13.6 / energy) ** 4)
+
+    # Average cross-section
     a_0 = np.mean(a_nu) * u.cm ** 2
+
+    # Monochromatic ionization rate
     phi = flux_euv.to(u.eV / u.s / u.cm ** 2) * a_0 / np.mean(energy) / u.eV
     return phi, a_0
 
