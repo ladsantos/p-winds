@@ -15,8 +15,8 @@ from scipy.interpolate import interp1d
 from p_winds import parker, tools, microphysics
 
 
-__all__ = ["radiative_processes", "recombination", "collision",
-           "population_fraction"]
+__all__ = ["radiative_processes", "radiative_processes_mono", "recombination",
+           "collision", "population_fraction"]
 
 
 # Helium radiative processes
@@ -166,7 +166,7 @@ def radiative_processes_mono(flux_euv, flux_fuv):
 
     # The photoionization cross-section of He triplet
     wavelength_3, a_lambda_3 = microphysics.helium_triplet_cross_section()
-    energy_3 = ((c.h * c.c).to(u.erg * u.angstrom) / wavelength_3).value
+    energy_3 = ((c.h * c.c).to(u.eV * u.angstrom).value / wavelength_3)
     # Average cross-section to ionize helium triplet
     a_3 = np.mean(a_lambda_3) * u.cm ** 2
 
@@ -176,6 +176,7 @@ def radiative_processes_mono(flux_euv, flux_fuv):
     a_h_1 = np.mean(a_nu_h_1) * u.cm ** 2
     # Contribution to the optical depth seen by He triplet atoms:
     a_nu_h_3 = microphysics.hydrogen_cross_section(energy=energy_3)
+    a_nu_h_3 = a_nu_h_3[np.logical_not(np.isnan(a_nu_h_3))]
     a_h_3 = np.mean(a_nu_h_3) * u.cm ** 2
 
     # Calculate the photoionization rates
@@ -283,8 +284,9 @@ def collision(temperature):
 # Fraction of helium in singlet and triplet vs. radius profile
 def population_fraction(radius_profile, planet_radius, temperature,
                         h_he_fraction, mass_loss_rate, planet_mass,
-                        spectrum_at_planet, hydrogen_ion_fraction,
-                        initial_state=np.array([0.5, 0.0, 0.0, 0.0]),
+                        hydrogen_ion_fraction, spectrum_at_planet=None,
+                        flux_euv=None, flux_fuv=None,
+                        initial_state=np.array([1E-8, 1E-8, 0.0, 0.0]),
                         **options_solve_ivp):
     """
     Calculate the fraction of helium in singlet and triplet state in the upper
@@ -311,23 +313,34 @@ def population_fraction(radius_profile, planet_radius, temperature,
     planet_mass (``astropy.Quantity``):
         Planetary mass.
 
-    spectrum_at_planet (``dict``):
-        Spectrum of the host star arriving at the planet covering fluxes at
-        least up to the wavelength corresponding to the energy to populate the
-        helium states (4.8 eV, or 2593 Angstrom). Can be generated using
-        ``tools.make_spectrum_dict``.
-
     hydrogen_ion_fraction (``numpy.ndarray``):
         Hydrogen ion fraction in the upper atmosphere in function of radius (can
         be calculated with ``hydrogen.ion_fraction()``).
+
+    spectrum_at_planet (``dict``, optional):
+        Spectrum of the host star arriving at the planet covering fluxes at
+        least up to the wavelength corresponding to the energy to populate the
+        helium states (4.8 eV, or 2593 Angstrom). Can be generated using
+        ``tools.make_spectrum_dict``. If ``None``, then ``flux_euv`` and
+        ``flux_fuv`` must be provided instead. Default is ``None``.
+
+    flux_euv (``astropy.Quantity``, optional):
+        Monochromatic extreme-ultraviolet (0 - 1200 Angstrom) flux arriving at
+        the planet. If ``None``, then ``spectrum_at_planet`` must be provided
+        instead. Default is ``None``.
+
+    flux_fuv (``astropy.Quantity``, optional):
+        Monochromatic far- to middle-ultraviolet (1200 - 2600 Angstrom) flux
+        arriving at the planet. If ``None``, then ``spectrum_at_planet`` must be
+        provided instead. Default is ``None``.
 
     initial_state (``numpy.ndarray``, optional):
         The initial state is the `y0` of the differential equation to be solved.
         This array has two items: the initial value of `f_ion` (ionization
         fraction) and `tau` (optical depth) at the outer layer of the
         atmosphere. The standard value for this parameter is
-        ``numpy.array([0.5, 0.0, 0.0, 0.0])``, i.e., 50% ionized at the  surface
-        layer and with null optical depth.
+        ``numpy.array([1E-8, 1E-8, 0.0, 0.0])``, i.e., fully ionized at the
+        outer layer and with null optical depth.
 
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
@@ -378,8 +391,15 @@ def population_fraction(radius_profile, planet_radius, temperature,
     # from the host star, in unit of vs / rs, and the flux-averaged
     # cross-sections in units of rs ** 2
     phi_unit = (vs / rs).to(1 / u.s)
-    phi_1, phi_3, a_1, a_3, a_h_1, a_h_3 = radiative_processes(
-        spectrum_at_planet)
+    if spectrum_at_planet is not None:
+        phi_1, phi_3, a_1, a_3, a_h_1, a_h_3 = radiative_processes(
+            spectrum_at_planet)
+    elif flux_euv is not None and flux_fuv is not None:
+        phi_1, phi_3, a_1, a_3, a_h_1, a_h_3 = radiative_processes_mono(
+            flux_euv, flux_fuv)
+    else:
+        raise ValueError('Either `spectrum_at_planet` must be provided, or '
+                         '`flux_euv` and `flux_fuv` must be provided.')
     phi_1 = (phi_1 / phi_unit).decompose().value
     phi_3 = (phi_3 / phi_unit).decompose().value
     a_1 = (a_1 / rs ** 2).decompose().value

@@ -124,8 +124,9 @@ def recombination(temperature):
 
 # Fraction of ionized hydrogen vs. radius profile
 def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
-                 mass_loss_rate, planet_mass, spectrum_at_planet,
-                 average_ion_fraction=0.0, initial_state=np.array([1.0, 0.0]),
+                 mass_loss_rate, planet_mass, average_ion_fraction=0.0,
+                 spectrum_at_planet=None, flux_euv=None,
+                 initial_state=np.array([1.0, 0.0]),
                  **options_solve_ivp):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
@@ -151,14 +152,20 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     planet_mass (``astropy.Quantity``):
         Planetary mass.
 
-    spectrum_at_planet (``dict``):
+    average_ion_fraction (``float``):
+        Average ion fraction in the upper atmosphere.
+
+    spectrum_at_planet (``dict``, optional):
         Spectrum of the host star arriving at the planet covering fluxes at
         least up to the wavelength corresponding to the energy to ionize
         hydrogen (13.6 eV, or 911.65 Angstrom). Can be generated using
-        ``tools.make_spectrum_dict``.
+        ``tools.make_spectrum_dict``. If ``None``, then ``flux_euv`` must be
+        provided instead. Default is ``None``.
 
-    average_ion_fraction (``float``):
-        Average ion fraction in the upper atmosphere.
+    flux_euv (``astropy.Quantity``, optional):
+        Extreme-ultraviolet (0-911.65 Angstrom) flux arriving at the planet.
+        If ``None``, then ``spectrum_at_planet`` must be provided instead.
+        Default is ``None``.
 
     initial_state (``numpy.ndarray``, optional):
         The initial state is the `y0` of the differential equation to be solved.
@@ -204,7 +211,13 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     # Photoionization rate at null optical depth at the distance of the planet
     # from the host star, in unit of vs / rs
     phi_unit = (vs / rs).to(1 / u.s)
-    phi, a_0 = radiative_processes(spectrum_at_planet)
+    if spectrum_at_planet is not None:
+        phi, a_0 = radiative_processes(spectrum_at_planet)
+    elif flux_euv is not None:
+        phi, a_0 = radiative_processes_mono(flux_euv)
+    else:
+        raise ValueError('Either `spectrum_at_planet` or `flux_euv` must be '
+                         'provided.')
     phi = (phi / phi_unit).decompose().value
     a_0 = (a_0 / rs ** 2).decompose().value
 
