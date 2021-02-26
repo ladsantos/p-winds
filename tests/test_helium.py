@@ -51,8 +51,8 @@ def test_population_fraction_spectrum(precision_threshold=1E-4):
 # Now let's test ``ion_fraction()`` with a monochromatic flux instead of
 # spectrum.
 def test_population_fraction_mono(precision_threshold=1E-4):
-    flux_euv = 1200 * u.erg / u.s / u.cm ** 2
-    flux_fuv = 1.4E5 * u.erg / u.s / u.cm ** 2
+    flux_euv = 504 * u.erg / u.s / u.cm ** 2
+    flux_fuv = 1.7E5 * u.erg / u.s / u.cm ** 2
 
     f_r, tau_r = hydrogen.ion_fraction(r, R_pl, T_0, h_he, m_dot, M_pl,
                                        average_f_ion, flux_euv=flux_euv
@@ -62,5 +62,5 @@ def test_population_fraction_mono(precision_threshold=1E-4):
         r, R_pl, T_0, h_he, m_dot, M_pl, f_r, flux_euv=flux_euv,
         flux_fuv=flux_fuv, initial_state=initial_state, atol=atol, rtol=rtol)
 
-    assert abs(f_he_1[0] - 0.9997) / f_he_1[0] < precision_threshold
-    assert abs(f_he_3[0] - 2.1114E-9) / f_he_3[0] < precision_threshold
+    assert abs(f_he_1[0] - 0.9999) / f_he_1[0] < precision_threshold
+    assert abs(f_he_3[0] - 8.6353E-10) / f_he_3[0] < precision_threshold

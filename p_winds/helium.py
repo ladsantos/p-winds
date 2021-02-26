@@ -124,11 +124,13 @@ def radiative_processes_mono(flux_euv, flux_fuv):
     Parameters
     ----------
     flux_euv (``astropy.Quantity``):
-        Monochromatic extreme-ultraviolet (0 - 1200 Angstrom) flux arriving at
-        the planet.
+        Monochromatic extreme-ultraviolet (0 - 504 Angstrom) flux arriving at
+        the planet. Attention: notice that this ``flux_euv`` is different from
+        the one used for hydrogen, since helium ionization happens at a shorter
+        wavelength.
 
     flux_fuv (``astropy.Quantity``):
-        Monochromatic far- to middle-ultraviolet (1200 - 2600 Angstrom) flux
+        Monochromatic far- to middle-ultraviolet (911 - 2593 Angstrom) flux
         arriving at the planet.
 
     Returns
@@ -175,8 +177,9 @@ def radiative_processes_mono(flux_euv, flux_fuv):
     # Contribution to the optical depth seen by He singlet atoms:
     a_h_1 = np.mean(a_nu_h_1) * u.cm ** 2
     # Contribution to the optical depth seen by He triplet atoms:
-    a_nu_h_3 = microphysics.hydrogen_cross_section(energy=energy_3)
-    a_nu_h_3 = a_nu_h_3[np.logical_not(np.isnan(a_nu_h_3))]
+    a_nu_h_3 = microphysics.hydrogen_cross_section(
+        energy=energy_3[energy_3 > 13.6])
+    # a_nu_h_3 = a_nu_h_3[np.logical_not(np.isnan(a_nu_h_3))]
     a_h_3 = np.mean(a_nu_h_3) * u.cm ** 2
 
     # Calculate the photoionization rates
