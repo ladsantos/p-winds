@@ -12,7 +12,7 @@ import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp
 from scipy.interpolate import interp1d
-from p_winds import parker, tools, data
+from p_winds import parker, tools, microphysics
 
 
 __all__ = ["radiative_processes", "recombination", "collision",
@@ -62,7 +62,7 @@ def radiative_processes(spectrum_at_planet):
     energy_erg = (energy * u.eV).to(u.erg).value
 
     # Wavelength corresponding to the energy to ionize He in singlet and triplet
-    wl_break_1 = (c.h * c.c / (24.6 * u.eV)).to(u.angstrom).value
+    wl_break_1 = (c.h * c.c / (24.6 * u.eV)).to(u.angstrom).value  # For He
     wl_break_0 = (c.h * c.c / (13.6 * u.eV)).to(u.angstrom).value  # For H
 
     # Index of the lambda_1 and lambda_0 in the wavelength array
@@ -73,42 +73,18 @@ def radiative_processes(spectrum_at_planet):
     wavelength_cut_1 = wavelength[:i1]
     flux_lambda_cut_1 = flux_lambda[:i1]
     energy_cut_1 = energy_erg[:i1]
-    epsilon_1 = (wl_break_1 / wavelength_cut_1 - 1) ** 0.5
     wavelength_cut_0 = wavelength[:i0]
     flux_lambda_cut_0 = flux_lambda[:i0]
-    epsilon_0 = (wl_break_0 / wavelength_cut_0 - 1) ** 0.5
 
-    # Photoionization cross-section of H in function of frequency (this is
-    # important because the cross-section for He singlet can be derived from
-    # that of H
-    def _a_lambda_h(wl_array, wl_break, epsilon):
-        a = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon)) / epsilon) /
-             (1 - np.exp(-2 * np.pi / epsilon)) *
-             (wl_array / wl_break) ** 4) * u.cm ** 2
-        return a
+    # Photoionization cross-section of He singlet
+    a_lambda_1 = microphysics.helium_singlet_cross_section(wavelength_cut_1)
 
-    a_lambda_h_1 = _a_lambda_h(wavelength_cut_1, wl_break_1, epsilon_1)
-    a_lambda_h_3 = _a_lambda_h(wavelength_cut_0, wl_break_0, epsilon_0)
-
-    # Photoionization cross-section of He singlet (some hard-coding here; the
-    # numbers originate from the paper Brown 1971, ADS 1971ApJ...164..387B)
-    scale = np.ones_like(wavelength_cut_1)
-    scale *= 37.0 - 19.1 * (energy[:i1] / 65.4) ** (-0.76)
-    # Clip negative values of scale
-    scale[scale < 0] = 0.0
-    a_lambda_1 = a_lambda_h_1 * scale
-
-    # The photoionization cross-section of He triplet is hard-coded with the
-    # values calculated by Norcross 1971 (ADS 1971JPhB....4..652N). The
-    # differential oscillator strength is calculated for bins of wavelength that
-    # are not necessarily the same as the stellar spectrum wavelength bins.
-    data_array = data.he_2_3_s_oscillator_strength()
-    wavelength_cut_3 = np.flip(data_array[:, 0])
+    # Photoionization cross-section of He triplet. Since this is hard-coded at
+    # specific wavelengths, we retrieve the wavelength bins from the code
+    # itself instead of entering it as input
+    wavelength_cut_3, a_lambda_3 = microphysics.helium_triplet_cross_section()
     energy_cut_3 = ((c.h * c.c).to(u.erg * u.angstrom) / wavelength_cut_3).value
-    differential_oscillator_strength = np.flip(data_array[:, 1])
-    a_lambda_3 = 8.0670E-18 * differential_oscillator_strength
     # Let's interpolate the stellar spectrum to the bins of the cross-section
-    # from Norcross 1971
     flux_lambda_cut_3 = np.interp(wavelength_cut_3, wavelength, flux_lambda)
 
     # Flux-averaged photoionization cross-sections of He
@@ -119,6 +95,10 @@ def radiative_processes(spectrum_at_planet):
 
     # The flux-averaged photoionization cross-section of H is also going to be
     # needed because it adds to the optical depth that the He atoms see.
+    a_lambda_h_1 = microphysics.hydrogen_cross_section(
+        wavelength=wavelength_cut_1)
+    a_lambda_h_3 = microphysics.hydrogen_cross_section(
+        wavelength=wavelength_cut_0)
     # Contribution to the optical depth seen by He singlet atoms:
     a_h_1 = simps(flux_lambda_cut_1 * a_lambda_h_1, wavelength_cut_1) / \
         simps(flux_lambda_cut_1, wavelength_cut_1) * u.cm ** 2
@@ -174,31 +154,19 @@ def radiative_processes_mono(flux_euv, flux_fuv):
         absorbed by helium triplet.
     """
     energy_1 = np.logspace(np.log10(24.6), 3, 1000)
-    epsilon_1 = (energy_1 / 13.6 - 1) ** 0.5
+    wavelength_1 = (c.h * c.c).to(u.eV * u.angstrom).value / energy_1
 
     # Hydrogen cross-section within the range important to helium singlet
-    a_nu_h_1 = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon_1)) / epsilon_1) /
-        (1 - np.exp(-2 * np.pi / epsilon_1)) * (13.6 / energy_1) ** 4)
+    a_nu_h_1 = microphysics.hydrogen_cross_section(energy=energy_1)
 
-    # Photoionization cross-section of He singlet (some hard-coding here; the
-    # numbers originate from the paper Brown 1971, ADS 1971ApJ...164..387B)
-    scale = np.ones_like(energy_1)
-    scale *= 37.0 - 19.1 * (energy_1 / 65.4) ** (-0.76)
-    # Clip negative values of scale
-    scale[scale < 0] = 0.0
-    a_nu_1 = a_nu_h_1 * scale
+    # Photoionization cross-section of He singlet
+    a_lambda_1 = microphysics.helium_singlet_cross_section(wavelength_1)
     # Average cross-section to ionize helium singlet
-    a_1 = np.mean(a_nu_1) * u.cm ** 2
+    a_1 = np.mean(a_lambda_1) * u.cm ** 2
 
-    # The photoionization cross-section of He triplet is hard-coded with the
-    # values calculated by Norcross 1971 (ADS 1971JPhB....4..652N). The
-    # differential oscillator strength is calculated for bins of wavelength that
-    # are not necessarily the same as the stellar spectrum wavelength bins.
-    data_array = data.he_2_3_s_oscillator_strength()
-    wavelength = np.flip(data_array[:6, 0])
-    energy_3 = ((c.h * c.c).to(u.erg * u.angstrom) / wavelength).value
-    differential_oscillator_strength = np.flip(data_array[:, 1])
-    a_lambda_3 = 8.0670E-18 * differential_oscillator_strength
+    # The photoionization cross-section of He triplet
+    wavelength_3, a_lambda_3 = microphysics.helium_triplet_cross_section()
+    energy_3 = ((c.h * c.c).to(u.erg * u.angstrom) / wavelength_3).value
     # Average cross-section to ionize helium triplet
     a_3 = np.mean(a_lambda_3) * u.cm ** 2
 
@@ -207,9 +175,7 @@ def radiative_processes_mono(flux_euv, flux_fuv):
     # Contribution to the optical depth seen by He singlet atoms:
     a_h_1 = np.mean(a_nu_h_1) * u.cm ** 2
     # Contribution to the optical depth seen by He triplet atoms:
-    epsilon_3 = (energy_3 / 13.6 - 1) ** 0.5
-    a_nu_h_3 = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon_3)) / epsilon_3) /
-                (1 - np.exp(-2 * np.pi / epsilon_3)) * (13.6 / energy_3) ** 4)
+    a_nu_h_3 = microphysics.hydrogen_cross_section(energy=energy_3)
     a_h_3 = np.mean(a_nu_h_3) * u.cm ** 2
 
     # Calculate the photoionization rates
@@ -284,7 +250,7 @@ def collision(temperature):
     # temperature of our gas.
     temperature = temperature.to(u.K).value
     # Parse the tabulated data
-    data_array = data.he_collisional_strength()
+    data_array = microphysics.he_collisional_strength()
     tabulated_temp = 10 ** data_array[:, 0]
     tabulated_gamma_13 = data_array[:, 1]
     tabulated_gamma_31a = data_array[:, 2]

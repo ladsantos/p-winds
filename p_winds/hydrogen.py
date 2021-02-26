@@ -11,7 +11,7 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp
-from p_winds import parker, tools
+from p_winds import parker, tools, microphysics
 
 
 __all__ = ["radiative_processes", "radiative_processes_mono", "recombination",
@@ -55,12 +55,9 @@ def radiative_processes(spectrum_at_planet):
     wavelength_cut = wavelength[:i_break + 1]
     flux_lambda_cut = flux_lambda[:i_break + 1]
     energy_cut = energy[:i_break + 1]
-    epsilon = (wl_break / wavelength_cut - 1) ** 0.5
 
     # Photoionization cross-section in function of wavelength
-    a_lambda = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon)) / epsilon) /
-        (1 - np.exp(-2 * np.pi / epsilon)) *
-        (wavelength_cut / wl_break) ** 4)
+    a_lambda = microphysics.hydrogen_cross_section(wavelength=wavelength_cut)
 
     # Flux-averaged photoionization cross-section
     a_0 = simps(flux_lambda_cut * a_lambda, wavelength_cut) / \
@@ -92,11 +89,9 @@ def radiative_processes_mono(flux_euv):
         Flux-averaged photoionization cross-section of hydrogen.
     """
     energy = np.logspace(np.log10(13.61), 3, 1000)
-    epsilon = (energy / 13.6 - 1) ** 0.5
 
     # Photoionization cross-section in function of frequency
-    a_nu = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon)) / epsilon) /
-        (1 - np.exp(-2 * np.pi / epsilon)) * (13.6 / energy) ** 4)
+    a_nu = microphysics.hydrogen_cross_section(energy=energy)
 
     # Average cross-section
     a_0 = np.mean(a_nu) * u.cm ** 2
