@@ -126,8 +126,7 @@ def recombination(temperature):
 def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
                  mass_loss_rate, planet_mass, average_ion_fraction=0.0,
                  spectrum_at_planet=None, flux_euv=None,
-                 initial_state=np.array([1.0, 0.0]),
-                 **options_solve_ivp):
+                 initial_state=np.array([1.0, 0.0]), **options_solve_ivp):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
     function of the radius in unit of planetary radius.
@@ -200,13 +199,11 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     rhos = parker.density_sonic_point(mass_loss_rate, rs, vs).to(
         u.g / u.cm ** 3)
 
-    # Hydrogen recombination rate in unit of rs ** 2 * vs
-    alpha_rec_unit = (rs ** 2 * vs).to(u.cm ** 3 / u.s)
-    alpha_rec = (recombination(temperature) / alpha_rec_unit).decompose().value
+    # Hydrogen recombination rate
+    alpha_rec = recombination(temperature)
 
-    # Hydrogen mass in unit of rhos * rs ** 3
-    m_h_unit = (rhos * rs ** 3).to(u.g)
-    m_h = (c.m_p / m_h_unit).decompose().value
+    # Hydrogen mass
+    m_h = c.m_p
 
     # Photoionization rate at null optical depth at the distance of the planet
     # from the host star, in unit of vs / rs
@@ -219,14 +216,17 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         raise ValueError('Either `spectrum_at_planet` or `flux_euv` must be '
                          'provided.')
     phi = (phi / phi_unit).decompose().value
-    a_0 = (a_0 / rs ** 2).decompose().value
 
     # Multiplicative factor of Eq. 11 of Oklopcic & Hirata 2018
-    k1 = h_he_fraction * a_0 / (1 + (1 - h_he_fraction) * 4) / m_h
+    k1_unit = 1 / (rhos * rs).to(u.kg / u.cm ** 2)
+    k1 = (h_he_fraction * a_0 / (1 + (1 - h_he_fraction) * 4) / m_h) / k1_unit
+    k1 = k1.value
 
     # Multiplicative factor of the second term in the right-hand side of Eq.
     # 13 of Oklopcic & Hirata 2018
+    k2_unit = (vs / rs / rhos).to(u.cm ** 3 / u.kg / u.s)
     k2 = h_he_fraction / (1 + (1 - h_he_fraction) * 4) * alpha_rec / m_h
+    k2 = (k2 / k2_unit).value
 
     # Now let's solve the differential eq. 13 of Oklopcic & Hirata 2018
 
@@ -236,11 +236,12 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     # a new variable called theta, which is simply 1 / r
     _theta = np.flip(1 / r)
 
-    # The differential equation
-    def _fun(theta, y):
+    # The differential equation in function of 1 / r
+    def _fun_theta(theta, y):
         f = y[0]  # Fraction of ionized gas
         t = y[1]  # Optical depth
         velocity, rho = parker.structure(1 / theta)
+
         # In terms 1 and 2 we use the values of k2 and phi from above
         term1 = (1. - f) / velocity * phi * np.exp(-t)
         term2 = k2 * rho * f ** 2 / velocity
@@ -250,12 +251,11 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         return np.array([df_dtheta, dt_dtheta])
 
     # We solve it using `scipy.solve_ivp`
-    sol = solve_ivp(_fun, (_theta[0], _theta[-1],), initial_state,
+    sol = solve_ivp(_fun_theta, (_theta[0], _theta[-1],), initial_state,
                     t_eval=_theta, **options_solve_ivp)
-
     # Finally retrieve the ion fraction and optical depth arrays. Since we
-    # integrated f and tau from the outside, we have to flip them back to the
-    # same order as the radius variable
+    # integrated f and tau from the outside, we have to flip them back to
+    # the same order as the radius variable
     f_r = np.flip(sol['y'][0])
     tau_r = np.flip(sol['y'][1])
 

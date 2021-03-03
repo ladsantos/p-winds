@@ -42,6 +42,7 @@ def test_ion_fraction_mono(precision_threshold=1E-5):
 
     r = np.linspace(1, 15, 500)
     f_r, tau_r = hydrogen.ion_fraction(r, R_pl, T_0, h_he, m_dot, M_pl,
-                                       average_f_ion, flux_euv=flux_euv)
+                                       average_f_ion, flux_euv=flux_euv,
+                                       initial_state=np.array([0.0, 1E3]))
     assert abs(f_r[-1] - 1.0) < precision_threshold
     assert abs(f_r[0] - 4.1E-4) < precision_threshold
