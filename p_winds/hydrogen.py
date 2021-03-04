@@ -11,6 +11,7 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp
+from scipy.interpolate import interp1d
 from p_winds import parker, tools, microphysics
 
 
@@ -125,8 +126,8 @@ def recombination(temperature):
 # Fraction of ionized hydrogen vs. radius profile
 def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
                  mass_loss_rate, planet_mass, average_ion_fraction=0.0,
-                 spectrum_at_planet=None, flux_euv=None,
-                 initial_state=np.array([1.0, 0.0]), **options_solve_ivp):
+                 spectrum_at_planet=None, flux_euv=None, velocity=None,
+                 density=None, initial_f_ion=0.0, repeat=False, **options_solve_ivp):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
     function of the radius in unit of planetary radius.
@@ -166,13 +167,22 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         If ``None``, then ``spectrum_at_planet`` must be provided instead.
         Default is ``None``.
 
-    initial_state (``numpy.ndarray``, optional):
-        The initial state is the `y0` of the differential equation to be solved.
-        This array has two items: the initial value of `f_ion` (ionization
-        fraction) and `tau` (optical depth) at the outer layer of the
-        atmosphere. The standard value for this parameter is
-        ``numpy.array([1.0, 0.0])``, i.e., completely ionized at the outer layer
-        and with null optical depth.
+    velocity (``numpy.ndarray``, optional):
+        Velocities of the escaping atmosphere in units of sound speed and in
+        function of radius. Providing these values upfront makes the code more
+        efficient, but are not strictly necessary. If ``None``, the velocities
+        will be calculated  using ``parker.structure()``. Default is ``None``.
+
+    density (``numpy.ndarray``, optional):
+        Densities of the upper atmosphere in units of density at the sonic point
+        and in function of radius. Providing these values upfront makes the code
+        more efficient, but are not strictly necessary. If ``None``, the
+        velocities will be calculated  using ``parker.structure()``. Default is
+        ``None``.
+
+    initial_f_ion (``float``, optional):
+        The initial ionization fraction at the layer near the surface of the
+        planet. Default is 0.0, i.e., fully neutral.
 
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
@@ -228,35 +238,55 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     k2 = h_he_fraction / (1 + (1 - h_he_fraction) * 4) * alpha_rec / m_h
     k2 = (k2 / k2_unit).value
 
-    # Now let's solve the differential eq. 13 of Oklopcic & Hirata 2018
-
     # The radius in unit of radius at the sonic point
     r = (radius_profile * planet_radius / rs).decompose().value
-    # We are going to integrate from outside inwards, so it is useful to define
-    # a new variable called theta, which is simply 1 / r
-    _theta = np.flip(1 / r)
+    dr = np.diff(r)
+    dr = np.concatenate((dr, np.array([dr[-1],])))
 
-    # The differential equation in function of 1 / r
-    def _fun_theta(theta, y):
-        f = y[0]  # Fraction of ionized gas
-        t = y[1]  # Optical depth
-        velocity, rho = parker.structure(1 / theta)
+    # The structure of the atmosphere
+    if velocity is None or density is None:
+        velocity, density = parker.structure(r)
+    else:
+        pass
 
+    # To start the calculations we need the optical depth, but technically we
+    # don't know it yet, because it depends on the ion fraction in the
+    # atmosphere, which is what we want to obtain. However, the optical depth
+    # depends more strongly on the densities of H than the ion fraction, so a
+    # good approximation is to assume the whole atmosphere is neutral at first.
+    column_density = np.flip(np.cumsum(np.flip(dr * density)))
+    tau_initial = k1 * column_density
+    # We do a dirty hack to make tau_initial a callable function so it's easily
+    # parsed inside the differential equation solver
+    _tau_fun = interp1d(r, tau_initial)
+
+    # Now let's solve the differential eq. 13 of Oklopcic & Hirata 2018
+    # The differential equation in function of r
+    def _fun(r, f):
+        t = _tau_fun(r)
+        v, rho = parker.structure(r)
         # In terms 1 and 2 we use the values of k2 and phi from above
-        term1 = (1. - f) / velocity * phi * np.exp(-t)
-        term2 = k2 * rho * f ** 2 / velocity
-        # The DE system is the following
-        df_dtheta = term1 - term2
-        dt_dtheta = k1 * (1. - f) * rho
-        return np.array([df_dtheta, dt_dtheta])
+        term1 = (1. - f) / v * phi * np.exp(-t)
+        term2 = k2 * rho * f ** 2 / v
+        df_dr = term1 - term2
+        return df_dr
 
     # We solve it using `scipy.solve_ivp`
-    sol = solve_ivp(_fun_theta, (_theta[0], _theta[-1],), initial_state,
-                    t_eval=_theta, **options_solve_ivp)
-    # Finally retrieve the ion fraction and optical depth arrays. Since we
-    # integrated f and tau from the outside, we have to flip them back to
-    # the same order as the radius variable
-    f_r = np.flip(sol['y'][0])
-    tau_r = np.flip(sol['y'][1])
+    sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
+                    t_eval=r, **options_solve_ivp)
+    f_r = sol['y'][0]
 
-    return f_r, tau_r
+    # For the sake of self-consistency, there is the option of repeating the
+    # calculation of f_r by updating the optical depth with the new ion
+    # fractions.
+    if repeat is True:
+        column_density = np.flip(np.cumsum(np.flip(dr * density * (1 - f_r))))
+        tau = k1 * column_density
+        _tau_fun = interp1d(r, tau)
+        sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
+                        t_eval=r, **options_solve_ivp)
+        f_r = sol['y'][0]
+    else:
+        pass
+
+    return f_r
