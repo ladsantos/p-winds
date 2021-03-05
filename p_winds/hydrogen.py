@@ -127,7 +127,8 @@ def recombination(temperature):
 def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
                  mass_loss_rate, planet_mass, average_ion_fraction=0.0,
                  spectrum_at_planet=None, flux_euv=None, velocity=None,
-                 density=None, initial_f_ion=0.0, repeat=False, **options_solve_ivp):
+                 density=None, initial_f_ion=0.0, relax_solution=False,
+                 convergence=0.01, max_n_relax=10, **options_solve_ivp):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
     function of the radius in unit of planetary radius.
@@ -182,7 +183,21 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
 
     initial_f_ion (``float``, optional):
         The initial ionization fraction at the layer near the surface of the
-        planet. Default is 0.0, i.e., fully neutral.
+        planet. Default is 0.0, i.e., 100% neutral.
+
+    relax_solution (``bool``, optional):
+        The first solution is calculating by initially assuming the entire
+        atmosphere is in neutral state. If ``True``, the solution will be
+        re-calculated in a loop until it converges to a delta_f of 1%, or for a
+        maximum of 10 loops (default parameters). Default is ``False``.
+
+    convergence (``float``, optional):
+        Value of delta_f at which to stop the relaxation of the solution for
+        ``f_r``. Default is 0.01.
+
+    max_n_relax (``int``, optional):
+        Maximum number of loops to perform the relaxation of the solution for
+        ``f_r``. Default is 10.
 
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
@@ -279,13 +294,22 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     # For the sake of self-consistency, there is the option of repeating the
     # calculation of f_r by updating the optical depth with the new ion
     # fractions.
-    if repeat is True:
-        column_density = np.flip(np.cumsum(np.flip(dr * density * (1 - f_r))))
-        tau = k1 * column_density
-        _tau_fun = interp1d(r, tau)
-        sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
-                        t_eval=r, **options_solve_ivp)
-        f_r = sol['y'][0]
+    if relax_solution is True:
+        for i in range(max_n_relax):
+            previous_f_r_outer_layer = np.copy(f_r)[-1]
+            column_density = np.flip(np.cumsum(np.flip(dr * density *
+                                                       (1 - f_r))))
+            tau = k1 * column_density
+            _tau_fun = interp1d(r, tau)
+            sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
+                            t_eval=r, **options_solve_ivp)
+            f_r = sol['y'][0]
+            relative_delta_f = abs(f_r[-1] - previous_f_r_outer_layer) \
+                / previous_f_r_outer_layer
+            if relative_delta_f < convergence:
+                break
+            else:
+                pass
     else:
         pass
 

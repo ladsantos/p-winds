@@ -27,22 +27,6 @@ def test_ion_fraction_spectrum(precision_threshold=1E-5):
     spectrum = tools.make_spectrum_from_file(
         '../data/solar_spectrum_scaled_lambda.dat', units)
 
-    f_r, tau_r = hydrogen.ion_fraction(r, R_pl, T_0, h_he, m_dot, M_pl,
-                                       average_f_ion,
-                                       spectrum_at_planet=spectrum
-                                       )
-    assert abs(f_r[-1] - 1.0) < precision_threshold
-    assert abs(f_r[0] - 4.1E-4) < precision_threshold
-
-
-# Now let's test ``ion_fraction()`` with a monochromatic flux instead of
-# spectrum.
-def test_ion_fraction_mono(precision_threshold=1E-5):
-    flux_euv = 1000 * u.erg / u.s / u.cm ** 2
-
-    r = np.linspace(1, 15, 500)
-    f_r, tau_r = hydrogen.ion_fraction(r, R_pl, T_0, h_he, m_dot, M_pl,
-                                       average_f_ion, flux_euv=flux_euv,
-                                       initial_state=np.array([0.0, 1E3]))
-    assert abs(f_r[-1] - 1.0) < precision_threshold
-    assert abs(f_r[0] - 4.1E-4) < precision_threshold
+    f_r = hydrogen.ion_fraction(r, R_pl, T_0, h_he, m_dot, M_pl, average_f_ion,
+                                spectrum_at_planet=spectrum)
+    assert abs(f_r[-1] - 0.99838) < precision_threshold
