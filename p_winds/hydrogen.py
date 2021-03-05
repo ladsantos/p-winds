@@ -126,9 +126,9 @@ def recombination(temperature):
 # Fraction of ionized hydrogen vs. radius profile
 def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
                  mass_loss_rate, planet_mass, average_ion_fraction=0.0,
-                 spectrum_at_planet=None, flux_euv=None, velocity=None,
-                 density=None, initial_f_ion=0.0, relax_solution=False,
-                 convergence=0.01, max_n_relax=10, **options_solve_ivp):
+                 spectrum_at_planet=None, flux_euv=None, initial_f_ion=0.0,
+                 relax_solution=False, convergence=0.01, max_n_relax=10,
+                 **options_solve_ivp):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
     function of the radius in unit of planetary radius.
@@ -168,19 +168,6 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         If ``None``, then ``spectrum_at_planet`` must be provided instead.
         Default is ``None``.
 
-    velocity (``numpy.ndarray``, optional):
-        Velocities of the escaping atmosphere in units of sound speed and in
-        function of radius. Providing these values upfront makes the code more
-        efficient, but are not strictly necessary. If ``None``, the velocities
-        will be calculated  using ``parker.structure()``. Default is ``None``.
-
-    density (``numpy.ndarray``, optional):
-        Densities of the upper atmosphere in units of density at the sonic point
-        and in function of radius. Providing these values upfront makes the code
-        more efficient, but are not strictly necessary. If ``None``, the
-        velocities will be calculated  using ``parker.structure()``. Default is
-        ``None``.
-
     initial_f_ion (``float``, optional):
         The initial ionization fraction at the layer near the surface of the
         planet. Default is 0.0, i.e., 100% neutral.
@@ -211,19 +198,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     -------
     f_r (``numpy.ndarray``):
         Values of the fraction of ionized hydrogen in function of the radius.
-
-    tau_r (``numpy.ndarray``):
-        Values of the optical depth in function of the radius.
     """
-    # First calculate the sound speed, radius at the sonic point and the
-    # density at the sonic point. They will be useful to change the units of
-    # the calculation aiming to avoid numerical overflows
-    vs = parker.sound_speed(temperature, h_he_fraction, average_ion_fraction
-                            ).to(u.km / u.s)
-    rs = parker.radius_sonic_point(planet_mass, vs).to(u.jupiterRad)
-    rhos = parker.density_sonic_point(mass_loss_rate, rs, vs).to(
-        u.g / u.cm ** 3)
-
     # Hydrogen recombination rate
     alpha_rec = recombination(temperature)
 
@@ -232,37 +207,53 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
 
     # Photoionization rate at null optical depth at the distance of the planet
     # from the host star, in unit of vs / rs
-    phi_unit = (vs / rs).to(1 / u.s)
     if spectrum_at_planet is not None:
-        phi, a_0 = radiative_processes(spectrum_at_planet)
+        phi_abs, a_0 = radiative_processes(spectrum_at_planet)
     elif flux_euv is not None:
-        phi, a_0 = radiative_processes_mono(flux_euv)
+        phi_abs, a_0 = radiative_processes_mono(flux_euv)
     else:
         raise ValueError('Either `spectrum_at_planet` or `flux_euv` must be '
                          'provided.')
-    phi = (phi / phi_unit).decompose().value
 
     # Multiplicative factor of Eq. 11 of Oklopcic & Hirata 2018
-    k1_unit = 1 / (rhos * rs).to(u.kg / u.cm ** 2)
-    k1 = (h_he_fraction * a_0 / (1 + (1 - h_he_fraction) * 4) / m_h) / k1_unit
-    k1 = k1.value
+    k1_abs = (h_he_fraction * a_0 / (1 + (1 - h_he_fraction) * 4) / m_h)
 
     # Multiplicative factor of the second term in the right-hand side of Eq.
     # 13 of Oklopcic & Hirata 2018
-    k2_unit = (vs / rs / rhos).to(u.cm ** 3 / u.kg / u.s)
-    k2 = h_he_fraction / (1 + (1 - h_he_fraction) * 4) * alpha_rec / m_h
-    k2 = (k2 / k2_unit).value
+    k2_abs = h_he_fraction / (1 + (1 - h_he_fraction) * 4) * alpha_rec / m_h
 
-    # The radius in unit of radius at the sonic point
-    r = (radius_profile * planet_radius / rs).decompose().value
-    dr = np.diff(r)
-    dr = np.concatenate((dr, np.array([dr[-1],])))
+    # In order to avoid numerical overflows, we need to normalize a few key
+    # variables. Since the normalization may need to be repeated to relax the
+    # solution, we have a function to do it.
+    def _normalize(_phi, _k1, _k2, _r, _mean_f_ion):
+        # First calculate the sound speed, radius at the sonic point and the
+        # density at the sonic point. They will be useful to change the units of
+        # the calculation aiming to avoid numerical overflows
+        vs = parker.sound_speed(temperature, h_he_fraction, _mean_f_ion
+                                ).to(u.km / u.s)
+        rs = parker.radius_sonic_point(planet_mass, vs).to(u.jupiterRad)
+        rhos = parker.density_sonic_point(mass_loss_rate, rs, vs).to(
+            u.g / u.cm ** 3)
+        # And now normalize everything
+        phi_unit = (vs / rs).to(1 / u.s)
+        phi_norm = (_phi / phi_unit).decompose().value
+        k1_unit = 1 / (rhos * rs).to(u.kg / u.cm ** 2)
+        k1_norm = (_k1 / k1_unit).value
+        k2_unit = (vs / rs / rhos).to(u.cm ** 3 / u.kg / u.s)
+        k2_norm = (_k2 / k2_unit).value
+        r_norm = (_r * planet_radius / rs).decompose().value
 
-    # The structure of the atmosphere
-    if velocity is None or density is None:
-        velocity, density = parker.structure(r)
-    else:
-        pass
+        # The differential r will be useful at some point
+        dr_norm = np.diff(r_norm)
+        dr_norm = np.concatenate((dr_norm, np.array([dr_norm[-1], ])))
+
+        # The structure of the atmosphere
+        v_norm, rho_norm = parker.structure(r_norm)
+
+        return phi_norm, k1_norm, k2_norm, r_norm, dr_norm, v_norm, rho_norm
+
+    phi, k1, k2, r, dr, velocity, density = _normalize(
+        phi_abs, k1_abs, k2_abs, radius_profile, average_ion_fraction)
 
     # To start the calculations we need the optical depth, but technically we
     # don't know it yet, because it depends on the ion fraction in the
@@ -277,18 +268,18 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
 
     # Now let's solve the differential eq. 13 of Oklopcic & Hirata 2018
     # The differential equation in function of r
-    def _fun(r, f):
-        t = _tau_fun(r)
-        v, rho = parker.structure(r)
+    def _fun(_r, _f, _phi, _k1, _k2):
+        _t = _tau_fun(_r)
+        _v, _rho = parker.structure(_r)
         # In terms 1 and 2 we use the values of k2 and phi from above
-        term1 = (1. - f) / v * phi * np.exp(-t)
-        term2 = k2 * rho * f ** 2 / v
+        term1 = (1. - _f) / _v * _phi * np.exp(-_t)
+        term2 = _k2 * _rho * _f ** 2 / _v
         df_dr = term1 - term2
         return df_dr
 
     # We solve it using `scipy.solve_ivp`
     sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
-                    t_eval=r, **options_solve_ivp)
+                    t_eval=r, args=(phi, k1, k2), **options_solve_ivp)
     f_r = sol['y'][0]
 
     # For the sake of self-consistency, there is the option of repeating the
@@ -297,20 +288,34 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     if relax_solution is True:
         for i in range(max_n_relax):
             previous_f_r_outer_layer = np.copy(f_r)[-1]
+            average_ion_fraction = np.mean(np.copy(f_r))
+
+            # We re-normalize key parameters because the newly-calculated f_ion
+            # changes the value of the mean molecular weight of the atmosphere
+            phi, k1, k2, r, dr, velocity, density = _normalize(
+                phi_abs, k1_abs, k2_abs, radius_profile, average_ion_fraction)
+
+            # Re-calculate the column densities
             column_density = np.flip(np.cumsum(np.flip(dr * density *
                                                        (1 - f_r))))
             tau = k1 * column_density
             _tau_fun = interp1d(r, tau)
+
+            # And solve it again
             sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
-                            t_eval=r, **options_solve_ivp)
+                            t_eval=r, args=(phi, k1, k2), **options_solve_ivp)
             f_r = sol['y'][0]
+
+            # Calculate the relative change of f_ion in the outer shell of the
+            # atmosphere (where we expect the most important change)
             relative_delta_f = abs(f_r[-1] - previous_f_r_outer_layer) \
                 / previous_f_r_outer_layer
+
+            # Break the loop if convergence is achieved
             if relative_delta_f < convergence:
                 break
             else:
                 pass
     else:
         pass
-
     return f_r
