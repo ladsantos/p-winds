@@ -7,7 +7,6 @@ This module computes an isothermal Parker (planetary) wind model.
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 import numpy as np
-import astropy.constants as c
 import scipy.optimize as so
 from p_winds import tools
 
@@ -19,15 +18,14 @@ __all__ = ["sound_speed", "radius_sonic_point", "density_sonic_point",
 # Speed of sound
 def sound_speed(temperature, h_he_fraction, ion_fraction=0.0):
     """
-    Speed of sound in an isothermal ideal gas. The input values must be
-    ``astropy.Quantity``.
+    Speed of sound in an isothermal ideal gas.
 
     Parameters
     ----------
-    temperature (``astropy.Quantity``):
-        Constant temperature of the gas. Assumed to be close to the maximum
-        thermospheric temperature (see Oklopčić & Hirata 2018 and Lampón et al.
-        2020 for more details).
+    temperature (``float``):
+        Constant temperature of the gas in Kelvin. Assumed to be close to the
+        maximum thermospheric temperature (see Oklopčić & Hirata 2018 and
+        Lampón et al. 2020 for more details).
 
     h_he_fraction (``float``):
         Average H/He fraction of the upper atmosphere.
@@ -37,37 +35,41 @@ def sound_speed(temperature, h_he_fraction, ion_fraction=0.0):
 
     Returns
     -------
-    sound_speed (``astropy.Quantity``):
-        Sound speed in the gas.
+    sound_speed (``float``):
+        Sound speed in the gas in unit of km / s.
     """
     # H has one proton and one electron
     # He has 2 protons and 2 neutrons, and 2 electrons
     he_h_fraction = 1 - h_he_fraction
     mu = (1 + 4 * he_h_fraction) / (1 + he_h_fraction + ion_fraction)
-    mean_molecular_weight = c.m_p * mu
-    return (c.k_B * temperature / mean_molecular_weight) ** 0.5
+    m_h = 1.67262192369e-27  # Hydrogen mass in kg
+    mean_molecular_weight = m_h * mu
+    k_b = 1.380649e-29  # Boltzmann constant in km ** 2 / s ** 2 * kg / K
+    return (k_b * temperature / mean_molecular_weight) ** 0.5
 
 
 # Radius of sonic point
 def radius_sonic_point(planet_mass, sound_speed_0):
     """
     Radius of the sonic point, i.e., where the wind speed matches the speed of
-    sound. The input values must be `astropy.Quantity`.
+    sound.
 
     Parameters
     ----------
-    planet_mass (``astropy.Quantity``):
-        Planetary mass.
+    planet_mass (``float``):
+        Planetary mass in unit of Jupiter mass.
 
-    sound_speed (``astropy.Quantity``):
-        Constant speed of sound.
+    sound_speed (``float``):
+        Constant speed of sound in unit of km / s.
 
     Returns
     -------
-    radius_sonic_point (``astropy.Quantity``):
-        Radius of the sonic point.
+    radius_sonic_point (``float``):
+        Radius of the sonic point in unit of Jupiter radius.
     """
-    return c.G * planet_mass / 2 / sound_speed_0 ** 2
+    grav = 1772.0378503888546  # Gravitational constant in unit of
+    # jupiterRad * km ** 2 / s ** 2 / jupiterMass
+    return grav * planet_mass / 2 / sound_speed_0 ** 2
 
 
 # Density at the sonic point
@@ -78,22 +80,23 @@ def density_sonic_point(mass_loss_rate, radius_sp, sound_speed_0):
 
     Parameters
     ----------
-    mass_loss_rate (``astropy.Quantity``):
-        Total mass loss rate of the planet.
+    mass_loss_rate (``float``):
+        Total mass loss rate of the planet in units of g / s.
 
-    radius_sp (``astropy.Quantity``):
-        Radius at the sonic point.
+    radius_sp (``float``):
+        Radius at the sonic point in unit of Jupiter radius.
 
-    sound_speed_0 (``astropy.Quantity``):
-        Speed of sound, assumed to be constant.
+    sound_speed_0 (``float``):
+        Speed of sound, assumed to be constant, in units of km / s.
 
     Returns
     -------
-    rho_sp (``astropy.Quantity``):
-        Density at the sonic point.
-
+    rho_sp (``float``):
+        Density at the sonic point in units of g / cm ** 3.
     """
-    rho_sp = mass_loss_rate / 4 / np.pi / radius_sp ** 2 / sound_speed_0
+    vs = sound_speed_0 * 1E5  # Convert sound speed to cm / s
+    rs = radius_sp * 7.1492E+09  # Convert radius to cm
+    rho_sp = mass_loss_rate / 4 / np.pi / rs ** 2 / vs
     return rho_sp
 
 
