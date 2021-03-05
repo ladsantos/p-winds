@@ -7,10 +7,10 @@ from p_winds import hydrogen, tools
 
 
 # HD 209458 b
-R_pl = 1.39 * u.jupiterRad
-M_pl = 0.73 * u.jupiterMass
-m_dot = 8E10 * u.g / u.s
-T_0 = 9E3 * u.K
+R_pl = (1.39 * u.jupiterRad).value
+M_pl = (0.73 * u.jupiterMass).value
+m_dot = (8E10 * u.g / u.s).value
+T_0 = (9E3 * u.K).value
 h_he = 0.9
 average_f_ion = 0.7
 
@@ -28,5 +28,6 @@ def test_ion_fraction_spectrum(precision_threshold=1E-5):
         '../data/solar_spectrum_scaled_lambda.dat', units)
 
     f_r = hydrogen.ion_fraction(r, R_pl, T_0, h_he, m_dot, M_pl, average_f_ion,
-                                spectrum_at_planet=spectrum)
+                                spectrum_at_planet=spectrum,
+                                relax_solution=False)
     assert abs(f_r[-1] - 0.99838) < precision_threshold

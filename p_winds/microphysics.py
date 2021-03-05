@@ -8,8 +8,6 @@ in the other modules.
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 import numpy as np
-import astropy.units as u
-import astropy.constants as c
 
 
 __all__ = ["hydrogen_cross_section", "helium_singlet_cross_section",
@@ -43,12 +41,11 @@ def hydrogen_cross_section(wavelength=None, energy=None):
         returned if energy was input.
     """
     if wavelength is not None:
-        wl_break = (c.h * c.c / (13.6 * u.eV)).to(u.angstrom).value
-        epsilon = (wl_break / wavelength - 1) ** 0.5
+        epsilon = (911.65 / wavelength - 1) ** 0.5
 
         # Photoionization cross-section in function of wavelength
         a_lambda = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon)) / epsilon) /
-            (1 - np.exp(-2 * np.pi / epsilon)) * (wavelength / wl_break) ** 4)
+            (1 - np.exp(-2 * np.pi / epsilon)) * (wavelength / 911.65) ** 4)
         return a_lambda
 
     elif energy is not None:
@@ -78,7 +75,7 @@ def helium_singlet_cross_section(wavelength):
     a_lambda_1 (``float`` or ``numpy.ndarray``):
         Cross-section in function of wavelength and in unit of cm ** 2.
     """
-    energy = ((c.h * (c.c / wavelength / u.angstrom).to(u.Hz)).to(u.eV)).value
+    energy = 12398.41984332 / wavelength  # Energy in unit of eV
 
     # The cross-sections for helium are partially hard-coded and based on those
     # of hydrogen

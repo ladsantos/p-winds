@@ -34,11 +34,12 @@ def radiative_processes(spectrum_at_planet):
 
     Returns
     -------
-    phi (``astropy.Quantity``):
-        Ionization rate of hydrogen at null optical depth.
+    phi (``float``):
+        Ionization rate of hydrogen at null optical depth in unit of 1 / s.
 
-    a_0 (``astropy.Quantity``):
-        Flux-averaged photoionization cross-section of hydrogen.
+    a_0 (``float``):
+        Flux-averaged photoionization cross-section of hydrogen in unit of
+        cm ** 2.
     """
     wavelength = (spectrum_at_planet['wavelength'] *
                   spectrum_at_planet['wavelength_unit']).to(u.angstrom).value
@@ -47,7 +48,7 @@ def radiative_processes(spectrum_at_planet):
     energy = (c.h * c.c).to(u.erg * u.angstrom).value / wavelength
 
     # Wavelength corresponding to the energy to ionize H
-    wl_break = (c.h * c.c / (13.6 * u.eV)).to(u.angstrom).value
+    wl_break = 911.65  # angstrom
 
     # Index of the lambda_0 in the wavelength array
     i_break = tools.nearest_index(wavelength, wl_break)
@@ -62,10 +63,10 @@ def radiative_processes(spectrum_at_planet):
 
     # Flux-averaged photoionization cross-section
     a_0 = simps(flux_lambda_cut * a_lambda, wavelength_cut) / \
-        simps(flux_lambda_cut, wavelength_cut) * u.cm ** 2
+        simps(flux_lambda_cut, wavelength_cut)
 
     # Finally calculate the photoionization rate
-    phi = simps(flux_lambda_cut * a_lambda / energy_cut, wavelength_cut) / u.s
+    phi = simps(flux_lambda_cut * a_lambda / energy_cut, wavelength_cut)
     return phi, a_0
 
 
@@ -77,28 +78,30 @@ def radiative_processes_mono(flux_euv):
 
     Parameters
     ----------
-    flux_euv (``astropy.Quantity``):
+    flux_euv (``float``):
         Monochromatic extreme-ultraviolet (0 - 912 Angstrom) flux arriving at
-        the planet.
+        the planet in unit of erg / s / cm ** 2.
 
     Returns
     -------
-    phi (``astropy.Quantity``):
-        Ionization rate of hydrogen at null optical depth.
+    phi (``float``):
+        Ionization rate of hydrogen at null optical depth in unit of 1 / s.
 
-    a_0 (``astropy.Quantity``):
-        Flux-averaged photoionization cross-section of hydrogen.
+    a_0 (``float``):
+        Flux-averaged photoionization cross-section of hydrogen in unit of
+        cm ** 2.
     """
-    energy = np.logspace(np.log10(13.61), 3, 1000)
+    energy = np.logspace(np.log10(13.61), 3, 1000)  # eV
 
     # Photoionization cross-section in function of frequency
     a_nu = microphysics.hydrogen_cross_section(energy=energy)
 
     # Average cross-section
-    a_0 = np.mean(a_nu) * u.cm ** 2
+    a_0 = np.mean(a_nu)
 
     # Monochromatic ionization rate
-    phi = flux_euv.to(u.eV / u.s / u.cm ** 2) * a_0 / np.mean(energy) / u.eV
+    flux_euv *= 6.24150907E+11  # Convert erg to eV
+    phi = flux_euv * a_0 / np.mean(energy)
     return phi, a_0
 
 
@@ -110,16 +113,15 @@ def recombination(temperature):
 
     Parameters
     ----------
-    temperature (``astropy.Quantity``):
-        Isothermal temperature of the upper atmosphere.
+    temperature (``float``):
+        Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
     Returns
     -------
-    alpha_rec (``astropy.Quantity``):
-        Recombination rate of hydrogen.
+    alpha_rec (``float``):
+        Recombination rate of hydrogen in units of cm ** 3 / s.
     """
-    alpha_rec = 2.59E-13 * (temperature.to(u.K).value / 1E4) ** (-0.7) * \
-        u.cm ** 3 / u.s
+    alpha_rec = 2.59E-13 * (temperature / 1E4) ** (-0.7)
     return alpha_rec
 
 
@@ -136,22 +138,22 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     Parameters
     ----------
     radius_profile (``numpy.ndarray``):
-        Radius in unit of planetary radii. Not a ``astropy.Quantity``.
+        Radius in unit of planetary radii.
 
-    planet_radius (``astropy.Quantity``):
-        Planetary radius.
+    planet_radius (``float``):
+        Planetary radius in unit of Jupiter radius.
 
-    temperature (``astropy.Quantity``):
-        Isothermal temperature of the upper atmosphere.
+    temperature (``float``):
+        Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
     h_he_fraction (``float``):
         H/He fraction of the atmosphere.
 
-    mass_loss_rate (``astropy.Quantity``):
-        Mass loss rate of the planet.
+    mass_loss_rate (``float``):
+        Mass loss rate of the planet in units of g / s.
 
-    planet_mass (``astropy.Quantity``):
-        Planetary mass.
+    planet_mass (``float``):
+        Planetary mass in unit of Jupiter mass.
 
     average_ion_fraction (``float``):
         Average ion fraction in the upper atmosphere.
@@ -163,10 +165,10 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         ``tools.make_spectrum_dict``. If ``None``, then ``flux_euv`` must be
         provided instead. Default is ``None``.
 
-    flux_euv (``astropy.Quantity``, optional):
-        Extreme-ultraviolet (0-911.65 Angstrom) flux arriving at the planet.
-        If ``None``, then ``spectrum_at_planet`` must be provided instead.
-        Default is ``None``.
+    flux_euv (``float``, optional):
+        Extreme-ultraviolet (0-911.65 Angstrom) flux arriving at the planet in
+        units of erg / s / cm ** 2. If ``None``, then ``spectrum_at_planet``
+        must be provided instead. Default is ``None``.
 
     initial_f_ion (``float``, optional):
         The initial ionization fraction at the layer near the surface of the
@@ -203,7 +205,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     alpha_rec = recombination(temperature)
 
     # Hydrogen mass
-    m_h = c.m_p
+    m_h = 1.67262192E-24  # Hydrogen mass in g
 
     # Photoionization rate at null optical depth at the distance of the planet
     # from the host star, in unit of vs / rs
@@ -215,11 +217,12 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         raise ValueError('Either `spectrum_at_planet` or `flux_euv` must be '
                          'provided.')
 
-    # Multiplicative factor of Eq. 11 of Oklopcic & Hirata 2018
+    # Multiplicative factor of Eq. 11 of Oklopcic & Hirata 2018, unit of
+    # cm ** 2 / g
     k1_abs = (h_he_fraction * a_0 / (1 + (1 - h_he_fraction) * 4) / m_h)
 
     # Multiplicative factor of the second term in the right-hand side of Eq.
-    # 13 of Oklopcic & Hirata 2018
+    # 13 of Oklopcic & Hirata 2018, unit of cm ** 3 / s / g
     k2_abs = h_he_fraction / (1 + (1 - h_he_fraction) * 4) * alpha_rec / m_h
 
     # In order to avoid numerical overflows, we need to normalize a few key
@@ -229,19 +232,17 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         # First calculate the sound speed, radius at the sonic point and the
         # density at the sonic point. They will be useful to change the units of
         # the calculation aiming to avoid numerical overflows
-        vs = parker.sound_speed(temperature, h_he_fraction, _mean_f_ion
-                                ).to(u.km / u.s)
-        rs = parker.radius_sonic_point(planet_mass, vs).to(u.jupiterRad)
-        rhos = parker.density_sonic_point(mass_loss_rate, rs, vs).to(
-            u.g / u.cm ** 3)
+        vs = parker.sound_speed(temperature, h_he_fraction, _mean_f_ion)
+        rs = parker.radius_sonic_point(planet_mass, vs)
+        rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
         # And now normalize everything
-        phi_unit = (vs / rs).to(1 / u.s)
-        phi_norm = (_phi / phi_unit).decompose().value
-        k1_unit = 1 / (rhos * rs).to(u.kg / u.cm ** 2)
-        k1_norm = (_k1 / k1_unit).value
-        k2_unit = (vs / rs / rhos).to(u.cm ** 3 / u.kg / u.s)
-        k2_norm = (_k2 / k2_unit).value
-        r_norm = (_r * planet_radius / rs).decompose().value
+        phi_unit = vs * 1E5 / rs / 7.1492E+09  # 1 / s
+        phi_norm = _phi / phi_unit
+        k1_unit = 1 / (rhos * rs * 7.1492E+09)  # cm ** 2 / g
+        k1_norm = _k1 / k1_unit
+        k2_unit = vs * 1E5 / rs / 7.1492E+09 / rhos  # cm ** 3 / g / s
+        k2_norm = _k2 / k2_unit
+        r_norm = (_r * planet_radius / rs)
 
         # The differential r will be useful at some point
         dr_norm = np.diff(r_norm)
