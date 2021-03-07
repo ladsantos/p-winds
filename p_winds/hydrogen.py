@@ -204,8 +204,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     # Hydrogen recombination rate
     alpha_rec = recombination(temperature)
 
-    # Hydrogen mass
-    m_h = 1.67262192E-24  # Hydrogen mass in g
+    # Hydrogen mass in g
+    m_h = 1.67262192E-24
 
     # Photoionization rate at null optical depth at the distance of the planet
     # from the host star, in unit of vs / rs
@@ -270,7 +270,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     # Now let's solve the differential eq. 13 of Oklopcic & Hirata 2018
     # The differential equation in function of r
     def _fun(_r, _f, _phi, _k1, _k2):
-        _t = _tau_fun(_r)
+        _t = _tau_fun(np.array([_r, ]))[0]
         _v, _rho = parker.structure(_r)
         # In terms 1 and 2 we use the values of k2 and phi from above
         term1 = (1. - _f) / _v * _phi * np.exp(-_t)
