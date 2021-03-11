@@ -91,7 +91,7 @@ def radiative_processes_mono(flux_euv):
         Flux-averaged photoionization cross-section of hydrogen in unit of
         cm ** 2.
     """
-    energy = np.logspace(np.log10(13.61), 3, 1000)  # eV
+    energy = np.flip(np.logspace(3, np.log10(13.61), 1000))  # eV
 
     # Photoionization cross-section in function of frequency
     a_nu = microphysics.hydrogen_cross_section(energy=energy)
@@ -101,7 +101,7 @@ def radiative_processes_mono(flux_euv):
 
     # Monochromatic ionization rate
     flux_euv *= 6.24150907E+11  # Convert erg to eV
-    phi = flux_euv * a_0 / np.mean(energy)
+    phi = flux_euv * np.mean(a_nu / energy)
     return phi, a_0
 
 
