@@ -12,7 +12,7 @@ import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp
 from scipy.interpolate import interp1d
-from p_winds import parker, tools, microphysics
+from p_winds import tools, microphysics
 
 
 __all__ = ["radiative_processes", "radiative_processes_mono", "recombination",
@@ -290,9 +290,10 @@ def collision(temperature):
 
 
 # Fraction of helium in singlet and triplet vs. radius profile
-def population_fraction(radius_profile, planet_radius, temperature,
-                        h_he_fraction, mass_loss_rate, planet_mass,
-                        hydrogen_ion_fraction, spectrum_at_planet=None,
+def population_fraction(radius_profile, velocity, density,
+                        hydrogen_ion_fraction, planet_radius, temperature,
+                        h_he_fraction, speed_sonic_point, radius_sonic_point,
+                        density_sonic_point, spectrum_at_planet=None,
                         flux_euv=None, flux_fuv=None,
                         initial_state=np.array([0.5, 0.5]),
                         relax_solution=False, convergence=0.01, max_n_relax=10,
@@ -307,6 +308,19 @@ def population_fraction(radius_profile, planet_radius, temperature,
     radius_profile (``numpy.ndarray``):
         Radius in unit of planetary radii.
 
+    velocity (``numpy.ndarray``):
+         Velocities sampled at the values of ``radius_profile`` in units of
+         sound speed. Similar to the output of ``parker.structure()``.
+
+    density (``numpy.ndarray``):
+        Densities sampled at the values of ``radius_profile`` in units of
+        density at the sonic point. Similar to the output of
+        ``parker.structure()``.
+
+    hydrogen_ion_fraction (``numpy.ndarray``):
+        Hydrogen ion fraction in the upper atmosphere in function of radius.
+        Similar to the output of ``hydrogen.ion_fraction()``.
+
     planet_radius (``float``):
         Planetary radius in unit of Jupiter radius.
 
@@ -316,15 +330,14 @@ def population_fraction(radius_profile, planet_radius, temperature,
     h_he_fraction (``float``):
         H/He fraction of the atmosphere.
 
-    mass_loss_rate (``float``):
-        Mass loss rate of the planet in units of g / s.
+    speed_sonic_point (``float``):
+        Speed of sound in the outflow in units of km / s.
 
-    planet_mass (``float``):
-        Planetary mass in unit of Jupiter mass.
+    radius_sonic_point (``float``):
+        Radius of the sonic point in unit of Jupiter radius.
 
-    hydrogen_ion_fraction (``numpy.ndarray``):
-        Hydrogen ion fraction in the upper atmosphere in function of radius (can
-        be calculated with ``hydrogen.ion_fraction()``).
+    density_sonic_point (``float``):
+        Density at the sonic point in units of g / cm ** 3.
 
     spectrum_at_planet (``dict``, optional):
         Spectrum of the host star arriving at the planet covering fluxes at
@@ -346,7 +359,7 @@ def population_fraction(radius_profile, planet_radius, temperature,
     initial_state (``numpy.ndarray``, optional):
         The initial state is the `y0` of the differential equation to be solved.
         This array has two items: the initial value of the fractions of singlet
-        and triplet state in the inner layer of the atmosphere. The standard
+        and triplet state in the inner layer of the atmosphere. The default
         value for this parameter is ``numpy.array([0.5, 0.5])``, i.e., fully
         neutral at the inner layer with 50% in singlet and 50% in triplet
         states.
@@ -381,12 +394,9 @@ def population_fraction(radius_profile, planet_radius, temperature,
     f_3_r (``numpy.ndarray``):
         Fraction of helium in triplet state in function of radius.
     """
-    # Calculate sound speed, radius and density at the sonic point
-    average_ion_fraction = np.mean(hydrogen_ion_fraction)
-    vs = parker.sound_speed(temperature, h_he_fraction, average_ion_fraction)
-    # Velocity in km / s
-    rs = parker.radius_sonic_point(planet_mass, vs)  # jupiterRad
-    rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)  # g / cm ** 3
+    vs = speed_sonic_point  # km / s
+    rs = radius_sonic_point  # jupiterRad
+    rhos = density_sonic_point  # g / cm ** 3
 
     # Recombination rates of helium singlet and triplet in unit of rs ** 2 * vs
     alpha_rec_unit = ((rs * 7.1492E+09) ** 2 * vs * 1E5)  # cm ** 3 / s
@@ -444,15 +454,14 @@ def population_fraction(radius_profile, planet_radius, temperature,
     dr = np.diff(r)
     dr = np.concatenate((dr, np.array([r[-1], ])))
 
-    # Structure of the atmosphere
-    velocity, density = parker.structure(r)
-
     # The way we solve the differential equation requires us to pass the H ion
-    # fraction at specific values of r, and it can be cumbersome to  parse this
-    # inside the callable function _fun(). Instead, let's create a "mock
-    # function" that returns the value of f_H_ion in function of r (essentially
-    # a scipy.interp1d function)
+    # fraction, densities and velocities at specific values of r, and it can be
+    # cumbersome to  parse this inside the callable function _fun(). Instead,
+    # let's create a "mock function" that returns the value of v, rho, and
+    # f_H_ion in function of r (essentially a scipy.interp1d function)
     mock_f_h_ion_r = interp1d(r, hydrogen_ion_fraction)
+    mock_v_r = interp1d(r, velocity)
+    mock_rho_r = interp1d(r, density)
 
     # With all this setup done, now we need to assume something about the
     # distribution of singlet and triplet helium in the atmosphere. As a first
@@ -477,7 +486,8 @@ def population_fraction(radius_profile, planet_radius, temperature,
     def _fun(_r, y):
         f_1 = y[0]  # Fraction of helium in singlet
         f_3 = y[1]  # Fraction of helium in triplet
-        _v, _rho = parker.structure(_r)
+        _v = mock_v_r(np.array([_r, ]))[0]
+        _rho = mock_rho_r(np.array([_r, ]))[0]
         f_h_ion = mock_f_h_ion_r(np.array([_r, ]))[0]  # Fraction of H+
 
         # Assume the number density of electrons is equal to the number density
