@@ -13,6 +13,7 @@ import astropy.constants as c
 from scipy.integrate import simps, solve_ivp
 from scipy.interpolate import interp1d
 from p_winds import tools, microphysics
+from warnings import warn
 
 
 __all__ = ["radiative_processes", "radiative_processes_mono", "recombination",
@@ -522,6 +523,16 @@ def population_fraction(radius_profile, velocity, density,
                   + term_17 - term_18 + term_19) / _v
         df3_dr = (term_31 - term_12 - term_33 + term_14 - term_15 - term_16
                   - term_17) / _v
+
+        # Exceedingly high values of df_dr can cause numerical problems
+        if abs(df1_dr) > 1.97E7 or abs(df3_dr) > 1.97E7:
+            warn('Large df/dr (>2E7), reverting to zero. Consider doing a '
+                 'consistency check.',
+                 UserWarning)
+            df1_dr = 0.0
+            df3_dr = 0.0
+        else:
+            pass
 
         return np.array([df1_dr, df3_dr])
 
