@@ -3,7 +3,7 @@
 
 import numpy as np
 import astropy.units as u
-from p_winds import hydrogen, helium, tools
+from p_winds import hydrogen, helium, tools, parker
 
 
 # HD 209458 b
@@ -14,13 +14,20 @@ T_0 = (9E3 * u.K).value
 h_he = 0.9
 average_f_ion = 0.7
 
-r = np.linspace(1, 15, 500)
-atol = 1E-8  # Absolute numerical tolerance for the solver
-rtol = 1E-5  # Relative numerical tolerance
+vs = parker.sound_speed(T_0, h_he, average_f_ion)  # Speed of sound (km/s,
+                                                   # assumed to be constant)
+rs = parker.radius_sonic_point(M_pl, vs)  # Radius at the sonic point (jupiterRad)
+rhos = parker.density_sonic_point(m_dot, rs, vs)  # Density at the sonic point (g/cm^3)
+
+# Some useful arrays for the modeling
+r_array = np.linspace(1, 15, 500) * R_pl / rs  # Radius in unit of radius at
+                                               # sonic point
+v_array, rho_array = parker.structure(r_array)
 
 # In the initial state, the fraction of singlet and triplet helium is 1E-6, and
 # the optical depths are null
 initial_state = np.array([1.0, 0.0])
+r = np.linspace(1, 15, 500)  # Radius in unit of planetary radii
 
 
 # Let's test if the code is producing reasonable outputs. The ``ion_fraction()``
@@ -34,34 +41,20 @@ def test_population_fraction_spectrum(precision_threshold=1E-4):
         '../data/solar_spectrum_scaled_lambda.dat', units)
 
     # First calculate the hydrogen ion fraction
-    f_r = hydrogen.ion_fraction(r, R_pl, T_0, h_he, m_dot, M_pl,
-                                       average_f_ion,
-                                       spectrum_at_planet=spectrum
-                                       )
+    f_r = hydrogen.ion_fraction(r, R_pl, T_0, h_he, m_dot, M_pl, average_f_ion,
+                                spectrum_at_planet=spectrum,
+                                relax_solution=False)
+
+    atol = 1E-8  # Absolute numerical tolerance for the solver
+    rtol = 1E-5  # Relative numerical tolerance
 
     # Now calculate the population of helium
+    initial_state = np.array([1.0, 0.0])
     f_he_1, f_he_3 = helium.population_fraction(
-        r, R_pl, T_0, h_he, m_dot, M_pl, f_r, spectrum_at_planet=spectrum,
-        initial_state=initial_state, atol=atol, rtol=rtol, relax_solution=True
+        r, v_array, rho_array, f_r,
+        R_pl, T_0, h_he, vs, rs, rhos, spectrum,
+        initial_state=initial_state, atol=atol, rtol=rtol
         )
 
-    # assert abs(f_he_1[0] - 0.99983) / f_he_1[0] < precision_threshold
-    # assert abs(f_he_3[0] - 1.2524E-9) / f_he_3[0] < precision_threshold
-
-
-# # Now let's test ``ion_fraction()`` with a monochromatic flux instead of
-# # spectrum.
-# def test_population_fraction_mono(precision_threshold=1E-4):
-#     flux_euv = 504 * u.erg / u.s / u.cm ** 2
-#     flux_fuv = 1.7E5 * u.erg / u.s / u.cm ** 2
-#
-#     f_r, tau_r = hydrogen.ion_fraction(r, R_pl, T_0, h_he, m_dot, M_pl,
-#                                        average_f_ion, flux_euv=flux_euv
-#                                        )
-#
-#     f_he_1, f_he_3, tau_he_1, tau_he_3 = helium.population_fraction(
-#         r, R_pl, T_0, h_he, m_dot, M_pl, f_r, flux_euv=flux_euv,
-#         flux_fuv=flux_fuv, initial_state=initial_state, atol=atol, rtol=rtol)
-#
-#     assert abs(f_he_1[0] - 0.9999) / f_he_1[0] < precision_threshold
-#     assert abs(f_he_3[0] - 8.6353E-10) / f_he_3[0] < precision_threshold
+    assert abs(f_he_1[-1] - 0.0293064) / f_he_1[-1] < precision_threshold
+    assert abs(f_he_3[-1] - 6.44021E-8) / f_he_3[-1] < precision_threshold
