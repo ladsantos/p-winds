@@ -93,7 +93,8 @@ def fetch_planet_system(name):
     return planet_info, star_info
 
 
-def make_spectrum_from_file(filename, units, path='', skiprows=0):
+def make_spectrum_from_file(filename, units, path='', skiprows=0,
+                            scale_flux=1.0):
     """
     Construct a dictionary containing an input spectrum from a text file. The
     input file must have two or more columns, in which the first is the
@@ -119,6 +120,9 @@ def make_spectrum_from_file(filename, units, path='', skiprows=0):
         Number of rows to skip corresponding to the header of the input text
         file.
 
+    scale_flux (``float``, optional):
+        Scaling factor for flux. Default value is 1.0 (no scaling).
+
     Returns
     -------
     spectrum (``dict``):
@@ -140,7 +144,7 @@ def make_spectrum_from_file(filename, units, path='', skiprows=0):
     y_axis_unit = units.pop('flux')
 
     spectrum = {x_axis: spectrum_table[:, 0],
-                y_axis: spectrum_table[:, 1],
+                y_axis: spectrum_table[:, 1] * scale_flux,
                 '{}_unit'.format(x_axis): x_axis_unit,
                 'flux_unit': y_axis_unit}
     return spectrum
