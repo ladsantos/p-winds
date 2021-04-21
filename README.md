@@ -3,7 +3,7 @@
 
 [![Documentation Status](https://readthedocs.org/projects/p-winds/badge/?version=latest)](https://p-winds.readthedocs.io/en/latest/?badge=latest) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4681081.svg)](https://doi.org/10.5281/zenodo.4681081)
 
-If you use this code, please consider citing it: [10.5281/zenodo.4551621](https://doi.org/10.5281/zenodo.4551621).
+If you use this code in your research, please consider citing it: [10.5281/zenodo.4551621](https://doi.org/10.5281/zenodo.4551621).
 
 Aims
 ----
@@ -12,10 +12,6 @@ The main objective of this code is to produce a simplified, 1-D model of the upp
 Background
 ----------
 `p-winds` is largely based on the theoretical framework of [Oklopčić & Hirata (2018)](https://ui.adsabs.harvard.edu/abs/2018ApJ...855L..11O/abstract) and [Lampón et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020A%26A...636A..13L/abstract), which themselves based their work on the stellar wind model of [Parker (1958)](https://ui.adsabs.harvard.edu/abs/1958ApJ...128..664P/abstract).
-
-Remarks
--------
-- `p-winds` requires ``astropy.Quantity`` as input for some functions. Using physical quantities without their respective units will yield errors.
 
 Installation
 ------------
