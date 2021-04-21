@@ -465,18 +465,17 @@ def population_fraction(radius_profile, velocity, density,
     mock_rho_r = interp1d(r, density)
 
     # With all this setup done, now we need to assume something about the
-    # distribution of singlet and triplet helium in the atmosphere. As a first
-    # step, let's assume all helium particles are neutral and we have a 50/50
-    # fraction between singlet and triplet.
+    # distribution of singlet and triplet helium in the atmosphere. Let's assume
+    # it based on the initial guess input.
     column_density = np.flip(np.cumsum(np.flip(dr * density)))  # Total column
                                                                 # density
     column_density_h_0 = np.flip(  # Column density of H only
         np.cumsum(np.flip(dr * density * (1 - hydrogen_ion_fraction))))
     k1 = h_he_fraction / (h_he_fraction + 4 * (1 - h_he_fraction)) / m_h
     k2 = (1 - h_he_fraction) / (h_he_fraction + 4 * (1 - h_he_fraction)) / m_h
-    tau_1_initial = (0.5 * k2 * a_1 * column_density +
+    tau_1_initial = (initial_state[0] * k2 * a_1 * column_density +
                      k1 * a_h_1 * column_density_h_0)
-    tau_3_initial = (0.5 * k2 * a_3 * column_density
+    tau_3_initial = (initial_state[1] * k2 * a_3 * column_density
                      + k1 * a_h_3 * column_density_h_0)
     # We do a dirty hack to make tau_initial a callable function so it's easily
     # parsed inside the differential equation solver
@@ -546,6 +545,10 @@ def population_fraction(radius_profile, velocity, density,
     f_1_r = sol['y'][0]
     f_3_r = sol['y'][1]
 
+    # Replace negative values with zero
+    f_1_r[f_1_r < 0] = 0.0
+    f_3_r[f_3_r < 0] = 0.0
+
     # For the sake of self-consistency, there is the option of repeating the
     # calculation of f_r by updating the optical depth with the new ion
     # fractions.
@@ -566,7 +569,7 @@ def population_fraction(radius_profile, velocity, density,
 
             # Solve it again
             sol = solve_ivp(_fun, (r[0], r[-1],), initial_state,
-                            t_eval=r, **options_solve_ivp)
+                            t_eval=r, method='Radau', **options_solve_ivp)
             f_1_r = sol['y'][0]
             f_3_r = sol['y'][1]
 
