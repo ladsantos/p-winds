@@ -545,10 +545,6 @@ def population_fraction(radius_profile, velocity, density,
     f_1_r = sol['y'][0]
     f_3_r = sol['y'][1]
 
-    # Replace negative values with zero
-    f_1_r[f_1_r < 0] = 0.0
-    f_3_r[f_3_r < 0] = 0.0
-
     # For the sake of self-consistency, there is the option of repeating the
     # calculation of f_r by updating the optical depth with the new ion
     # fractions.
@@ -588,5 +584,9 @@ def population_fraction(radius_profile, velocity, density,
                 pass
     else:
         pass
+
+    # Replace negative values with zero
+    f_1_r[f_1_r < 0] = 0.0
+    f_3_r[f_3_r < 0] = 0.0
 
     return f_1_r, f_3_r
