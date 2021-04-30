@@ -11,7 +11,7 @@ import numpy as np
 
 
 __all__ = ["hydrogen_cross_section", "helium_singlet_cross_section",
-           "helium_triplet_cross_section"]
+           "helium_triplet_cross_section", "he_3_properties"]
 
 
 # Photoionization cross-section of hydrogen
@@ -157,3 +157,27 @@ def he_collisional_strength():
         [5.75,            3.167E-2,    3.944E-1,    2.677E-1],
     ])
     return array
+
+
+# Line properties of the 1.083 microns He triplet taken from the NIST database
+# https://www.nist.gov/pml/atomic-spectra-database
+def he_3_properties():
+    # Central wavelengths in units of m
+    lambda_0 = 1.082909114 * 1E-6
+    lambda_1 = 1.083025010 * 1E-6
+    lambda_2 = 1.083033977 * 1E-6
+    # Oscillator strengths
+    f_0 = 5.9902e-02
+    f_1 = 1.7974e-01
+    f_2 = 2.9958e-01
+
+    # Absorption cross-sections in m ** 2
+    def _cross_section(f):
+        m_e = 9.1093837015e-31  # Electron mass in kg
+        e = 1.602176634e-19  # Electron charge in C
+        c_speed = 299792458.0  # Speed of light in m / s
+        return np.pi * e ** 2 / m_e / c_speed * f
+
+    sigma_0 = _cross_section(f_0)
+
+    return lambda_0, lambda_1, lambda_2, f_0, f_1, f_2
