@@ -6,12 +6,10 @@ planets and atmospheres.
 """
 
 import numpy as np
-# import matplotlib.pyplot as plt
-# import matplotlib.colors as plc
-# import scipy.optimize as sp
 from scipy.interpolate import interp1d
+from scipy.special import voigt_profile
 from PIL import Image, ImageDraw
-# from itertools import product
+from p_winds import tools
 
 __all__ = ["draw_transit", "column_density"]
 
@@ -109,13 +107,23 @@ def column_density(r, density_profile, sampling=100):
 
     Parameters
     ----------
-    r
-    density_profile
-    sampling
+    r (``numpy.ndarray``):
+        Radii in unit of m.
+
+    density_profile (``numpy.ndarray``):
+        Volumetric number densities in unit of 1 / m ** 3.
+
+    sampling (``int``, optional):
+        Square grid size in number of pixels.
 
     Returns
     -------
+    r_map (``numpy.ndarray``):
+        3-D map containing the radial distances from the center of the planet in
+        unit of m.
 
+    density_map (``numpy.ndarray``):
+        2-D map of the column densities in unit of 1 / m ** 2.
     """
     # First we need to know how the density behaves with radius. So we create an
     # interpolating function that does that for us
@@ -135,55 +143,69 @@ def column_density(r, density_profile, sampling=100):
 
 
 # Transmission profile in a given gas cell
-def transmission(cell_density, cell_temperature, cell_line_of_sight_speed,
-                 absorption_coeff, wavelength_grid, reference_wavelength,
-                 particle_mass, line_shape='Doppler'):
+def transmission(cell_density, cell_temperature, oscillator_strength,
+                 einstein_coeff, wavelength_grid, reference_wavelength,
+                 particle_mass):
     """
+    Calculate the transmission profile in a wavelength grid.
 
     Parameters
     ----------
     cell_density (``float``):
-        Cell gas density in 1 / m ** 3
+        Cell column or volumetric gas density in 1 / m ** 2 or 1 / m ** 3.
 
     cell_temperature (``float``):
         Cell gas temperature in K.
 
-    cell_line_of_sight_speed (``float``):
-        Cell wind speed in the line of sight in m / s.
+    oscillator_strength (``float``):
+        Oscillator strength of the transition.
 
-    absorption_coeff (``float``):
+    einstein_coeff (``float``):
+        Einstein coefficient of the transition in 1 / s.
 
+    wavelength_grid (``float`` or ``numpy.ndarray``):
+        Wavelengths to calculate the profile in unit of m.
 
-    wavelength_grid
-    reference_wavelength
-    particle_mass
-    line_shape
+    reference_wavelength (``float``):
+        Central wavelength of the transition in unit of m.
+
+    particle_mass (``float``):
+        Mass of the particle corresponding to the transition in unit of kg.
 
     Returns
     -------
-
+    absorption (``float`` or ``numpy.ndarray``):
+        Absorption profile in function of ``wavelength_grid`` (it is either
+        unitless if ``cell_density`` is a column density, or the unit is 1 / m
+        if ``cell_density`` is a volumetric density).
     """
-    w0 = reference_wavelength * 1E-10  # Reference wavelength in m
-    wl_grid = wavelength_grid * 1E-10
+    w0 = reference_wavelength  # Reference wavelength in m
+    wl_grid = wavelength_grid
     c_speed = 2.99792458e+08  # Speed of light in m / s
-    k_B = 1.380649e-23  # Boltzmann's constant in J / K
+    k_b = 1.380649e-23  # Boltzmann's constant in J / K
     nu0 = c_speed / w0  # Reference frequency in Hz
     nu_grid = c_speed / wl_grid
     temp = cell_temperature
     mass = particle_mass
-    wind_speed = cell_line_of_sight_speed
 
-    if line_shape == 'Doppler':
-        # Calculate turbulence speed for the gas in m / s
-        v_turb = (5 * k_B * temp / 3 / mass) ** 0.5
-        # Calculate Doppler width in Hz
-        alpha_nu = nu0 / c_speed * \
-            (2 * k_B * temp / mass + v_turb ** 2) ** 0.5
-        # Calculate the Doppler profile
-        numerator = (nu_grid - nu0 + (nu_grid / c_speed) * wind_speed) ** 2
-        f_nu = 1 / alpha_nu / np.pi ** 0.5 * np.exp(-numerator / alpha_nu ** 2)
-    else:
-        raise ValueError('This line shape is not implemented.')
+    # Calculate turbulence speed for the gas in m / s
+    v_turb = (5 * k_b * temp / 3 / mass) ** 0.5
+    # Calculate Doppler width
+    u_th = (2 * k_b * temp / mass + v_turb ** 2) ** 0.5
+    alpha_lambda = w0 / c_speed * u_th
+    # alpha_lambda = (2 * k_b * temp / mass + v_turb ** 2) ** 0.5  # m
+    # Calculate the Voigt profile
+    # At the moment, calculating the Lorentzian width in wavelength space is
+    # very hacky, it should be improved upon at some point
+    gamma_nu = einstein_coeff / 4 / np.pi
+    nuk = np.array([-gamma_nu / 2, gamma_nu / 2]) + nu0
+    wk = c_speed / nuk
+    gamma_lambda = np.diff(w0 - wk)[0]
+    phi = voigt_profile(wl_grid - w0, alpha_lambda, gamma_lambda)
 
-    k_nu = absorption_coeff * f_nu * cell_density
-    return k_nu
+    # Finally calculate the cross-section sigma in m ** 2
+    sigma = tools.cross_section(oscillator_strength, w0, alpha_lambda, phi)
+
+    # The absorption is the density times the cross-section
+    absorption = sigma * cell_density
+    return absorption

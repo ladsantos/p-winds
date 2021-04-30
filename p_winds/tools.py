@@ -16,7 +16,8 @@ except ModuleNotFoundError:
          Warning)
 
 
-__all__ = ["nearest_index", "fetch_planet_system", "make_spectrum_from_file"]
+__all__ = ["nearest_index", "fetch_planet_system", "make_spectrum_from_file",
+           "cross_section"]
 
 
 def nearest_index(array, target_value):
