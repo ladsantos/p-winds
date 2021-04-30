@@ -170,14 +170,7 @@ def he_3_properties():
     f_0 = 5.9902e-02
     f_1 = 1.7974e-01
     f_2 = 2.9958e-01
+    # Einstein coefficient in units of s ** (-1)
+    a_ij = 1.0216e+07
 
-    # Absorption cross-sections in m ** 2
-    def _cross_section(f):
-        m_e = 9.1093837015e-31  # Electron mass in kg
-        e = 1.602176634e-19  # Electron charge in C
-        c_speed = 299792458.0  # Speed of light in m / s
-        return np.pi * e ** 2 / m_e / c_speed * f
-
-    sigma_0 = _cross_section(f_0)
-
-    return lambda_0, lambda_1, lambda_2, f_0, f_1, f_2
+    return lambda_0, lambda_1, lambda_2, f_0, f_1, f_2, a_ij
