@@ -11,12 +11,13 @@ from scipy.special import voigt_profile
 from PIL import Image, ImageDraw
 from p_winds import tools
 
-__all__ = ["draw_transit", "column_density"]
+__all__ = ["draw_transit", "transmission"]
 
 
 # Draw a grid
 def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
-                 grid_size=2001):
+                 grid_size=1001, density_profile=None, profile_radius=None,
+                 planet_physical_radius=None):
     """
 
     Parameters
@@ -35,10 +36,30 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
     grid_size (``int``, optional):
         Size of the transit grid. Default is 2001.
 
+    density_profile (``numpy.ndarray``, optional):
+        1-D profile of volumetric number densities in function of radius. Unit
+        has to be 1 / length ** 3, where length is the unit of
+        ``planet_physical_radius``. If ``None``, the returned column densities
+        will be zero. Default is ``None``.
+
+    profile_radius (``numpy.ndarray``, optional):
+        1-D profile of radii in which the densities are sampled. Unit
+        has to be the same as ``planet_physical_radius``. Required if you want
+        to calculate the map of column densities. Default is ``None``.
+
+    planet_physical_radius (``float``, optional):
+        Physical radius of the planet in whatever unit you want to work with.
+        Required to calculate the map of column densities. Default is ``None``.
+
     Returns
     -------
-    grid (``numpy.ndarray``):
-        Transit grid.
+    normalized_flux_map (``numpy.ndarray``):
+        2-D map of fluxes normalized in such a way that the sum of the array
+        will be 1.0 if the planet is not transiting.
+
+    density_map (``numpy.ndarray``):
+        2-D map of column densities in unit of 1 / length ** 2, where length is
+        the unit of ``planet_physical_radius``.
     """
     shape = (grid_size, grid_size)
 
@@ -72,6 +93,7 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
 
     # Draw the host star
     star_radius = grid_size // 2
+    planet_radius = star_radius * planet_to_star_ratio
     star = _draw_disk(center=(star_radius, star_radius), radius=star_radius)
     norm = np.sum(star)  # Normalization factor is the total flux
     # Adding the star to the grid
@@ -82,67 +104,39 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
     x_p = grid_size // 2 + int(phase * grid_size)
     y_p = grid_size // 2 + int(impact_parameter * grid_size // 2)
 
-    # It will also be useful to know the matrix r_p containing distances from
-    # planet center
-    one_d_coords = np.linspace(0, grid_size - 1, grid_size, dtype=int)
-    x_s, y_s = np.meshgrid(one_d_coords, one_d_coords)
-    planet_centric_coords = np.array([x_s - x_p, y_s - y_p]).T
-    r_p = (np.sum(planet_centric_coords ** 2, axis=-1) ** 0.5).T
+    # Add the upper atmosphere if a density profile was input
+    if density_profile is not None:
+        # We need to know the matrix r_p containing distances from
+        # planet center when we draw the extended atmosphere
+        one_d_coords = np.linspace(0, grid_size - 1, grid_size, dtype=int)
+        x_s, y_s = np.meshgrid(one_d_coords, one_d_coords)
+        planet_centric_coords = np.array([x_s - x_p, y_s - y_p]).T
+        # We also need to know the physical size of the pixel in the grid
+        px_size = planet_physical_radius / planet_radius
+        r_p = (np.sum(planet_centric_coords ** 2, axis=-1) ** 0.5).T * px_size
+        # Calculate the column densities profile
+        column_density = 2 * np.sum(np.array([density_profile,
+                                              density_profile]), axis=0)
+        # In order to calculate the column density in a given pixel, we need to
+        # interpolate from the array above based on the radius map
+        f = interp1d(profile_radius, column_density, bounds_error=False,
+                     fill_value=0.0)
+        density_map = f(r_p)
+    else:
+        density_map = np.zeros_like(grid)
 
     # Finally
-    planet_radius = star_radius * planet_to_star_ratio
     planet = _draw_disk(center=(x_p, y_p), radius=planet_radius)
     # Adding the planet to the grid, normalized by the stellar flux
     grid -= planet / norm
     # The grid must not have negative values (this may happen if the planet
     # disk falls out of the stellar disk)
-    grid = grid.clip(min=0.0)
+    normalized_flux_map = grid.clip(min=0.0)
 
-    return grid
-
-
-# Calculate a 2-D map of the column densities
-def column_density(r, density_profile, sampling=100):
-    """
-
-    Parameters
-    ----------
-    r (``numpy.ndarray``):
-        Radii in unit of m.
-
-    density_profile (``numpy.ndarray``):
-        Volumetric number densities in unit of 1 / m ** 3.
-
-    sampling (``int``, optional):
-        Square grid size in number of pixels.
-
-    Returns
-    -------
-    r_map (``numpy.ndarray``):
-        3-D map containing the radial distances from the center of the planet in
-        unit of m.
-
-    density_map (``numpy.ndarray``):
-        2-D map of the column densities in unit of 1 / m ** 2.
-    """
-    # First we need to know how the density behaves with radius. So we create an
-    # interpolating function that does that for us
-    f = interp1d(r, density_profile, bounds_error=False, fill_value=0.0)
-
-    # Second create a 3-D array containing the cloud and then collapse it into
-    # 2-D
-    n = sampling
-    length = r[-1]
-    r_array = np.linspace(-length, length, n)
-    xx, yy, zz = np.meshgrid(r_array, r_array, r_array)
-    r_map = (xx ** 2 + yy ** 2 + zz ** 2) ** 0.5  # 3-D map containing the
-    # radial distances
-    density_cube = f(r_map)
-    density_map = np.sum(density_cube, axis=0)
-    return r_map, density_map
+    return normalized_flux_map, density_map
 
 
-# Transmission profile in a given gas cell
+# Transmission profile in a gas cell
 def transmission(cell_density, cell_temperature, oscillator_strength,
                  einstein_coeff, wavelength_grid, reference_wavelength,
                  particle_mass):
@@ -184,7 +178,6 @@ def transmission(cell_density, cell_temperature, oscillator_strength,
     c_speed = 2.99792458e+08  # Speed of light in m / s
     k_b = 1.380649e-23  # Boltzmann's constant in J / K
     nu0 = c_speed / w0  # Reference frequency in Hz
-    nu_grid = c_speed / wl_grid
     temp = cell_temperature
     mass = particle_mass
 
