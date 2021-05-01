@@ -18,6 +18,8 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
                  grid_size=1001, density_profile=None, profile_radius=None,
                  planet_physical_radius=None):
     """
+    Calculate a normalized transit map. Additionally, calculate a column density
+    map around the planet if the user inputs a 1-D volumetric density profile.
 
     Parameters
     ----------
@@ -64,24 +66,6 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
 
     # General function to draw a disk
     def _draw_disk(center, radius, value=1.0):
-        """
-
-        Parameters
-        ----------
-        center:
-            Coordinates of the center of the disk. The origin is the center of the
-            grid.
-
-        radius:
-            Radius of the disk in units of grid pixels.
-
-        value:
-            Value to be attributed to each pixel inside the disk.
-
-        Returns
-        -------
-
-        """
         top_left = (center[0] - radius, center[1] - radius)
         bottom_right = (center[0] + radius, center[1] + radius)
         image = Image.new('1', shape)
