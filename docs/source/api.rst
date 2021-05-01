@@ -8,5 +8,6 @@ p-winds API
    api/parker
    api/hydrogen
    api/helium
+   api/transit
    api/microphysics
    api/tools
