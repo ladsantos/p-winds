@@ -123,7 +123,7 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
 def radiative_transfer(flux, column_density, wavelength_grid,
                        central_wavelength, oscillator_strength,
                        einstein_coefficient, gas_temperature, particle_mass,
-                       bulk_los_velocity=0.0):
+                       bulk_los_velocity=0.0, turbulence_speed=0.0):
     """
     Calculate the transmission profile in a wavelength grid.
 
@@ -158,6 +158,10 @@ def radiative_transfer(flux, column_density, wavelength_grid,
         Bulk velocity of the gas cell in the line of sight in unit of m / s.
         Default is 0.0.
 
+    turbulence_speed (``float``, optional):
+        Turbulence speed in m / s. It is added to the Doppler broadening of the
+        absorption line. Default is 0.0.
+
     Returns
     -------
     extinction (``float`` or ``numpy.ndarray``):
@@ -172,9 +176,8 @@ def radiative_transfer(flux, column_density, wavelength_grid,
     temp = gas_temperature
     mass = particle_mass
     v_wind = bulk_los_velocity
+    v_turb = turbulence_speed
 
-    # Calculate turbulence speed for the gas in m / s
-    v_turb = (5 * k_b * temp / 3 / mass) ** 0.5
     # Calculate Doppler width
     alpha_nu = nu0 / c_speed * (2 * k_b * temp / mass + v_turb ** 2) ** 0.5
     # Frequency shift due to bulk movement
