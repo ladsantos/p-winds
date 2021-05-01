@@ -9,9 +9,8 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.special import voigt_profile
 from PIL import Image, ImageDraw
-from p_winds import tools
 
-__all__ = ["draw_transit", "transmission"]
+__all__ = ["draw_transit", "radiative_transfer"]
 
 
 # Draw a grid
@@ -136,69 +135,97 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
     return normalized_flux_map, density_map
 
 
-# Transmission profile in a gas cell
-def transmission(cell_density, cell_temperature, oscillator_strength,
-                 einstein_coeff, wavelength_grid, reference_wavelength,
-                 particle_mass):
+# Calculate the radiative transfer
+def radiative_transfer(flux, column_density, wavelength_grid,
+                       central_wavelength, oscillator_strength,
+                       einstein_coefficient, gas_temperature, particle_mass,
+                       bulk_los_velocity=0.0):
     """
     Calculate the transmission profile in a wavelength grid.
 
     Parameters
     ----------
-    cell_density (``float``):
-        Cell column or volumetric gas density in 1 / m ** 2 or 1 / m ** 3.
+    flux (``float`` or ``numpy.ndarray``):
+        Fluxes originating from a background illuminating source. If
+        ``numpy.ndarray``, must have the same shape as ``column_density``.
 
-    cell_temperature (``float``):
-        Cell gas temperature in K.
-
-    oscillator_strength (``float``):
-        Oscillator strength of the transition.
-
-    einstein_coeff (``float``):
-        Einstein coefficient of the transition in 1 / s.
+    column_density (``float`` or ``numpy.ndarray``):
+        Column density in 1 / m ** 2.
 
     wavelength_grid (``float`` or ``numpy.ndarray``):
         Wavelengths to calculate the profile in unit of m.
 
-    reference_wavelength (``float``):
+    central_wavelength (``float``):
         Central wavelength of the transition in unit of m.
+
+    oscillator_strength (``float``):
+        Oscillator strength of the transition.
+
+    einstein_coefficient (``float``):
+        Einstein coefficient of the transition in 1 / s.
+
+    gas_temperature (``float``):
+        Gas temperature in K.
 
     particle_mass (``float``):
         Mass of the particle corresponding to the transition in unit of kg.
 
+    bulk_los_velocity (``float``, optional):
+        Bulk velocity of the gas cell in the line of sight in unit of m / s.
+        Default is 0.0.
+
     Returns
     -------
-    absorption (``float`` or ``numpy.ndarray``):
-        Absorption profile in function of ``wavelength_grid`` (it is either
-        unitless if ``cell_density`` is a column density, or the unit is 1 / m
-        if ``cell_density`` is a volumetric density).
+    extinction (``float`` or ``numpy.ndarray``):
+        Absorption profile in function of ``wavelength_grid``.
     """
-    w0 = reference_wavelength  # Reference wavelength in m
+    w0 = central_wavelength  # Reference wavelength in m
     wl_grid = wavelength_grid
     c_speed = 2.99792458e+08  # Speed of light in m / s
     k_b = 1.380649e-23  # Boltzmann's constant in J / K
     nu0 = c_speed / w0  # Reference frequency in Hz
-    temp = cell_temperature
+    nu_grid = c_speed / wl_grid
+    temp = gas_temperature
     mass = particle_mass
+    v_wind = bulk_los_velocity
 
     # Calculate turbulence speed for the gas in m / s
     v_turb = (5 * k_b * temp / 3 / mass) ** 0.5
     # Calculate Doppler width
-    u_th = (2 * k_b * temp / mass + v_turb ** 2) ** 0.5
-    alpha_lambda = w0 / c_speed * u_th
-    # alpha_lambda = (2 * k_b * temp / mass + v_turb ** 2) ** 0.5  # m
-    # Calculate the Voigt profile
-    # At the moment, calculating the Lorentzian width in wavelength space is
-    # very hacky, it should be improved upon at some point
-    gamma_nu = einstein_coeff / 4 / np.pi
-    nuk = np.array([-gamma_nu / 2, gamma_nu / 2]) + nu0
-    wk = c_speed / nuk
-    gamma_lambda = np.diff(w0 - wk)[0]
-    phi = voigt_profile(wl_grid - w0, alpha_lambda, gamma_lambda)
+    alpha_nu = nu0 / c_speed * (2 * k_b * temp / mass + v_turb ** 2) ** 0.5
+    # Frequency shift due to bulk movement
+    delta_nu = -v_wind / c_speed * nu0
 
-    # Finally calculate the cross-section sigma in m ** 2
-    sigma = tools.cross_section(oscillator_strength, w0, alpha_lambda, phi)
+    # Cross-section profile based on a Voigt line profile
+    def _cross_section(nu, alpha, a_ij, f):
+        # Calculate the Lorentzian width; alpha is the Doppler width
+        gamma = a_ij / 4 / np.pi
+        # Calculate Voigt profile
+        phi = voigt_profile(nu, alpha, gamma)
+        # Calculate cross-section = pi * e ** 2 / m_e / c * f
+        _sigma = 2.6538E+2 * f * phi  # Hard-coded, but it is what it is...
+        return _sigma
 
-    # The absorption is the density times the cross-section
-    absorption = sigma * cell_density
-    return absorption
+    # Check if one or more lines as input
+    if isinstance(nu0, float):
+        # Calculate the cross-section sigma in m ** 2 * Hz
+        sigma_nu = _cross_section(nu_grid - nu0 - delta_nu, alpha_nu,
+                                  einstein_coefficient, oscillator_strength)
+        # The next line is necessary to allow the proper array multiplication
+        # later and avoid expensive for-loops
+        sigma = np.reshape(sigma_nu, (1, 1, len(sigma_nu)))
+    elif isinstance(nu0, np.ndarray):
+        # Same here, but for more than one spectral line
+        n_lines = len(nu0)
+        sigma_nu = np.array([_cross_section(nu_grid - nu0[i] - delta_nu[i],
+                             alpha_nu[i], einstein_coefficient[i],
+                             oscillator_strength[i]) for i in range(n_lines)])
+        sigma_nu = np.sum(sigma_nu, axis=0)
+        sigma = np.reshape(sigma_nu, (1, 1, len(sigma_nu)))
+    else:
+        raise ValueError('``central_wavelength`` must be either ``float`` or'
+                         'a 1-dimensional ``numpy.ndarray``.')
+
+    # The extinction is given by flux * exp(-tau)
+    extinction = np.sum(flux * np.exp(-sigma.T * column_density), axis=(1, 2))
+    return extinction
