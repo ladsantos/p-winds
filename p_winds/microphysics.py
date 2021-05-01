@@ -144,6 +144,16 @@ def helium_triplet_cross_section():
 
 # Collisional strengths for He
 def he_collisional_strength():
+    """
+    Returns a hard-coded array containing the helium collisional strengths in
+    function of temperature.
+
+    Returns
+    -------
+    array (``numpy.ndarray``):
+        Collisional strengths array. Columns: 0 = temperature, 1 = gamma_13,
+        2 = gamma_31a, 3 = gamma_31b.
+    """
     # log(T) [K]    gamma_13    gamma_31a   gamma_31b
     array = np.array([
         [3.75,            6.198E-2,    2.389,       7.965E-1],
@@ -162,6 +172,35 @@ def he_collisional_strength():
 # Line properties of the 1.083 microns He triplet taken from the NIST database
 # https://www.nist.gov/pml/atomic-spectra-database
 def he_3_properties():
+    """
+    Returns the central wavelengths in air, oscillator strengths and the
+    Einstein coefficient of the helium triplet in 1.083 microns. The values
+    were taken from the NIST database:
+    https://www.nist.gov/pml/atomic-spectra-database
+
+    Returns
+    -------
+    lambda_0 (``float``):
+        Central wavelength in air of line 0 in unit of m.
+
+    lambda_1 (``float``):
+        Central wavelength in air of line 1 in unit of m.
+
+    lambda_2 (``float``):
+        Central wavelength in air of line 2 in unit of m.
+
+    f_0 (``float``):
+        Oscillator strength of line 0 (unitless).
+
+    f_1 (``float``):
+        Oscillator strength of line 1 (unitless).
+
+    f_2 (``float``):
+        Oscillator strength of line 2 (unitless).
+
+    a_ij (``float``):
+        Einstein coefficient of the whole triplet in unit of 1 / s.
+    """
     # Central wavelengths in units of m
     lambda_0 = 1.082909114 * 1E-6
     lambda_1 = 1.083025010 * 1E-6

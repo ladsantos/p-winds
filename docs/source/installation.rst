@@ -1,15 +1,14 @@
 Installation
 ============
 
-``p-winds`` requires the packages ``numpy``, ``scipy``, and ``astropy`` for
-running its main calculations. Installing ``astroquery`` and ``matplotlib`` is
-also recommended.
+``p-winds`` requires the packages ``numpy``, ``scipy``, ``astropy``, and
+``pillow`` for running its core calculations.
 
 The recommended way to install ``p-winds`` and its dependencies is through a
 ``conda`` environment and then compiling it from source. Installing it in an
 environment is not strictly necessary (you can just skip to the compiling from
 source if you prefer), but it is a good practice, especially because ``p-winds``
-is currently an alpha release.
+is currently a beta release.
 
 First, clone the repository:
 
