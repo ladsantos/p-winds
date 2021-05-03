@@ -53,8 +53,8 @@ def test_population_fraction_spectrum(precision_threshold=1E-4):
     f_he_1, f_he_3 = helium.population_fraction(
         r, v_array, rho_array, f_r,
         R_pl, T_0, h_he, vs, rs, rhos, spectrum,
-        initial_state=initial_state, atol=atol, rtol=rtol, relax_solution=False
+        initial_state=initial_state, atol=atol, rtol=rtol, relax_solution=True
         )
 
-    assert abs(f_he_1[-1] - 0.0293064) / f_he_1[-1] < precision_threshold
-    assert abs(f_he_3[-1] - 6.44021E-8) / f_he_3[-1] < precision_threshold
+    assert abs(f_he_1[-1] - 0.0288615) / f_he_1[-1] < precision_threshold
+    assert abs(f_he_3[-1] - 6.431829E-8) / f_he_3[-1] < precision_threshold

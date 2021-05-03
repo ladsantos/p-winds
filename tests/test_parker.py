@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-import astropy.units as u
 from p_winds import parker
 
 
@@ -12,8 +11,8 @@ from p_winds import parker
 # 1.0 at r = 1.0.
 def test_structure(r=1.0, precision_threshold=1E-6):
     velocity, density = parker.structure(r)
-    assert abs(velocity - 1.0) < precision_threshold
-    assert abs(density - 1.0) < precision_threshold
+    assert abs((velocity - 1.0) / velocity) < precision_threshold
+    assert abs((density - 1.0) / density) < precision_threshold
 
 
 # The sound speed for a gas made of 100% atomic hydrogen at 10,000 K should be
@@ -21,4 +20,4 @@ def test_structure(r=1.0, precision_threshold=1E-6):
 def test_sound_speed(temperature=10000, h_he=1.0,
                      precision_threshold=1E-6):
     vs = parker.sound_speed(temperature, h_he)
-    assert abs(vs - 9.08537273) < precision_threshold
+    assert abs((vs - 9.08537273) / vs) < precision_threshold
