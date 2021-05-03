@@ -20,6 +20,7 @@ requirements:
   host:
     - python
     - pip
+    - setuptools
   run:
     - python
     - numpy
@@ -28,28 +29,24 @@ requirements:
     - pillow
 
 test:
-  # Some packages might need a `test/commands` key to check CLI.
-  # List all the packages/modules that `run_test.py` imports.
   imports:
     - p_winds
-  # Run your test commands here
   commands:
     - pytest
-  # declare any test-only requirements here
   requires:
     - pytest
-  # copy over any needed test files here
   source_files:
     - tests/
 
-# Uncomment and fill in p-winds metadata
 about:
   home: https://github.com/ladsantos/p-winds
   license: MIT
+  license_family: MIT
   license_file: LICENSE
+  summary: 'Python implementation of Parker wind models for exoplanet atmospheres'
+  doc_url: https://p-winds.readthedocs.io/
+  dev_url: https://ladsantos.org
 
-# Uncomment the following if this will be on a forge
-# Remove these lines if this is only be used for CI
 extra:
   recipe-maintainers:
     - ladsantos
