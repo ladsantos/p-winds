@@ -16,7 +16,7 @@ def test_nearest_index():
 
 # Test the make_spectrum_from_file function
 def test_make_spectrum_from_file(precision_threshold=1E-6):
-    filename = '../data/solar_spectrum_scaled_lambda.dat'
+    filename = './data/solar_spectrum_scaled_lambda.dat'
     units = {'wavelength': u.angstrom, 'flux': u.erg / u.s / u.cm ** 2 /
                                                u.angstrom}
     spectrum = tools.make_spectrum_from_file(filename, units)

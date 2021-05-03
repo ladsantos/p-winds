@@ -38,7 +38,7 @@ def test_population_fraction_spectrum(precision_threshold=1E-4):
     units = {'wavelength': u.angstrom, 'flux': u.erg / u.s / u.cm ** 2 /
                                                u.angstrom}
     spectrum = tools.make_spectrum_from_file(
-        '../data/solar_spectrum_scaled_lambda.dat', units)
+        './data/solar_spectrum_scaled_lambda.dat', units)
 
     # First calculate the hydrogen ion fraction
     f_r = hydrogen.ion_fraction(r, R_pl, T_0, h_he, m_dot, M_pl, average_f_ion,

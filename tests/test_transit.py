@@ -6,8 +6,8 @@ from p_winds import microphysics, transit
 
 
 r_pl = 1.39 * 71492000  # Planet radius in m
-r = np.loadtxt('../data/he_3_profile.dat', usecols=(0,))  # Altitudes in m
-n_he_3 = np.loadtxt('../data/he_3_profile.dat', usecols=(1,))  # He fraction
+r = np.loadtxt('./data/he_3_profile.dat', usecols=(0,))  # Altitudes in m
+n_he_3 = np.loadtxt('./data/he_3_profile.dat', usecols=(1,))  # He fraction
 planet_to_star_ratio = 0.12086
 w0, w1, w2, f0, f1, f2, a_ij = microphysics.he_3_properties()
 m_He = 4 * 1.67262192369e-27  # Helium atomic mass in kg
