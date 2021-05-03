@@ -28,6 +28,7 @@ v_array, rho_array = parker.structure(r_array)
 # the optical depths are null
 initial_state = np.array([1.0, 0.0])
 r = np.linspace(1, 15, 500)  # Radius in unit of planetary radii
+data_test_url = 'https://raw.githubusercontent.com/ladsantos/p-winds/main/data/solar_spectrum_scaled_lambda.dat'
 
 
 # Let's test if the code is producing reasonable outputs. The ``ion_fraction()``
@@ -37,8 +38,7 @@ r = np.linspace(1, 15, 500)  # Radius in unit of planetary radii
 def test_population_fraction_spectrum(precision_threshold=1E-4):
     units = {'wavelength': u.angstrom, 'flux': u.erg / u.s / u.cm ** 2 /
                                                u.angstrom}
-    spectrum = tools.make_spectrum_from_file(
-        './data/solar_spectrum_scaled_lambda.dat', units)
+    spectrum = tools.make_spectrum_from_file(data_test_url, units)
 
     # First calculate the hydrogen ion fraction
     f_r = hydrogen.ion_fraction(r, R_pl, T_0, h_he, m_dot, M_pl, average_f_ion,

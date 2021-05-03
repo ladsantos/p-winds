@@ -13,6 +13,7 @@ m_dot = (8E10 * u.g / u.s).value
 T_0 = (9E3 * u.K).value
 h_he = 0.9
 average_f_ion = 0.7
+data_test_url = 'https://raw.githubusercontent.com/ladsantos/p-winds/main/data/solar_spectrum_scaled_lambda.dat'
 
 r = np.linspace(1, 15, 500)
 
@@ -24,8 +25,7 @@ r = np.linspace(1, 15, 500)
 def test_ion_fraction_spectrum(precision_threshold=1E-5):
     units = {'wavelength': u.angstrom, 'flux': u.erg / u.s / u.cm ** 2 /
                                                u.angstrom}
-    spectrum = tools.make_spectrum_from_file(
-        './data/solar_spectrum_scaled_lambda.dat', units)
+    spectrum = tools.make_spectrum_from_file(data_test_url, units)
 
     f_r = hydrogen.ion_fraction(r, R_pl, T_0, h_he, m_dot, M_pl, average_f_ion,
                                 spectrum_at_planet=spectrum,
