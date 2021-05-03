@@ -1,0 +1,55 @@
+{% set name = "p-winds" %}
+{% set version = environ.get('GIT_DESCRIBE_TAG', 'untagged')|string|replace('-','_') %}
+{% set build_number = environ.get('GIT_DESCRIBE_NUMBER', '0') %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  git_url: {{ environ.get('FEEDSTOCK_ROOT', '..') }}
+
+build:
+  noarch: python
+
+  number: {{ build_number }}
+  string: {{ [build_number, ('h' + PKG_HASH), environ.get('GIT_DESCRIBE_HASH', '')]|join('_') }}
+  script: "{{ PYTHON }} -m pip install . -vv"
+
+requirements:
+  host:
+    - python
+    - pip
+  run:
+    - python
+    - numpy
+    - scipy
+    - astropy
+    - pillow
+
+test:
+  # Some packages might need a `test/commands` key to check CLI.
+  # List all the packages/modules that `run_test.py` imports.
+  imports:
+    - p_winds
+  # Run your test commands here
+  commands:
+    - pytest
+  # declare any test-only requirements here
+  requires:
+    - pytest
+  # copy over any needed test files here
+  source_files:
+    - tests/
+
+# Uncomment and fill in p-winds metadata
+about:
+  home: https://github.com/ladsantos/p-winds
+  license: MIT
+  license_file: LICENSE
+
+# Uncomment the following if this will be on a forge
+# Remove these lines if this is only be used for CI
+extra:
+  recipe-maintainers:
+    - ladsantos
