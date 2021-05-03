@@ -131,6 +131,7 @@ dmypy.json
 # Other stuff
 experiments/
 docs/source/behind_the_curtains.ipynb
+raw.githubusercontent.com/
 
 # conda smithy ci-skeleton start
 *.pyc
