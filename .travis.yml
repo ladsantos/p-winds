@@ -1,23 +1,13 @@
-# This file was generated automatically from conda-smithy. To update this configuration,
-# update the conda-forge.yml and/or the recipe/meta.yaml.
+language: python
+python:
+  - "3.6"
+  - "3.8"
+  - "3.9"
 
-language: generic
+# command to install dependencies
+install:
+  - pip install -r requirements.txt
+  - pip install .
 
-
-git:
-  depth: false
-
-matrix:
-  include:
-    - env: CONFIG=linux_64_ UPLOAD_PACKAGES=True PLATFORM=linux-64 DOCKER_IMAGE=quay.io/condaforge/linux-anvil-comp7
-      os: linux
-      arch: amd64
-      dist: focal
-
-script:
-  - export CI=travis
-  - export GIT_BRANCH="$TRAVIS_BRANCH"
-  - export FEEDSTOCK_NAME=$(basename ${TRAVIS_REPO_SLUG})
-
-
-  - if [[ ${PLATFORM} =~ .*linux.* ]]; then ./.scripts/run_docker_build.sh; fi
+# command to run tests
+script: pytest tests

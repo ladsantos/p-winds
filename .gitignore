@@ -132,9 +132,4 @@ dmypy.json
 experiments/
 docs/source/behind_the_curtains.ipynb
 raw.githubusercontent.com/
-
-# conda smithy ci-skeleton start
-*.pyc
-
-build_artifacts
-# conda smithy ci-skeleton end
+recipe/
