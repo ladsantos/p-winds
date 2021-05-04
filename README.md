@@ -15,24 +15,39 @@ Background
 
 Installation
 ------------
+
+You can install `p-winds` using [`conda-forge`](https://conda-forge.org) or by compiling it from source.
+
+### Option 1: Using `conda-forge` (stable version)
+
+Simply run the following commands:
+```angular2html
+conda update conda
+conda install -c conda-forge p-winds
+```
+
+### Option 2: Compile from source (development version)
+
 First, clone the repository and then navigate to it:
 ```angular2html
 git clone https://github.com/ladsantos/p-winds.git
 cd p-winds
 ```
-(Optional, but recommended) Create the `p_env` environment and activate it:
-```angular2html
-conda env create -f p-winds_environment.yml
-conda activate p_env
-```
+
 And then compile it from source:
 ```angular2html
 python setup.py install
 ```
 
-Quickstart
-----------
-Check out a quickstart [Google Colab Notebook here](https://colab.research.google.com/drive/1mTh6_YEgCRl6DAKqnmRp2XMOW8CTCvm7?usp=sharing). A similar quickstart Jupyter notebook is also available inside the `docs/source/` folder
+You can test the installation from source with ``pytest`` (you may need to
+install ``pytest`` first):
+```angular2html
+pytest tests
+```
+
+Quickstart example
+------------------
+Check out a quickstart [Google Colab Notebook here](https://colab.research.google.com/drive/1mTh6_YEgCRl6DAKqnmRp2XMOW8CTCvm7?usp=sharing). A similar quickstart Jupyter notebook is also available inside the `docs/source/` folder.
 
 Future features and known problems
 --------

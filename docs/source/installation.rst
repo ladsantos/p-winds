@@ -4,35 +4,35 @@ Installation
 ``p-winds`` requires the packages ``numpy``, ``scipy``, ``astropy``, and
 ``pillow`` for running its core calculations.
 
-The recommended way to install ``p-winds`` and its dependencies is through a
-``conda`` environment and then compiling it from source. Installing it in an
-environment is not strictly necessary (you can just skip to the compiling from
-source if you prefer), but it is a good practice, especially because ``p-winds``
-is currently a beta release.
+Option 1: Using ``conda-forge`` (stable version)
+------------------------------------------------
 
-First, clone the repository:
+If you have Anaconda, the recommended way to install ``p-winds`` and its
+dependencies is through the ``conda-forge`` channel.
 
 .. code-block:: bash
 
-   git clone https://github.com/ladsantos/p-winds.git
+   conda update conda
+   conda install -c conda-forge p-winds
 
-Now create the ``conda`` environment. This command will install all the
-necessary dependencies and useful packages at their most up-to-date versions
-inside the environment ``p_env``. Navigate to the source folder and execute:
+Option 2: Compile from source (development version)
+---------------------------------------------------
 
-.. code-block:: bash
-
-   cd p-winds
-   conda env create -f p-winds_environment.yml
-
-Next, activate the ``p_env`` environment:
+First, clone the repository and navigate to it:
 
 .. code-block:: bash
 
-   conda activate p_env
+   git clone https://github.com/ladsantos/p-winds.git && cd p-winds
 
-Finally, compile ``p-winds`` from source:
+And then compile ``p-winds`` from source:
 
 .. code-block:: bash
 
    python setup.py install
+
+You can test the installation from source with ``pytest`` (you may need to
+install ``pytest`` first):
+
+.. code-block:: bash
+
+   pytest tests
