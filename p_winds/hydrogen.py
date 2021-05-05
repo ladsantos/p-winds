@@ -62,11 +62,14 @@ def radiative_processes(spectrum_at_planet):
     a_lambda = microphysics.hydrogen_cross_section(wavelength=wavelength_cut)
 
     # Flux-averaged photoionization cross-section
-    a_0 = simps(flux_lambda_cut * a_lambda, wavelength_cut) / \
-        simps(flux_lambda_cut, wavelength_cut)
+    # Note: For some reason the Simpson's rule implementation of ``scipy`` may
+    # yield negative results when the flux varies by a few orders of magnitude
+    # at the edges of integration. So we take the absolute values of a_0 and phi
+    a_0 = abs(simps(flux_lambda_cut * a_lambda, wavelength_cut) /
+              simps(flux_lambda_cut, wavelength_cut))
 
     # Finally calculate the photoionization rate
-    phi = simps(flux_lambda_cut * a_lambda / energy_cut, wavelength_cut)
+    phi = abs(simps(flux_lambda_cut * a_lambda / energy_cut, wavelength_cut))
     return phi, a_0
 
 

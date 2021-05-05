@@ -93,10 +93,14 @@ def radiative_processes(spectrum_at_planet):
     flux_lambda_cut_3 = np.interp(wavelength_cut_3, wavelength, flux_lambda)
 
     # Flux-averaged photoionization cross-sections of He
-    a_1 = simps(flux_lambda_cut_1 * a_lambda_1, wavelength_cut_1) / \
-        simps(flux_lambda_cut_1, wavelength_cut_1)
-    a_3 = simps(flux_lambda_cut_3 * a_lambda_3, wavelength_cut_3) / \
-        simps(flux_lambda_cut_3, wavelength_cut_3)
+    # Note: For some reason the Simpson's rule implementation of ``scipy`` may
+    # yield negative results when the flux varies by a few orders of magnitude
+    # at the edges of integration. So we take the absolute values of a_1 and a_3
+    # here.
+    a_1 = abs(simps(flux_lambda_cut_1 * a_lambda_1, wavelength_cut_1) /
+              simps(flux_lambda_cut_1, wavelength_cut_1))
+    a_3 = abs(simps(flux_lambda_cut_3 * a_lambda_3, wavelength_cut_3) /
+              simps(flux_lambda_cut_3, wavelength_cut_3))
 
     # The flux-averaged photoionization cross-section of H is also going to be
     # needed because it adds to the optical depth that the He atoms see.
@@ -105,17 +109,19 @@ def radiative_processes(spectrum_at_planet):
     a_lambda_h_3 = microphysics.hydrogen_cross_section(
         wavelength=wavelength_cut_0)
     # Contribution to the optical depth seen by He singlet atoms:
-    a_h_1 = simps(flux_lambda_cut_1 * a_lambda_h_1, wavelength_cut_1) / \
-        simps(flux_lambda_cut_1, wavelength_cut_1)
+    # Note: the same ``scipy.integrate.simps`` behavior may happen here, so
+    # again we take the absolute values of a_h_n and phi_n
+    a_h_1 = abs(simps(flux_lambda_cut_1 * a_lambda_h_1, wavelength_cut_1) /
+                simps(flux_lambda_cut_1, wavelength_cut_1))
     # Contribution to the optical depth seen by He triplet atoms:
-    a_h_3 = simps(flux_lambda_cut_0 * a_lambda_h_3, wavelength_cut_0) / \
-        simps(flux_lambda_cut_3, wavelength_cut_3)
+    a_h_3 = abs(simps(flux_lambda_cut_0 * a_lambda_h_3, wavelength_cut_0) /
+                simps(flux_lambda_cut_3, wavelength_cut_3))
 
     # Calculate the photoionization rates
-    phi_1 = simps(flux_lambda_cut_1 * a_lambda_1 / energy_cut_1,
-                  wavelength_cut_1)
-    phi_3 = simps(flux_lambda_cut_3 * a_lambda_3 / energy_cut_3,
-                  wavelength_cut_3)
+    phi_1 = abs(simps(flux_lambda_cut_1 * a_lambda_1 / energy_cut_1,
+                wavelength_cut_1))
+    phi_3 = abs(simps(flux_lambda_cut_3 * a_lambda_3 / energy_cut_3,
+                wavelength_cut_3))
 
     return phi_1, phi_3, a_1, a_3, a_h_1, a_h_3
 
@@ -298,7 +304,7 @@ def population_fraction(radius_profile, velocity, density,
                         flux_euv=None, flux_fuv=None,
                         initial_state=np.array([0.5, 0.5]),
                         relax_solution=False, convergence=0.01, max_n_relax=10,
-                        **options_solve_ivp):
+                        solver='Radau', **options_solve_ivp):
     """
     Calculate the fraction of helium in singlet and triplet state in the upper
     atmosphere in function of the radius in unit of planetary radius. The solver
@@ -378,6 +384,9 @@ def population_fraction(radius_profile, velocity, density,
     max_n_relax (``int``, optional):
         Maximum number of loops to perform the relaxation of the solution for
         ``f_r``. Default is 10.
+
+    solver (``str``, optional):
+        Defines the method to be used in ``solve_ivp``. Default is ``'Radau'``.
 
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
@@ -486,6 +495,7 @@ def population_fraction(radius_profile, velocity, density,
     def _fun(_r, y):
         f_1 = y[0]  # Fraction of helium in singlet
         f_3 = y[1]  # Fraction of helium in triplet
+
         _v = mock_v_r(np.array([_r, ]))[0]
         _rho = mock_rho_r(np.array([_r, ]))[0]
         f_h_ion = mock_f_h_ion_r(np.array([_r, ]))[0]  # Fraction of H+
@@ -537,7 +547,7 @@ def population_fraction(radius_profile, velocity, density,
 
     # We solve it using `scipy.solve_ivp`
     sol = solve_ivp(_fun, (r[0], r[-1],), initial_state,
-                    t_eval=r, method='Radau', **options_solve_ivp)
+                    t_eval=r, method=solver, **options_solve_ivp)
 
     # Finally retrieve the population fraction and optical depth arrays. Since
     # we integrated f and tau from the outside, we have to flip them back to the
@@ -565,7 +575,7 @@ def population_fraction(radius_profile, velocity, density,
 
             # Solve it again
             sol = solve_ivp(_fun, (r[0], r[-1],), initial_state,
-                            t_eval=r, method='Radau', **options_solve_ivp)
+                            t_eval=r, method=solver, **options_solve_ivp)
             f_1_r = sol['y'][0]
             f_3_r = sol['y'][1]
 

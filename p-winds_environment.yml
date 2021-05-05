@@ -5,15 +5,15 @@ channels:
   - defaults
 
 dependencies:
-  - python=>3.7
-  - numpy=>1.19
-  - scipy>=1.6
-  - pillow>=8.2
-  - matplotlib>=3.3
-  - astropy>=4.2
-  - pytest>=6.2
-  - sphinx>=3.4
-  - jupyter>=1.0
+  - python=>3.6
+  - numpy
+  - scipy
+  - pillow
+  - matplotlib
+  - astropy
+  - pytest
+  - sphinx
+  - jupyter
   - ipykernel
   - nbsphinx
   - numpydoc
