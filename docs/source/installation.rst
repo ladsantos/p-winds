@@ -15,7 +15,16 @@ dependencies is through the ``conda-forge`` channel.
    conda update conda
    conda install -c conda-forge p-winds
 
-Option 2: Compile from source (development version)
+Option 2: Using `pip` (stable version)
+--------------------------------------
+
+Simply run the following command:
+
+.. code-block:: bash
+
+   pip install p-winds
+
+Option 3: Compile from source (development version)
 ---------------------------------------------------
 
 First, clone the repository and navigate to it:

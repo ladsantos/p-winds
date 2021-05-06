@@ -26,7 +26,14 @@ conda update conda
 conda install -c conda-forge p-winds
 ```
 
-### Option 2: Compile from source (development version)
+### Option 2: Using `pip` (stable version)
+
+Even easier:
+```angular2html
+pip install p-winds
+```
+
+### Option 3: Compile from source (development version)
 
 First, clone the repository and then navigate to it:
 ```angular2html
