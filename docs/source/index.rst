@@ -31,6 +31,8 @@ using GitHub.
    :maxdepth: 2
    :caption: Contents:
 
+   index
    installation
    api
    quickstart
+   advanced_tutorial
