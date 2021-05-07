@@ -1,4 +1,4 @@
-- name: Coveralls GitHub Action
+- name: "Coveralls GitHub Action"
   # You may pin to the exact commit or the version.
   # uses: coverallsapp/github-action@8cbef1dea373ebce56de0a14c68d6267baa10b44
   uses: coverallsapp/github-action@v1.1.2
