@@ -54,8 +54,8 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
 
     Returns
     -------
-    normalized_flux_map (``numpy.ndarray``):
-        2-D map of fluxes normalized in such a way that the sum of the array
+    normalized_intensity_map (``numpy.ndarray``):
+        2-D map of intensity normalized in such a way that the sum of the array
         will be 1.0 if the planet is not transiting.
 
     density_map (``numpy.ndarray``):
@@ -78,7 +78,7 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
     star_radius = grid_size // 2
     planet_radius = star_radius * planet_to_star_ratio
     star = _draw_disk(center=(star_radius, star_radius), radius=star_radius)
-    norm = np.sum(star)  # Normalization factor is the total flux
+    norm = np.sum(star)  # Normalization factor is the total intensity
     # Adding the star to the grid
     grid = star / norm
 
@@ -110,28 +110,29 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
 
     # Finally
     planet = _draw_disk(center=(x_p, y_p), radius=planet_radius)
-    # Adding the planet to the grid, normalized by the stellar flux
+    # Adding the planet to the grid, normalized by the stellar intensity
     grid -= planet / norm
     # The grid must not have negative values (this may happen if the planet
     # disk falls out of the stellar disk)
-    normalized_flux_map = grid.clip(min=0.0)
+    normalized_intensity_map = grid.clip(min=0.0)
 
-    return normalized_flux_map, density_map
+    return normalized_intensity_map, density_map
 
 
 # Calculate the radiative transfer
-def radiative_transfer(flux, column_density, wavelength_grid,
+def radiative_transfer(intensity_0, column_density, wavelength_grid,
                        central_wavelength, oscillator_strength,
                        einstein_coefficient, gas_temperature, particle_mass,
                        bulk_los_velocity=0.0, turbulence_speed=0.0):
     """
-    Calculate the transmission profile in a wavelength grid.
+    Calculate the absorbed intensity profile in a wavelength grid.
 
     Parameters
     ----------
-    flux (``float`` or ``numpy.ndarray``):
-        Fluxes originating from a background illuminating source. If
-        ``numpy.ndarray``, must have the same shape as ``column_density``.
+    intensity_0 (``float`` or ``numpy.ndarray``):
+        Original flux intensity originating from a background illuminating
+        source. If ``numpy.ndarray``, must have the same shape as
+        ``column_density``.
 
     column_density (``float`` or ``numpy.ndarray``):
         Column density in 1 / m ** 2.
@@ -164,8 +165,8 @@ def radiative_transfer(flux, column_density, wavelength_grid,
 
     Returns
     -------
-    extinction (``float`` or ``numpy.ndarray``):
-        Absorption profile in function of ``wavelength_grid``.
+    intensity (``float`` or ``numpy.ndarray``):
+        Absorbed intensity profile in function of ``wavelength_grid``.
     """
     w0 = central_wavelength  # Reference wavelength in m
     wl_grid = wavelength_grid
@@ -213,6 +214,7 @@ def radiative_transfer(flux, column_density, wavelength_grid,
         raise ValueError('``central_wavelength`` must be either ``float`` or'
                          'a 1-dimensional ``numpy.ndarray``.')
 
-    # The extinction is given by flux * exp(-tau)
-    extinction = np.sum(flux * np.exp(-sigma.T * column_density), axis=(1, 2))
-    return extinction
+    # The extinction is given by intensity_0 * exp(-tau)
+    intensity = np.sum(intensity_0 * np.exp(-sigma.T * column_density),
+                       axis=(1, 2))
+    return intensity

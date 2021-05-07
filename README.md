@@ -16,7 +16,7 @@ Background
 Installation
 ------------
 
-You can install `p-winds` using [`conda-forge`](https://conda-forge.org) or by compiling it from source.
+You can install `p-winds` using [`conda-forge`](https://conda-forge.org), `pip`, or by compiling it from source.
 
 ### Option 1: Using `conda-forge` (stable version)
 

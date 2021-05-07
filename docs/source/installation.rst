@@ -15,7 +15,7 @@ dependencies is through the ``conda-forge`` channel.
    conda update conda
    conda install -c conda-forge p-winds
 
-Option 2: Using `pip` (stable version)
+Option 2: Using ``pip`` (stable version)
 --------------------------------------
 
 Simply run the following command:
