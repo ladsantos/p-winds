@@ -3,6 +3,19 @@ p-winds: Documentation
 
 .. image:: https://img.shields.io/badge/GitHub-ladsantos%2Fp%E2%88%92winds-blue.svg?style=flat
     :target: https://github.com/ladsantos/p-winds
+    :alt: GitHub
+.. image:: https://readthedocs.org/projects/p-winds/badge/?version=latest
+    :target: https://p-winds.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+.. image:: https://travis-ci.com/ladsantos/p-winds.svg?branch=main
+    :target: https://travis-ci.com/ladsantos/p-winds
+    :alt: Build
+.. image:: https://coveralls.io/repos/github/ladsantos/p-winds/badge.svg?branch=main
+    :target: https://coveralls.io/github/ladsantos/p-winds?branch=main
+    :alt: Coverage
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4551621.svg
+    :target: https://doi.org/10.5281/zenodo.4551621
+    :alt: DOI
 
 ``p-winds`` is an open-source Python implementation of Parker wind models for
 planetary atmospheres, more specifically their upper atmosphere or corona. The

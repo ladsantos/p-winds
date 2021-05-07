@@ -1,7 +1,7 @@
 # p-winds
  Python implementation of Parker wind models for planetary atmospheres.
 
-[![Documentation Status](https://readthedocs.org/projects/p-winds/badge/?version=latest)](https://p-winds.readthedocs.io/en/latest/?badge=latest) [![Build Status](https://travis-ci.com/ladsantos/p-winds.svg?branch=main)](https://travis-ci.com/ladsantos/p-winds) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4551621.svg)](https://doi.org/10.5281/zenodo.4551621)
+[![Documentation Status](https://readthedocs.org/projects/p-winds/badge/?version=latest)](https://p-winds.readthedocs.io/en/latest/?badge=latest) [![Build Status](https://travis-ci.com/ladsantos/p-winds.svg?branch=main)](https://travis-ci.com/ladsantos/p-winds) [![Coverage Status](https://coveralls.io/repos/github/ladsantos/p-winds/badge.svg?branch=main)](https://coveralls.io/github/ladsantos/p-winds?branch=main) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4551621.svg)](https://doi.org/10.5281/zenodo.4551621)
 
 If you use this code in your research, please consider citing it: [10.5281/zenodo.4551621](https://doi.org/10.5281/zenodo.4551621).
 
