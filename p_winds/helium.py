@@ -10,7 +10,7 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 import astropy.units as u
 import astropy.constants as c
-from scipy.integrate import simps, solve_ivp
+from scipy.integrate import simps, solve_ivp, odeint
 from scipy.interpolate import interp1d
 from p_winds import tools, microphysics
 from warnings import warn
@@ -304,7 +304,7 @@ def population_fraction(radius_profile, velocity, density,
                         flux_euv=None, flux_fuv=None,
                         initial_state=np.array([0.5, 0.5]),
                         relax_solution=False, convergence=0.01, max_n_relax=10,
-                        solver='Radau', **options_solve_ivp):
+                        use_odeint=True, **options_solve_ivp):
     """
     Calculate the fraction of helium in singlet and triplet state in the upper
     atmosphere in function of the radius in unit of planetary radius. The solver
@@ -385,8 +385,12 @@ def population_fraction(radius_profile, velocity, density,
         Maximum number of loops to perform the relaxation of the solution for
         ``f_r``. Default is 10.
 
-    solver (``str``, optional):
-        Defines the method to be used in ``solve_ivp``. Default is ``'Radau'``.
+    use_odeint (``bool``, optional):
+        Use ``scipy.integrate.odeint()`` instead of
+        ``scipy.integrate.solve_ivp()`` to calculate the steady-state
+        distribution of helium. The first seems to be at least twice faster than
+        the second. Default is ``True``. If ``False``, then fallback into
+        ``solve_ivp()``.
 
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
@@ -469,9 +473,10 @@ def population_fraction(radius_profile, velocity, density,
     # cumbersome to  parse this inside the callable function _fun(). Instead,
     # let's create a "mock function" that returns the value of v, rho, and
     # f_H_ion in function of r (essentially a scipy.interp1d function)
-    mock_f_h_ion_r = interp1d(r, hydrogen_ion_fraction)
-    mock_v_r = interp1d(r, velocity)
-    mock_rho_r = interp1d(r, density)
+    mock_f_h_ion_r = interp1d(r, hydrogen_ion_fraction,
+                              fill_value="extrapolate")
+    mock_v_r = interp1d(r, velocity, fill_value="extrapolate")
+    mock_rho_r = interp1d(r, density, fill_value="extrapolate")
 
     # With all this setup done, now we need to assume something about the
     # distribution of singlet and triplet helium in the atmosphere. Let's assume
@@ -488,8 +493,8 @@ def population_fraction(radius_profile, velocity, density,
                      + k1 * a_h_3 * column_density_h_0)
     # We do a dirty hack to make tau_initial a callable function so it's easily
     # parsed inside the differential equation solver
-    _tau_1_fun = interp1d(r, tau_1_initial)
-    _tau_3_fun = interp1d(r, tau_3_initial)
+    _tau_1_fun = interp1d(r, tau_1_initial, fill_value="extrapolate")
+    _tau_3_fun = interp1d(r, tau_3_initial, fill_value="extrapolate")
 
     # The differential equation
     def _fun(_r, y):
@@ -545,15 +550,16 @@ def population_fraction(radius_profile, velocity, density,
 
         return np.array([df1_dr, df3_dr])
 
-    # We solve it using `scipy.solve_ivp`
-    sol = solve_ivp(_fun, (r[0], r[-1],), initial_state,
-                    t_eval=r, method=solver, **options_solve_ivp)
-
-    # Finally retrieve the population fraction and optical depth arrays. Since
-    # we integrated f and tau from the outside, we have to flip them back to the
-    # same order as the radius variable
-    f_1_r = sol['y'][0]
-    f_3_r = sol['y'][1]
+    if use_odeint is False:
+        # We solve it using `scipy.solve_ivp`
+        sol = solve_ivp(_fun, (r[0], r[-1],), initial_state, t_eval=r,
+                        **options_solve_ivp)
+        f_1_r = sol['y'][0]
+        f_3_r = sol['y'][1]
+    else:
+        sol = odeint(_fun, y0=initial_state, t=r, tfirst=True)
+        f_1_r = np.copy(sol).T[0]
+        f_3_r = np.copy(sol).T[1]
 
     # For the sake of self-consistency, there is the option of repeating the
     # calculation of f_r by updating the optical depth with the new ion
@@ -570,14 +576,19 @@ def population_fraction(radius_profile, velocity, density,
                 np.cumsum(np.flip(dr * density * f_1_r))) + tau_1_h
             tau_3 = k2 * a_3 * np.flip(
                 np.cumsum(np.flip(dr * density * f_3_r))) + tau_3_h
-            _tau_1_fun = interp1d(r, tau_1)
-            _tau_3_fun = interp1d(r, tau_3)
+            _tau_1_fun = interp1d(r, tau_1, fill_value="extrapolate")
+            _tau_3_fun = interp1d(r, tau_3, fill_value="extrapolate")
 
             # Solve it again
-            sol = solve_ivp(_fun, (r[0], r[-1],), initial_state,
-                            t_eval=r, method=solver, **options_solve_ivp)
-            f_1_r = sol['y'][0]
-            f_3_r = sol['y'][1]
+            if use_odeint is False:
+                sol = solve_ivp(_fun, (r[0], r[-1],), initial_state, t_eval=r,
+                                **options_solve_ivp)
+                f_1_r = sol['y'][0]
+                f_3_r = sol['y'][1]
+            else:
+                sol = odeint(_fun, y0=initial_state, t=r, tfirst=True)
+                f_1_r = np.copy(sol).T[0]
+                f_3_r = np.copy(sol).T[1]
 
             # Calculate the relative change of f_ion in the outer shell of the
             # atmosphere (where we expect the most important change)
@@ -595,8 +606,10 @@ def population_fraction(radius_profile, velocity, density,
     else:
         pass
 
-    # Replace negative values with zero
+    # Replace negative values with zero and values above 1.0 with 1.0
     f_1_r[f_1_r < 0] = 0.0
     f_3_r[f_3_r < 0] = 0.0
+    f_1_r[f_1_r > 1.0] = 1.0
+    f_3_r[f_3_r > 1.0] = 1.0
 
     return f_1_r, f_3_r
