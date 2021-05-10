@@ -9,6 +9,7 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 import scipy.optimize as so
 from p_winds import tools
+from warnings import warn
 
 
 __all__ = ["sound_speed", "radius_sonic_point", "density_sonic_point",
@@ -154,3 +155,27 @@ def structure(r):
     density_r = np.exp(2 * 1 / r - 3 / 2 - 0.5 * velocity_r ** 2)
 
     return velocity_r, density_r
+
+
+# Calculate dv/dr and drho/dr
+def structure_ex(r, v_r):
+    warn('This function is currently in development and may be removed!',
+         UserWarning)
+
+    def _eq_to_solve(dv_dr_k, v_k, r_k):
+        a = dv_dr_k
+        term1 = a * np.exp(-v_k ** 2 / 2)
+        term2 = 2 / r_k ** 3 * np.exp(-2 / r_k + 3 / 2)
+        term3 = 1 / r_k ** 3 * np.exp(-2 / r_k + 3 / 2) * (
+                3 / r_k ** 2 + v_k * a)
+        eq = term1 + term2 - term3
+        return eq
+
+    if isinstance(r, np.ndarray):
+        n = len(r)
+        dv_dr = np.array([so.newton(_eq_to_solve, x0=1E-1, args=(v_r[k], r[k]))
+                          for k in range(n)])
+    else:
+        dv_dr = so.newton(_eq_to_solve, x0=1E-1, args=(v_r, r))
+
+    return dv_dr
