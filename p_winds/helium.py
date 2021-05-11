@@ -13,7 +13,6 @@ import astropy.constants as c
 from scipy.integrate import simps, solve_ivp, odeint
 from scipy.interpolate import interp1d
 from p_winds import tools, microphysics
-from warnings import warn
 
 
 __all__ = ["radiative_processes", "radiative_processes_mono", "recombination",
@@ -497,6 +496,7 @@ def population_fraction(radius_profile, velocity, density,
     _tau_3_fun = interp1d(r, tau_3_initial, fill_value="extrapolate")
 
     # The differential equation
+    f3_f1_norm = 1E-6
     def _fun(_r, y):
         f_1 = y[0]  # Fraction of helium in singlet
         f_3 = y[1]  # Fraction of helium in triplet
@@ -510,7 +510,6 @@ def population_fraction(radius_profile, velocity, density,
         n_e = k1 * _rho * f_h_ion         # Number density of electrons
         n_h_plus = k1 * _rho * f_h_ion    # Number density of ionized H
         n_h0 = k1 * _rho * (1 - f_h_ion)  # Number density of atomic H
-        n_he = k2 * _rho * h_he_fraction  # Number density of helium nuclei
 
         # Terms of df1_dr
         term_11 = (1 - f_1 - f_3) * n_e * alpha_rec_1  # Recombination
@@ -550,6 +549,12 @@ def population_fraction(radius_profile, velocity, density,
         sol = odeint(_fun, y0=initial_state, t=r, tfirst=True)
         f_1_r = np.copy(sol).T[0]
         f_3_r = np.copy(sol).T[1]
+
+    # Replace negative values with zero and values above 1.0 with 1.0
+    f_1_r[f_1_r < 0] = 0.0
+    f_3_r[f_3_r < 0] = 0.0
+    f_1_r[f_1_r > 1.0] = 1.0
+    f_3_r[f_3_r > 1.0] = 1.0
 
     # For the sake of self-consistency, there is the option of repeating the
     # calculation of f_r by updating the optical depth with the new ion
