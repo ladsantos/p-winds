@@ -486,10 +486,10 @@ def population_fraction(radius_profile, velocity, density,
         np.cumsum(np.flip(dr * density * (1 - hydrogen_ion_fraction))))
     k1 = h_he_fraction / (h_he_fraction + 4 * (1 - h_he_fraction)) / m_h
     k2 = (1 - h_he_fraction) / (h_he_fraction + 4 * (1 - h_he_fraction)) / m_h
-    tau_1_initial = (initial_state[0] * k2 * a_1 * column_density +
-                     k1 * a_h_1 * column_density_h_0)
-    tau_3_initial = (initial_state[1] * k2 * a_3 * column_density
-                     + k1 * a_h_3 * column_density_h_0)
+    tau_1_h = k1 * a_h_1 * column_density_h_0
+    tau_3_h = k1 * a_h_3 * column_density_h_0
+    tau_1_initial = (initial_state[0] * k2 * a_1 * column_density + tau_1_h)
+    tau_3_initial = (initial_state[1] * k2 * a_3 * column_density + tau_3_h)
     # We do a dirty hack to make tau_initial a callable function so it's easily
     # parsed inside the differential equation solver
     _tau_1_fun = interp1d(r, tau_1_initial, fill_value="extrapolate")
@@ -565,8 +565,6 @@ def population_fraction(radius_profile, velocity, density,
             previous_f_3_r_outer_layer = np.copy(f_3_r)[-1]
 
             # Re-calculate the column densities
-            tau_1_h = k1 * a_h_1 * column_density_h_0
-            tau_3_h = k1 * a_h_3 * column_density_h_0
             tau_1 = k2 * a_1 * np.flip(
                 np.cumsum(np.flip(dr * density * f_1_r))) + tau_1_h
             tau_3 = k2 * a_3 * np.flip(
