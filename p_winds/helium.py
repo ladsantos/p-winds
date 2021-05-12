@@ -389,7 +389,7 @@ def population_fraction(radius_profile, velocity, density,
         If method is ``'odeint'``, then ``scipy.integrate.odeint()`` is used
         instead of ``scipy.integrate.solve_ivp()`` to calculate the steady-state
         distribution of helium. The first seems to be at least twice faster than
-        the second in some situations. Any other option will fallback to an
+        the second in some situations. Any other method will fallback to an
         option of ``solve_ivp()`` methods. For example, if ``method`` is set to
         ``'Radau'``, then use ``solve_ivp(method='Radau')``. Default is
         ``odeint``.
@@ -552,7 +552,9 @@ def population_fraction(radius_profile, velocity, density,
         f_1_r = sol['y'][0]
         f_3_r = sol['y'][1]
 
-    # Replace negative values with zero and values above 1.0 with 1.0
+    # High densities can be numerically unstable and produce unphysical values
+    # of `f_r`, so we replace negative values with zero and values above 1.0
+    # with 1.0
     f_1_r[f_1_r < 0] = 0.0
     f_3_r[f_3_r < 0] = 0.0
     f_1_r[f_1_r > 1.0] = 1.0

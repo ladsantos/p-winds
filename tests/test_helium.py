@@ -35,7 +35,7 @@ data_test_url = 'https://raw.githubusercontent.com/ladsantos/p-winds/main/data/s
 # function for HD 209458 b should produce a profile with an ion fraction of
 # approximately one near the planetary surface, and approximately 4E-4 in the
 # outer layers.
-def test_population_fraction_spectrum(precision_threshold=3E-4):
+def test_population_fraction_spectrum(precision_threshold=5E-4):
     units = {'wavelength': u.angstrom, 'flux': u.erg / u.s / u.cm ** 2 /
                                                u.angstrom}
     spectrum = tools.make_spectrum_from_file(data_test_url, units)

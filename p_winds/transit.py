@@ -64,6 +64,11 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
     """
     shape = (grid_size, grid_size)
 
+    # For impact parameter > 0, the phase range is not exactly [-0.5, +0.5] at
+    # the borders of the star, it is decreased by sin(angle), where angle is
+    # arccos(impact_parameter)
+    phase *= np.sin(np.arccos(impact_parameter))
+
     # General function to draw a disk
     def _draw_disk(center, radius, value=1.0):
         top_left = (center[0] - radius, center[1] - radius)
