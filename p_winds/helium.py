@@ -13,6 +13,7 @@ import astropy.constants as c
 from scipy.integrate import simps, solve_ivp, odeint
 from scipy.interpolate import interp1d
 from p_winds import tools, microphysics
+import warnings
 
 
 __all__ = ["radiative_processes", "radiative_processes_mono", "recombination",
@@ -303,7 +304,7 @@ def population_fraction(radius_profile, velocity, density,
                         flux_euv=None, flux_fuv=None,
                         initial_state=np.array([0.5, 0.5]),
                         relax_solution=False, convergence=0.01, max_n_relax=10,
-                        use_odeint=True, **options_solve_ivp):
+                        method='odeint', **options_solve_ivp):
     """
     Calculate the fraction of helium in singlet and triplet state in the upper
     atmosphere in function of the radius in unit of planetary radius. The solver
@@ -384,12 +385,14 @@ def population_fraction(radius_profile, velocity, density,
         Maximum number of loops to perform the relaxation of the solution for
         ``f_r``. Default is 10.
 
-    use_odeint (``bool``, optional):
-        Use ``scipy.integrate.odeint()`` instead of
-        ``scipy.integrate.solve_ivp()`` to calculate the steady-state
+    method (``str``, optional):
+        If method is ``'odeint'``, then ``scipy.integrate.odeint()`` is used
+        instead of ``scipy.integrate.solve_ivp()`` to calculate the steady-state
         distribution of helium. The first seems to be at least twice faster than
-        the second. Default is ``True``. If ``False``, then fallback into
-        ``solve_ivp()``.
+        the second in some situations. Any other option will fallback to an
+        option of ``solve_ivp()`` methods. For example, if ``method`` is set to
+        ``'Radau'``, then use ``solve_ivp(method='Radau')``. Default is
+        ``odeint``.
 
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
@@ -496,7 +499,6 @@ def population_fraction(radius_profile, velocity, density,
     _tau_3_fun = interp1d(r, tau_3_initial, fill_value="extrapolate")
 
     # The differential equation
-    f3_f1_norm = 1E-6
     def _fun(_r, y):
         f_1 = y[0]  # Fraction of helium in singlet
         f_3 = y[1]  # Fraction of helium in triplet
@@ -539,16 +541,16 @@ def population_fraction(radius_profile, velocity, density,
 
         return np.array([df1_dr, df3_dr])
 
-    if use_odeint is False:
-        # We solve it using `scipy.solve_ivp`
-        sol = solve_ivp(_fun, (r[0], r[-1],), initial_state, t_eval=r,
-                        **options_solve_ivp)
-        f_1_r = sol['y'][0]
-        f_3_r = sol['y'][1]
-    else:
+    if method == 'odeint':
         sol = odeint(_fun, y0=initial_state, t=r, tfirst=True)
         f_1_r = np.copy(sol).T[0]
         f_3_r = np.copy(sol).T[1]
+    else:
+        # We solve it using `scipy.solve_ivp`
+        sol = solve_ivp(_fun, (r[0], r[-1],), initial_state, t_eval=r,
+                        method=method, **options_solve_ivp)
+        f_1_r = sol['y'][0]
+        f_3_r = sol['y'][1]
 
     # Replace negative values with zero and values above 1.0 with 1.0
     f_1_r[f_1_r < 0] = 0.0
@@ -573,15 +575,21 @@ def population_fraction(radius_profile, velocity, density,
             _tau_3_fun = interp1d(r, tau_3, fill_value="extrapolate")
 
             # Solve it again
-            if use_odeint is False:
-                sol = solve_ivp(_fun, (r[0], r[-1],), initial_state, t_eval=r,
-                                **options_solve_ivp)
-                f_1_r = sol['y'][0]
-                f_3_r = sol['y'][1]
-            else:
+            if method == 'odeint':
                 sol = odeint(_fun, y0=initial_state, t=r, tfirst=True)
                 f_1_r = np.copy(sol).T[0]
                 f_3_r = np.copy(sol).T[1]
+            else:
+                sol = solve_ivp(_fun, (r[0], r[-1],), initial_state, t_eval=r,
+                                method=method, **options_solve_ivp)
+                f_1_r = sol['y'][0]
+                f_3_r = sol['y'][1]
+
+            # Replace negative values with zero and values above 1.0 with 1.0
+            f_1_r[f_1_r < 0] = 0.0
+            f_3_r[f_3_r < 0] = 0.0
+            f_1_r[f_1_r > 1.0] = 1.0
+            f_3_r[f_3_r > 1.0] = 1.0
 
             # Calculate the relative change of f_ion in the outer shell of the
             # atmosphere (where we expect the most important change)
@@ -598,11 +606,5 @@ def population_fraction(radius_profile, velocity, density,
                 pass
     else:
         pass
-
-    # Replace negative values with zero and values above 1.0 with 1.0
-    f_1_r[f_1_r < 0] = 0.0
-    f_3_r[f_3_r < 0] = 0.0
-    f_1_r[f_1_r > 1.0] = 1.0
-    f_3_r[f_3_r > 1.0] = 1.0
 
     return f_1_r, f_3_r

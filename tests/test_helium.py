@@ -35,7 +35,7 @@ data_test_url = 'https://raw.githubusercontent.com/ladsantos/p-winds/main/data/s
 # function for HD 209458 b should produce a profile with an ion fraction of
 # approximately one near the planetary surface, and approximately 4E-4 in the
 # outer layers.
-def test_population_fraction_spectrum(precision_threshold=1E-4):
+def test_population_fraction_spectrum(precision_threshold=3E-4):
     units = {'wavelength': u.angstrom, 'flux': u.erg / u.s / u.cm ** 2 /
                                                u.angstrom}
     spectrum = tools.make_spectrum_from_file(data_test_url, units)
@@ -50,19 +50,18 @@ def test_population_fraction_spectrum(precision_threshold=1E-4):
     f_he_1_odeint, f_he_3_odeint = helium.population_fraction(
         r, v_array, rho_array, f_r,
         R_pl, T_0, h_he, vs, rs, rhos, spectrum,
-        initial_state=initial_state, relax_solution=True, use_odeint=True
-        )
+        initial_state=initial_state, relax_solution=True)
 
     f_he_1_ivp, f_he_3_ivp = helium.population_fraction(
         r, v_array, rho_array, f_r,
         R_pl, T_0, h_he, vs, rs, rhos, spectrum,
-        initial_state=initial_state, relax_solution=True, use_odeint=False,
-        method='Radau', atol=1E-8, rtol=1E-8
+        initial_state=initial_state, relax_solution=True, method='Radau',
+        atol=1E-8, rtol=1E-8
     )
 
     assert abs(f_he_1_odeint[-1] - 0.030603) / f_he_1_odeint[-1] < \
            precision_threshold
-    assert abs(f_he_3_odeint[-1] - 6.419001E-8) / f_he_3_odeint[-1] < \
+    assert abs(f_he_3_odeint[-1] - 6.409416E-8) / f_he_3_odeint[-1] < \
            precision_threshold
     assert abs(f_he_1_ivp[-1] - 0.030603) / f_he_1_ivp[-1] < \
            precision_threshold
