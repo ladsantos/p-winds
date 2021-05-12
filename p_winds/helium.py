@@ -542,7 +542,15 @@ def population_fraction(radius_profile, velocity, density,
         return np.array([df1_dr, df3_dr])
 
     if method == 'odeint':
-        sol = odeint(_fun, y0=initial_state, t=r, tfirst=True)
+        # Since 'odeint' yields only warnings when precision is lost or when
+        # there is a problem, we transform these warnings into an exception
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error")
+            try:
+                sol = odeint(_fun, y0=initial_state, t=r, tfirst=True)
+            except Warning:
+                raise RuntimeError('The solver ``odeint`` failed to obtain a '
+                                   'solution.')
         f_1_r = np.copy(sol).T[0]
         f_3_r = np.copy(sol).T[1]
     else:
@@ -551,6 +559,11 @@ def population_fraction(radius_profile, velocity, density,
                         method=method, **options_solve_ivp)
         f_1_r = sol['y'][0]
         f_3_r = sol['y'][1]
+        # When `solve_ivp` has problems, it may return an array with different
+        # size than `r`. So we raise an exception if this happens
+        if len(f_1_r) != len(r) or len(f_3_r) != len(r):
+            raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
+                               'solution.')
 
     # High densities can be numerically unstable and produce unphysical values
     # of `f_r`, so we replace negative values with zero and values above 1.0
