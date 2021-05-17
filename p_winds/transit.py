@@ -8,14 +8,15 @@ planets and atmospheres.
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.special import voigt_profile
-from PIL import Image, ImageDraw
+from flatstar import draw, utils
 
 __all__ = ["draw_transit", "radiative_transfer"]
 
 
 # Draw a grid
 def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
-                 grid_size=1001, density_profile=None, profile_radius=None,
+                 grid_size=1001, limb_darkening_law=None, ld_coefficient=None,
+                 density_profile=None, profile_radius=None,
                  planet_physical_radius=None):
     """
     Calculate a normalized transit map. Additionally, calculate a column density
@@ -36,6 +37,17 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
 
     grid_size (``int``, optional):
         Size of the transit grid. Default is 2001.
+
+    limb_darkening_law (``None`` or ``str``, optional):
+        String with the name of the limb-darkening law. The options are the same
+        currently implemented in the code ``flatstar``: ``'linear'``,
+        ``'quadratic'``, ``'square-root'``, ``'log'``, ``'exp'``, ``'s3'``,
+        ``'c4'``, or ``None`` (no limb-darkening). Default is ``None``.
+
+    ld_coefficient (``float`` or ``array-like``):
+        In case of a linear limb-darkening law, the value of the coefficient
+        should be a float. In all other options it should be array-like. Default
+        is ``None``.
 
     density_profile (``numpy.ndarray``, optional):
         1-D profile of volumetric number densities in function of radius. Unit
@@ -62,46 +74,21 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
         2-D map of column densities in unit of 1 / length ** 2, where length is
         the unit of ``planet_physical_radius``.
     """
-    shape = (grid_size, grid_size)
-
-    # For impact parameter > 0, the phase range is not exactly [-0.5, +0.5] at
-    # the borders of the star, it is decreased by sin(angle), where angle is
-    # arccos(impact_parameter)
-    phase *= np.sin(np.arccos(impact_parameter))
-
-    # General function to draw a disk
-    def _draw_disk(center, radius, value=1.0):
-        top_left = (center[0] - radius, center[1] - radius)
-        bottom_right = (center[0] + radius, center[1] + radius)
-        image = Image.new('1', shape)
-        draw = ImageDraw.Draw(image)
-        draw.ellipse([top_left, bottom_right], outline=1, fill=1)
-        disk = np.reshape(np.array(list(image.getdata())), shape) * value
-        return disk
-
-    # Draw the host star
-    star_radius = grid_size // 2
-    planet_radius = star_radius * planet_to_star_ratio
-    star = _draw_disk(center=(star_radius, star_radius), radius=star_radius)
-    norm = np.sum(star)  # Normalization factor is the total intensity
-    # Adding the star to the grid
-    grid = star / norm
-
-    # Before drawing the planet, we will need to figure out the exact coordinate
-    # of the center of the planet and then draw the cloud
-    x_p = grid_size // 2 + int(phase * grid_size)
-    y_p = grid_size // 2 + int(impact_parameter * grid_size // 2)
+    star_grid = draw.star(grid_size, limb_darkening_law=limb_darkening_law,
+                          ld_coefficient=ld_coefficient)
+    transit_grid = draw.planet_transit(star_grid, planet_to_star_ratio,
+                                       impact_parameter, phase)
 
     # Add the upper atmosphere if a density profile was input
     if density_profile is not None:
         # We need to know the matrix r_p containing distances from
         # planet center when we draw the extended atmosphere
-        one_d_coords = np.linspace(0, grid_size - 1, grid_size, dtype=int)
-        x_s, y_s = np.meshgrid(one_d_coords, one_d_coords)
-        planet_centric_coords = np.array([x_s - x_p, y_s - y_p]).T
+        pl_ref = transit_grid.planet_px_coordinates
+        planet_centric_r = utils.cylindrical_r(transit_grid.intensity, pl_ref)
         # We also need to know the physical size of the pixel in the grid
+        planet_radius = transit_grid.planet_radius_px
         px_size = planet_physical_radius / planet_radius
-        r_p = (np.sum(planet_centric_coords ** 2, axis=-1) ** 0.5).T * px_size
+        r_p = planet_centric_r * px_size
         # Calculate the column densities profile
         column_density = 2 * np.sum(np.array([density_profile,
                                               density_profile]), axis=0)
@@ -114,12 +101,7 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
         density_map = np.zeros_like(grid)
 
     # Finally
-    planet = _draw_disk(center=(x_p, y_p), radius=planet_radius)
-    # Adding the planet to the grid, normalized by the stellar intensity
-    grid -= planet / norm
-    # The grid must not have negative values (this may happen if the planet
-    # disk falls out of the stellar disk)
-    normalized_intensity_map = grid.clip(min=0.0)
+    normalized_intensity_map = transit_grid.intensity
 
     return normalized_intensity_map, density_map
 
