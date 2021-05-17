@@ -8,7 +8,6 @@ planets and atmospheres.
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.special import voigt_profile
-from PIL import Image, ImageDraw
 from flatstar import draw, utils
 
 __all__ = ["draw_transit", "radiative_transfer"]
