@@ -98,7 +98,7 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
                      fill_value=0.0)
         density_map = f(r_p)
     else:
-        density_map = np.zeros_like(grid)
+        density_map = np.zeros_like(star_grid.intensity)
 
     # Finally
     normalized_intensity_map = transit_grid.intensity
