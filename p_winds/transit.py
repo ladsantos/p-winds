@@ -15,7 +15,8 @@ __all__ = ["draw_transit", "radiative_transfer"]
 
 # Draw a grid
 def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
-                 grid_size=1001, limb_darkening_law=None, ld_coefficient=None,
+                 grid_size=100, supersampling=None, resample_method=None,
+                 limb_darkening_law=None, ld_coefficient=None,
                  density_profile=None, profile_radius=None,
                  planet_physical_radius=None):
     """
@@ -36,7 +37,21 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
         center, and the right limb. Default is 0.0.
 
     grid_size (``int``, optional):
-        Size of the transit grid. Default is 2001.
+        Size of the transit grid. Default is 100.
+
+    supersampling (``float`` or ``None``, optional):
+        In order to avoid pixels with hard edges, it is useful to first compute
+        the transit grid at a high resolution and then downscale it to a
+        manageable grid size. Supersampling is the factor by which to increase
+        the grid size at first and then downscale to the requested grid size. If
+        ``None``, no supersampling is applied. Default is ``None``.
+
+    resample_method (``str`` or ``None``, optional):
+        Method by which to resample the image if supersampling is used. If
+        ``None``, then fallback to a "box" method. Available methods are
+        ``"nearest"``, ``"box"``, ``"bilinear"``, ``"hamming"`` and
+        ``"lanczos"`` (the last two are not recommended for research-grade
+        results. Default is ``None``.
 
     limb_darkening_law (``None`` or ``str``, optional):
         String with the name of the limb-darkening law. The options are the same
@@ -70,14 +85,28 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
         2-D map of intensity normalized in such a way that the sum of the array
         will be 1.0 if the planet is not transiting.
 
+    transit_depth (``float``):
+        Absorption caused by the opaque disk of the planet in the specified
+        transit configuration.
+
     density_map (``numpy.ndarray``):
         2-D map of column densities in unit of 1 / length ** 2, where length is
         the unit of ``planet_physical_radius``.
     """
-    star_grid = draw.star(grid_size, limb_darkening_law=limb_darkening_law,
+    if supersampling is not None:
+        effective_grid_size = int(round(grid_size * supersampling))
+        rescaling = 1 / supersampling
+    else:
+        effective_grid_size = grid_size
+        rescaling = None
+
+    star_grid = draw.star(effective_grid_size,
+                          limb_darkening_law=limb_darkening_law,
                           ld_coefficient=ld_coefficient)
     transit_grid = draw.planet_transit(star_grid, planet_to_star_ratio,
-                                       impact_parameter, phase)
+                                       impact_parameter, phase,
+                                       rescaling_factor=rescaling,
+                                       resample_method=resample_method)
 
     # Add the upper atmosphere if a density profile was input
     if density_profile is not None:
@@ -102,8 +131,9 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
 
     # Finally
     normalized_intensity_map = transit_grid.intensity
+    transit_depth = transit_grid.transit_depth
 
-    return normalized_intensity_map, density_map
+    return normalized_intensity_map, transit_depth, density_map
 
 
 # Calculate the radiative transfer

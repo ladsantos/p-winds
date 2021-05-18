@@ -23,14 +23,17 @@ t_0 = 9E3  # Upper-atmospheric temperature in K
 
 
 # Test both the draw_transit and radiative_transfer functions
-def test_draw_transit_and_radiative_transfer(precision_threshold=5E-4):
-    flux_map, density_map = transit.draw_transit(planet_to_star_ratio,
-                                                 impact_parameter=0.0,
-                                                 phase=0.0,
-                                                 density_profile=n_he_3,
-                                                 profile_radius=r,
-                                                 planet_physical_radius=r_pl,
-                                                 grid_size=101)
+def test_draw_transit_and_radiative_transfer(precision_threshold=5E-3):
+    flux_map, t_depth, density_map = transit.draw_transit(
+        planet_to_star_ratio,
+        impact_parameter=0.0,
+        phase=0.0,
+        supersampling=10,
+        density_profile=n_he_3,
+        profile_radius=r,
+        planet_physical_radius=r_pl,
+        grid_size=101
+    )
     test_value_0 = flux_map[30, 30]
     test_value_1 = density_map[30, 30]
     assert abs((test_value_0 - 1.249219E-4) / test_value_0) < \
