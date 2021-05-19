@@ -34,11 +34,12 @@ def test_draw_transit_and_radiative_transfer(precision_threshold=5E-3):
         planet_physical_radius=r_pl,
         grid_size=101
     )
-    test_value_0 = flux_map[30, 30]
-    test_value_1 = density_map[30, 30]
+    test_value_0 = flux_map[20, 20]
+    test_value_1 = density_map[20, 20]
     assert abs((test_value_0 - 1.249219E-4) / test_value_0) < \
         precision_threshold
-    assert abs((test_value_1 - 2.10006613E6) / test_value_1) < precision_threshold
+    assert abs((test_value_1 - 2.10006613E6) / test_value_1) < \
+           precision_threshold
 
     spectrum = transit.radiative_transfer(flux_map, density_map,
                                           wl, w_array, f_array, a_array, t_0,

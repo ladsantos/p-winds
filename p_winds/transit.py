@@ -118,9 +118,11 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
         planet_radius = transit_grid.planet_radius_px
         px_size = planet_physical_radius / planet_radius
         r_p = planet_centric_r * px_size
-        # Calculate the column densities profile
-        column_density = 2 * np.sum(np.array([density_profile,
-                                              density_profile]), axis=0)
+        # Calculate the column densities profile. We multiply the volumetric
+        # density in a given r by the length 2 * z in the line of sight
+        r_sim = profile_radius[-1]
+        z = r_sim * (1 - (profile_radius / r_sim) ** 2) ** 0.5
+        column_density = 2 * density_profile * z
         # In order to calculate the column density in a given pixel, we need to
         # interpolate from the array above based on the radius map
         f = interp1d(profile_radius, column_density, bounds_error=False,
@@ -197,7 +199,8 @@ def radiative_transfer(intensity_0, column_density, wavelength_grid,
     v_turb = turbulence_speed
 
     # Calculate Doppler width
-    alpha_nu = nu0 / c_speed * (2 * k_b * temp / mass + v_turb ** 2) ** 0.5
+    alpha_nu = nu0 / c_speed * (2 * np.log(2) * k_b * temp / mass +
+                                v_turb ** 2) ** 0.5
     # Frequency shift due to bulk movement
     delta_nu = -v_wind / c_speed * nu0
 
@@ -207,8 +210,9 @@ def radiative_transfer(intensity_0, column_density, wavelength_grid,
         gamma = a_ij / 4 / np.pi
         # Calculate Voigt profile
         phi = voigt_profile(nu, alpha, gamma)
-        # Calculate cross-section = pi * e ** 2 / m_e / c * f
-        _sigma = 2.6538E+2 * f * phi  # Hard-coded, but it is what it is...
+        # Calculate cross-section
+        k = 2.654008854574474e-06  # Constant in units of m ** 2 * Hz
+        _sigma = k * f * phi
         return _sigma
 
     # Check if one or more lines as input
@@ -224,7 +228,8 @@ def radiative_transfer(intensity_0, column_density, wavelength_grid,
         n_lines = len(nu0)
         sigma_nu = np.array([_cross_section(nu_grid - nu0[i] - delta_nu[i],
                              alpha_nu[i], einstein_coefficient[i],
-                             oscillator_strength[i]) for i in range(n_lines)])
+                             oscillator_strength[i]) for i in
+                             range(n_lines)])
         sigma_nu = np.sum(sigma_nu, axis=0)
         sigma = np.reshape(sigma_nu, (1, 1, len(sigma_nu)))
     else:
