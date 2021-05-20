@@ -7,6 +7,7 @@ planets and atmospheres.
 
 import numpy as np
 from scipy.interpolate import interp1d
+from scipy.integrate import simps
 from scipy.special import voigt_profile
 from flatstar import draw, utils
 
@@ -108,7 +109,8 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
                                        rescaling_factor=rescaling,
                                        resample_method=resample_method)
 
-    # Add the upper atmosphere if a density profile was input
+    # Add the upper atmosphere if a density profile was input. This part is very
+    # hacky, but it is what it is
     if density_profile is not None:
         # We need to know the matrix r_p containing distances from
         # planet center when we draw the extended atmosphere
@@ -118,11 +120,32 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
         planet_radius = transit_grid.planet_radius_px
         px_size = planet_physical_radius / planet_radius
         r_p = planet_centric_r * px_size
-        # Calculate the column densities profile. We multiply the volumetric
-        # density in a given r by the length 2 * z in the line of sight
+        # Calculate the column densities profile. For each b, we need to
+        # integrate the volumetric densities in the line of sight from -r_sim to
+        # r_sim, where r_sim is the top of the atmosphere in the simulation. The
+        # line of sight is given by z
         r_sim = profile_radius[-1]
         z = r_sim * (1 - (profile_radius / r_sim) ** 2) ** 0.5
-        column_density = 2 * density_profile * z
+        # Since the densities are not exactly sampled in z, we need to create a
+        # function that interpolate it to values of z
+        density_profile_function = interp1d(profile_radius, density_profile,
+                                            fill_value=0.0, bounds_error=False)
+        column_density = np.zeros_like(profile_radius)
+        for i in range(len(profile_radius) - 1):
+            # For each impact parameter, calculate the z in its corresponding
+            # densities
+            if z[i] > profile_radius[i]:  # This line is necessary because we do
+                # not sample densities above the maximum radius of the
+                # simulation, so we let them be zero
+                z_profile = np.logspace(np.log10(profile_radius[i]),
+                                        np.log10(z[i]), 100)
+                rho_profile = density_profile_function(z_profile)
+                # Integrate and multiply by to take into account both columns
+                # below and above the planet center
+                column_density[i] = 2 * simps(rho_profile, z_profile)
+            else:
+                pass
+
         # In order to calculate the column density in a given pixel, we need to
         # interpolate from the array above based on the radius map
         f = interp1d(profile_radius, column_density, bounds_error=False,
