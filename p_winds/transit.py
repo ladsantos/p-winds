@@ -200,7 +200,8 @@ def draw_transit(planet_to_star_ratio, radius_profile, density_profile,
 def radiative_transfer(intensity_0, column_density, wavelength_grid,
                        central_wavelength, oscillator_strength,
                        einstein_coefficient, gas_temperature, particle_mass,
-                       bulk_los_velocity=0.0, turbulence_speed=0.0):
+                       bulk_los_velocity=0.0, turbulence_speed=0.0,
+                       wind_broadening=0.0):
     """
     Calculate the absorbed intensity profile in a wavelength grid.
 
@@ -257,44 +258,45 @@ def radiative_transfer(intensity_0, column_density, wavelength_grid,
     v_turb = turbulence_speed
 
     # Calculate Doppler width
-    alpha_nu = nu0 / c_speed * (2 * np.log(2) * k_b * temp / mass +
-                                v_turb ** 2) ** 0.5
+    # alpha_nu = nu0 / c_speed * (2 * np.log(2) * k_b * temp / mass +
+    #                             v_turb ** 2) ** 0.5
     # Frequency shift due to bulk movement
     delta_nu = -v_wind / c_speed * nu0
 
     # Cross-section profile based on a Voigt line profile
-    def _cross_section(nu, alpha, a_ij, f):
+    def _optical_depth(nu, _v_turb, _column_density, _wind_broadening, a_ij, f):
         # Calculate the Lorentzian width; alpha is the Doppler width
-        gamma = a_ij / 4 / np.pi
+        gamma = np.ones_like(_wind_broadening) * a_ij / 4 / np.pi
+        reshaped_nu = np.reshape(nu, (len(nu), 1, 1))
+        alpha_nu = reshaped_nu / c_speed * (2 * np.log(2) * k_b * temp / mass +
+                                   _v_turb ** 2 + _wind_broadening ** 2) ** 0.5
         # Calculate Voigt profile
-        phi = voigt_profile(nu, alpha, gamma)
+        phi = voigt_profile(reshaped_nu, alpha_nu, gamma)
         # Calculate cross-section
         k = 2.654008854574474e-06  # Constant in units of m ** 2 * Hz
         _sigma = k * f * phi
-        return _sigma
+        return _sigma * _column_density
 
     # Check if one or more lines as input
     if isinstance(nu0, float):
-        # Calculate the cross-section sigma in m ** 2 * Hz
-        sigma_nu = _cross_section(nu_grid - nu0 - delta_nu, alpha_nu,
-                                  einstein_coefficient, oscillator_strength)
-        # The next line is necessary to allow the proper array multiplication
-        # later and avoid expensive for-loops
-        sigma = np.reshape(sigma_nu, (1, 1, len(sigma_nu)))
+        tau_nu = _optical_depth(nu_grid - nu0 - delta_nu, v_turb,
+                                column_density, wind_broadening,
+                                einstein_coefficient, oscillator_strength)
     elif isinstance(nu0, np.ndarray):
         # Same here, but for more than one spectral line
         n_lines = len(nu0)
-        sigma_nu = np.array([_cross_section(nu_grid - nu0[i] - delta_nu[i],
-                             alpha_nu[i], einstein_coefficient[i],
-                             oscillator_strength[i]) for i in
-                             range(n_lines)])
-        sigma_nu = np.sum(sigma_nu, axis=0)
-        sigma = np.reshape(sigma_nu, (1, 1, len(sigma_nu)))
+        tau_nu = np.array([_optical_depth(nu_grid - nu0[i] - delta_nu[i],
+                                          v_turb, column_density,
+                                          wind_broadening,
+                                          einstein_coefficient[i],
+                                          oscillator_strength[i])
+                           for i in range(n_lines)])
+        tau_nu = np.sum(tau_nu, axis=0)
     else:
         raise ValueError('``central_wavelength`` must be either ``float`` or'
                          'a 1-dimensional ``numpy.ndarray``.')
 
     # The extinction is given by intensity_0 * exp(-tau)
-    intensity = np.sum(intensity_0 * np.exp(-sigma.T * column_density),
+    intensity = np.sum(intensity_0 * np.exp(-tau_nu),
                        axis=(1, 2))
     return intensity
