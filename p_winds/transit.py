@@ -15,11 +15,11 @@ __all__ = ["draw_transit", "radiative_transfer"]
 
 
 # Draw a grid
-def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
-                 grid_size=100, supersampling=None, resample_method=None,
-                 limb_darkening_law=None, ld_coefficient=None,
-                 density_profile=None, profile_radius=None,
-                 planet_physical_radius=None):
+def draw_transit(planet_to_star_ratio, radius_profile, density_profile,
+                 planet_physical_radius, velocity_profile=None,
+                 impact_parameter=0.0, phase=0.0, grid_size=100,
+                 supersampling=None, resample_method=None,
+                 limb_darkening_law=None, ld_coefficient=None, z_sampling=100):
     """
     Calculate a normalized transit map. Additionally, calculate a column density
     map around the planet if the user inputs a 1-D volumetric density profile.
@@ -29,8 +29,26 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
     planet_to_star_ratio (``float``):
         Ratio between the radii of the planet and the star.
 
+    radius_profile (``numpy.ndarray``):
+        1-D profile of radii in which the densities are sampled. Unit
+        has to be the same as ``planet_physical_radius``.
+
+    density_profile (``numpy.ndarray``):
+        1-D profile of volumetric number densities in function of radius. Unit
+        has to be 1 / length ** 3, where length is the unit of
+        ``planet_physical_radius``.
+
+    planet_physical_radius (``float``):
+        Physical radius of the planet in whatever unit you want to work with.
+
+    velocity_profile (``numpy.ndarray``, optional):
+        1-D profile of velocities in function of radius. The unit can be
+        whatever unit you want to work with. If ``None``, the returned
+        ``wind_broadening_map`` is simply zeros. Default is ``None``.
+
     impact_parameter (``float``, optional):
-        Transit impact parameter. Default is 0.0.
+        Transit impact parameter of the planet (not the atmosphere). Default is
+        0.0.
 
     phase (``float``, optional):
         Phase of the transit. -0.5, 0.0, and +0.5 correspond to the center of
@@ -65,20 +83,9 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
         should be a float. In all other options it should be array-like. Default
         is ``None``.
 
-    density_profile (``numpy.ndarray``, optional):
-        1-D profile of volumetric number densities in function of radius. Unit
-        has to be 1 / length ** 3, where length is the unit of
-        ``planet_physical_radius``. If ``None``, the returned column densities
-        will be zero. Default is ``None``.
-
-    profile_radius (``numpy.ndarray``, optional):
-        1-D profile of radii in which the densities are sampled. Unit
-        has to be the same as ``planet_physical_radius``. Required if you want
-        to calculate the map of column densities. Default is ``None``.
-
-    planet_physical_radius (``float``, optional):
-        Physical radius of the planet in whatever unit you want to work with.
-        Required to calculate the map of column densities. Default is ``None``.
+    z_sampling (``int``, optional):
+        How many points with which to sample the line-of-sight direction when
+        calculating the column densities and wind broadening. Default is 100.
 
     Returns
     -------
@@ -93,6 +100,10 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
     density_map (``numpy.ndarray``):
         2-D map of column densities in unit of 1 / length ** 2, where length is
         the unit of ``planet_physical_radius``.
+
+    wind_broadening_map (``numpy.ndarray``):
+        2-D map of wind broadening half-widths in the same units as
+        ``velocity_profile``.
     """
     if supersampling is not None:
         effective_grid_size = int(round(grid_size * supersampling))
@@ -109,56 +120,80 @@ def draw_transit(planet_to_star_ratio, impact_parameter=0.0, phase=0.0,
                                        rescaling_factor=rescaling,
                                        resample_method=resample_method)
 
-    # Add the upper atmosphere if a density profile was input. This part is very
-    # hacky, but it is what it is
-    if density_profile is not None:
-        # We need to know the matrix r_p containing distances from
-        # planet center when we draw the extended atmosphere
-        pl_ref = transit_grid.planet_px_coordinates
-        planet_centric_r = utils.cylindrical_r(transit_grid.intensity, pl_ref)
-        # We also need to know the physical size of the pixel in the grid
-        planet_radius = transit_grid.planet_radius_px
-        px_size = planet_physical_radius / planet_radius
-        r_p = planet_centric_r * px_size
-        # Calculate the column densities profile. For each b, we need to
-        # integrate the volumetric densities in the line of sight from -r_sim to
-        # r_sim, where r_sim is the top of the atmosphere in the simulation. The
-        # line of sight is given by z
-        r_sim = profile_radius[-1]
-        z = r_sim * (1 - (profile_radius / r_sim) ** 2) ** 0.5
-        # Since the densities are not exactly sampled in z, we need to create a
-        # function that interpolate it to values of z
-        density_profile_function = interp1d(profile_radius, density_profile,
-                                            fill_value=0.0, bounds_error=False)
-        column_density = np.zeros_like(profile_radius)
-        for i in range(len(profile_radius) - 1):
-            # For each impact parameter, calculate the z in its corresponding
-            # densities
-            if z[i] > profile_radius[i]:  # This line is necessary because we do
-                # not sample densities above the maximum radius of the
-                # simulation, so we let them be zero
-                z_profile = np.logspace(np.log10(profile_radius[i]),
-                                        np.log10(z[i]), 100)
-                rho_profile = density_profile_function(z_profile)
-                # Integrate and multiply by to take into account both columns
-                # below and above the planet center
-                column_density[i] = 2 * simps(rho_profile, z_profile)
+    # We will calculate the column densities and wind radial velocities of the
+    # upper atmosphere. We need to know the matrix r_p containing distances from
+    # planet center when we draw the extended atmosphere
+    pl_ref = transit_grid.planet_px_coordinates
+    planet_centric_r = utils.cylindrical_r(transit_grid.intensity, pl_ref)
+    # We also need to know the physical size of the pixel in the grid
+    planet_radius = transit_grid.planet_radius_px
+    px_size = planet_physical_radius / planet_radius
+    r_p = planet_centric_r * px_size
+
+    # Calculate the column densities profile. For each impact parameter of the
+    # atmosphere (Not to be confused with the impact parameter of the planet!),
+    # we need to integrate the volumetric densities in the line of sight from
+    # -r_sim to r_sim, where r_sim is the top of the atmosphere in the
+    # simulation. The line of sight is given by z
+    r_sim = radius_profile[-1]
+    z = r_sim * (1 - (radius_profile / r_sim) ** 2) ** 0.5
+    # Since the densities are not exactly sampled in z, we need to create a
+    # function that interpolate it to values of z
+    density_profile_function = interp1d(radius_profile, density_profile,
+                                        fill_value=0.0, bounds_error=False)
+    if velocity_profile is not None:
+        velocity_profile_function = interp1d(radius_profile, velocity_profile,
+                                             fill_value=0.0, bounds_error=False)
+    else:
+        pass
+    column_density = np.zeros_like(radius_profile)
+    wind_broadening = np.zeros_like(radius_profile)
+    for i in range(len(radius_profile) - 1):
+        # For each impact parameter, calculate the z in its corresponding
+        # densities
+        if z[i] > radius_profile[i]:  # This line is necessary because we do
+            # not sample densities above the maximum radius of the
+            # simulation, so we let them be zero
+            z_profile = np.logspace(np.log10(radius_profile[i]),
+                                    np.log10(z[i]), z_sampling)
+            rho_profile = density_profile_function(z_profile)
+            # Integrate densities and multiply by to take into account both
+            # columns below and above the planet center to calculate the total
+            # column density
+            column_density[i] = 2 * simps(rho_profile, z_profile)
+
+            # The line-of-sight wind velocity is given by Eq. 6 in Seidel et al.
+            # (2020)
+            # (https://ui.adsabs.harvard.edu/abs/2020A%26A...633A..86S/abstract)
+            if velocity_profile is not None:
+                v_profile = velocity_profile_function(z_profile) * z_profile / \
+                    (z_profile ** 2 + radius_profile[i]) ** 0.5
+                # The distribution of velocities in the line of sight depends on
+                # the density of atoms. So we take the average of the velocities
+                # weighted by the density and assume this is the half-width of a
+                # Gaussian distribution of velocities. In reality it is probably
+                # more complicated than that.
+                wind_broadening[i] = np.sum(v_profile * rho_profile) / np.sum(
+                    rho_profile)
             else:
                 pass
-
-        # In order to calculate the column density in a given pixel, we need to
-        # interpolate from the array above based on the radius map
-        f = interp1d(profile_radius, column_density, bounds_error=False,
-                     fill_value=0.0)
-        density_map = f(r_p)
-    else:
-        density_map = np.zeros_like(star_grid.intensity)
+        else:
+            pass
+    # In order to calculate the column density in a given pixel, we need to
+    # interpolate from the array above based on the radius map
+    f_d = interp1d(radius_profile, column_density, bounds_error=False,
+                   fill_value=0.0)
+    f_v = interp1d(radius_profile, wind_broadening, bounds_error=False,
+                   fill_value=0.0)
+    density_map = f_d(r_p)
+    wind_broadening_map = f_v(r_p)
 
     # Finally
     normalized_intensity_map = transit_grid.intensity
     transit_depth = transit_grid.transit_depth
 
-    return normalized_intensity_map, transit_depth, density_map
+    return normalized_intensity_map, transit_depth, density_map, \
+        wind_broadening_map
 
 
 # Calculate the radiative transfer
