@@ -5,7 +5,7 @@ import numpy as np
 from p_winds import microphysics, transit
 
 
-data_test_url = 'https://raw.githubusercontent.com/ladsantos/p-winds/dev/data/he_3_profile.dat'
+data_test_url = 'https://raw.githubusercontent.com/ladsantos/p-winds/main/data/he_3_profile.dat'
 
 
 r_pl = 1.39 * 71492000  # Planet radius in m

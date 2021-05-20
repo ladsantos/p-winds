@@ -200,7 +200,8 @@ def draw_transit(planet_to_star_ratio, radius_profile, density_profile,
 def radiative_transfer(intensity_0, column_density, wavelength_grid,
                        central_wavelength, oscillator_strength,
                        einstein_coefficient, gas_temperature, particle_mass,
-                       bulk_los_velocity=0.0, turbulence_speed=0.0):
+                       bulk_los_velocity=0.0, turbulence_speed=0.0,
+                       wind_broadening=0.0):
     """
     Calculate the absorbed intensity profile in a wavelength grid.
 
@@ -240,6 +241,13 @@ def radiative_transfer(intensity_0, column_density, wavelength_grid,
         Turbulence speed in m / s. It is added to the Doppler broadening of the
         absorption line. Default is 0.0.
 
+    wind_broadening (``float`` or ``numpy.ndarray``, optional):
+        Gaussian broadening to apply to the Lorentzian function due to the
+        planetary wind radial velocities. If ``numpy.ndarray``, it must have the
+        same shape as ``column_density``. Currently, the code simply takes the
+        weighted average of the array and apply the broadening as a ``float``.
+        Default is 0.0.
+
     Returns
     -------
     intensity (``float`` or ``numpy.ndarray``):
@@ -253,14 +261,23 @@ def radiative_transfer(intensity_0, column_density, wavelength_grid,
     nu_grid = c_speed / wl_grid
     temp = gas_temperature
     mass = particle_mass
-    v_wind = bulk_los_velocity
+    v_bulk = bulk_los_velocity
     v_turb = turbulence_speed
+
+    if isinstance(wind_broadening, np.ndarray):
+        v_wind = np.sum(wind_broadening * column_density) / \
+            np.sum(column_density)
+    elif isinstance(wind_broadening, float) or isinstance(wind_broadening, int):
+        v_wind = wind_broadening
+    else:
+        raise ValueError('``wind_broadening`` must be either a numpy.ndarray or'
+                         'float.')
 
     # Calculate Doppler width
     alpha_nu = nu0 / c_speed * (2 * np.log(2) * k_b * temp / mass +
-                                v_turb ** 2) ** 0.5
+                                v_turb ** 2 + v_wind ** 2) ** 0.5
     # Frequency shift due to bulk movement
-    delta_nu = -v_wind / c_speed * nu0
+    delta_nu = -v_bulk / c_speed * nu0
 
     # Cross-section profile based on a Voigt line profile
     def _cross_section(nu, alpha, a_ij, f):
