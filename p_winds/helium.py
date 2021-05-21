@@ -392,15 +392,14 @@ def population_fraction(radius_profile, velocity, density,
         the second in some situations. Any other method will fallback to an
         option of ``solve_ivp()`` methods. For example, if ``method`` is set to
         ``'Radau'``, then use ``solve_ivp(method='Radau')``. Default is
-        ``odeint``.
+        ``'odeint'``.
 
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
         may want to change the options ``atol`` (absolute tolerance; default is
         1E-6) or ``rtol`` (relative tolerance; default is 1E-3). If you are
         having numerical issues, you may want to decrease the tolerance by a
-        factor of 10 or 100, or 1000 in extreme cases. The option ``method`` is
-        already set to ``'Radau'`` and cannot be changed.
+        factor of 10 or 100, or 1000 in extreme cases.
 
     Returns
     -------
