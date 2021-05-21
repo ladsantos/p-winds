@@ -19,19 +19,19 @@ Installation
 
 You can install `p-winds` using [`conda-forge`](https://conda-forge.org), `pip`, or by compiling it from source.
 
-### Option 1: Using `conda-forge` (stable version)
+### Option 1: Using `pip` (more up-to-date)
+
+Even easier:
+```angular2html
+pip install p-winds
+```
+
+### Option 2: Using `conda-forge` (stable version)
 
 Simply run the following commands:
 ```angular2html
 conda update conda
 conda install -c conda-forge p-winds
-```
-
-### Option 2: Using `pip` (stable version)
-
-Even easier:
-```angular2html
-pip install p-winds
 ```
 
 ### Option 3: Compile from source (development version)
