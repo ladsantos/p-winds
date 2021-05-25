@@ -307,8 +307,7 @@ def population_fraction(radius_profile, velocity, density,
                         method='odeint', **options_solve_ivp):
     """
     Calculate the fraction of helium in singlet and triplet state in the upper
-    atmosphere in function of the radius in unit of planetary radius. The solver
-    is already set to the method ``'Radau'``.
+    atmosphere in function of the radius in unit of planetary radius.
 
     Parameters
     ----------
