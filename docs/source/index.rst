@@ -28,8 +28,10 @@ stellar wind model of `Parker (1958)`_.
 .. _Parker (1958): https://ui.adsabs.harvard.edu/abs/1958ApJ...128..664P/abstract
 
 In the current version, the code solves the stead-state ionization distribution
-of hydrogen around the planet based on its physical parameters and the
-high-energy irradiation arriving at the planet.
+of hydrogen and helium around the planet based on its physical parameters and
+the high-energy irradiation arriving at the planet. It also calculates the
+wavelength-dependent transit depths in the metastable helium triplet at 1.083
+microns.
 
 If you want to use the code without installing it locally, you can always run it
 on the cloud (see `this Google Colaboratory quickstart notebook
