@@ -59,11 +59,11 @@ def test_population_fraction_spectrum(precision_threshold=1E-2):
         atol=1E-8, rtol=1E-8
     )
 
-    assert abs(f_he_1_odeint[-1] - 0.030603) / f_he_1_odeint[-1] < \
+    assert abs(f_he_1_odeint[-1] - 0.022807) / f_he_1_odeint[-1] < \
            precision_threshold
-    assert abs(f_he_3_odeint[-1] - 6.409416E-8) / f_he_3_odeint[-1] < \
+    assert abs(f_he_3_odeint[-1] - 6.494427E-8) / f_he_3_odeint[-1] < \
            precision_threshold
-    assert abs(f_he_1_ivp[-1] - 0.030603) / f_he_1_ivp[-1] < \
+    assert abs(f_he_1_ivp[-1] - 0.022807) / f_he_1_ivp[-1] < \
            precision_threshold
-    assert abs(f_he_3_ivp[-1] - 6.4205302E-8) / f_he_3_ivp[-1] < \
+    assert abs(f_he_3_ivp[-1] - 6.494427E-8) / f_he_3_ivp[-1] < \
            precision_threshold
