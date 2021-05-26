@@ -45,6 +45,7 @@ def test_draw_transit_and_radiative_transfer(precision_threshold=5E-3):
 
     spectrum = transit.radiative_transfer(flux_map, density_map,
                                           wl, w_array, f_array, a_array, t_0,
-                                          m_He, v_wind, broadening_map)
+                                          m_He, v_wind,
+                                          wind_broadening=broadening_map)
     test_value_2 = spectrum[600]
     assert abs((test_value_2 - 0.97668) / test_value_2) < precision_threshold
