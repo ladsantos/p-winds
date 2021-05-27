@@ -35,7 +35,7 @@ data_test_url = 'https://raw.githubusercontent.com/ladsantos/p-winds/main/data/s
 # function for HD 209458 b should produce a profile with an ion fraction of
 # approximately one near the planetary surface, and approximately 4E-4 in the
 # outer layers.
-def test_population_fraction_spectrum(precision_threshold=1E-2):
+def test_population_fraction_spectrum():
     units = {'wavelength': u.angstrom, 'flux': u.erg / u.s / u.cm ** 2 /
                                                u.angstrom}
     spectrum = tools.make_spectrum_from_file(data_test_url, units)
@@ -52,6 +52,14 @@ def test_population_fraction_spectrum(precision_threshold=1E-2):
         R_pl, T_0, h_he, vs, rs, rhos, spectrum,
         initial_state=initial_state, relax_solution=True)
 
+    # Assert if all values of the fractions are between 0 and 1
+    n_neg = len(np.where(f_he_1_odeint < 0)[0]) + \
+        len(np.where(f_he_3_odeint < 0)[0])
+    n_one = len(np.where(f_he_1_odeint > 1)[0]) + \
+        len(np.where(f_he_3_odeint > 1)[0])
+    assert n_neg == 0
+    assert n_one == 0
+
     f_he_1_ivp, f_he_3_ivp = helium.population_fraction(
         r, v_array, rho_array, f_r,
         R_pl, T_0, h_he, vs, rs, rhos, spectrum,
@@ -59,11 +67,11 @@ def test_population_fraction_spectrum(precision_threshold=1E-2):
         atol=1E-8, rtol=1E-8
     )
 
-    assert abs(f_he_1_odeint[-1] - 0.022807) / f_he_1_odeint[-1] < \
-           precision_threshold
-    assert abs(f_he_3_odeint[-1] - 6.409416E-8) / f_he_3_odeint[-1] < \
-           precision_threshold
-    assert abs(f_he_1_ivp[-1] - 0.022807) / f_he_1_ivp[-1] < \
-           precision_threshold
-    assert abs(f_he_3_ivp[-1] - 6.4205302E-8) / f_he_3_ivp[-1] < \
-           precision_threshold
+    # Assert if all values of the fractions are between 0 and 1
+    n_neg = len(np.where(f_he_1_ivp < 0)[0]) + \
+        len(np.where(f_he_3_ivp < 0)[0])
+    n_one = len(np.where(f_he_1_ivp > 1)[0]) + \
+        len(np.where(f_he_3_ivp > 1)[0])
+    assert n_neg == 0
+    assert n_one == 0
+

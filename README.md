@@ -17,11 +17,11 @@ Background
 Installation
 ------------
 
-You can install `p-winds` using [`conda-forge`](https://conda-forge.org), `pip`, or by compiling it from source.
+You can install `p-winds` using `pip`, [`conda-forge`](https://conda-forge.org), or by compiling it from source.
 
 ### Option 1: Using `pip` (more up-to-date)
 
-Even easier:
+Simply run the following command:
 ```angular2html
 pip install p-winds
 ```
@@ -56,6 +56,10 @@ pytest tests
 Quickstart example
 ------------------
 Check out a quickstart [Google Colab Notebook here](https://colab.research.google.com/drive/1mTh6_YEgCRl6DAKqnmRp2XMOW8CTCvm7?usp=sharing). A similar quickstart Jupyter notebook is also available inside the `docs/source/` folder.
+
+Contributing
+------------
+You can contribute to the development of ``p-winds`` either by submitting issues, or by submitting pull requests (PR). If you choose to submit a PR, please pull it to the ``dev`` branch, which is where the experiments happen before being merged to the ``main`` branch.
 
 Future features and known problems
 --------
