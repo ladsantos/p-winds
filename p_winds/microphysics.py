@@ -42,19 +42,30 @@ def hydrogen_cross_section(wavelength=None, energy=None):
         Cross-section in function of energy and in unit of cm ** 2. Only
         returned if energy was input.
     """
-    if wavelength is not None:
-        epsilon = (911.65 / wavelength - 1) ** 0.5
 
-        # Photoionization cross-section in function of wavelength
-        a_lambda = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon)) / epsilon) /
-            (1 - np.exp(-2 * np.pi / epsilon)) * (wavelength / 911.65) ** 4)
+    if wavelength is not None:
+        # Check if wavelength is within the valid range
+        if wavelength >= 911.65:
+            a_lambda = 0.0
+        else:
+            epsilon = (911.65 / wavelength - 1) ** 0.5
+
+            # Photoionization cross-section in function of wavelength
+            a_lambda = \
+                (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon)) / epsilon) /
+                 (1 - np.exp(-2 * np.pi / epsilon)) * (wavelength / 911.65)
+                 ** 4)
         return a_lambda
 
     elif energy is not None:
-        epsilon = (energy / 13.6 - 1) ** 0.5
-        # Photoionization cross-section in function of energy
-        a_nu = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon)) / epsilon) /
-                (1 - np.exp(-2 * np.pi / epsilon)) * (13.6 / energy) ** 4)
+        # Check if energy is within the valid range
+        if energy <= 13.6:
+            a_nu = 0.0
+        else:
+            epsilon = (energy / 13.6 - 1) ** 0.5
+            # Photoionization cross-section in function of energy
+            a_nu = (6.3E-18 * np.exp(4 - (4 * np.arctan(epsilon)) / epsilon) /
+                    (1 - np.exp(-2 * np.pi / epsilon)) * (13.6 / energy) ** 4)
         return a_nu
 
     else:
