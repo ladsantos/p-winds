@@ -285,6 +285,11 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
                     t_eval=r, args=(phi, k1, k2), **options_solve_ivp)
     f_r = sol['y'][0]
+    # When `solve_ivp` has problems, it may return an array with different
+    # size than `r`. So we raise an exception if this happens
+    if len(f_r) != len(r):
+        raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
+                           'solution.')
 
     # For the sake of self-consistency, there is the option of repeating the
     # calculation of f_r by updating the optical depth with the new ion
