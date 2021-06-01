@@ -28,7 +28,12 @@ def nearest_index(array, target_value):
     index (``int``):
         Index of the value in ``array`` that is closest to ``target_value``.
     """
-    return np.where(array < target_value)[0][-1]
+    index = array.searchsorted(target_value)
+    index = np.clip(index, 1, len(array) - 1)
+    left = array[index - 1]
+    right = array[index]
+    index -= target_value - left < right - target_value
+    return index
 
 
 def make_spectrum_from_file(filename, units, path='', skiprows=0,
