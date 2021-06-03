@@ -315,6 +315,12 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
                             t_eval=r, args=(phi, k1, k2), **options_solve_ivp)
             f_r = sol['y'][0]
 
+            # Raise an error if the length of `f_r` is different from the length
+            # of `r`
+            if len(f_r) != len(r):
+                raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
+                                   'solution.')
+
             # Calculate the relative change of f_ion in the outer shell of the
             # atmosphere (where we expect the most important change)
             relative_delta_f = abs(f_r[-1] - previous_f_r_outer_layer) \
