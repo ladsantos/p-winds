@@ -36,6 +36,73 @@ def nearest_index(array, target_value):
     return index
 
 
+def generate_MUSCLES_spectrum(specname, muscles_dir, a_rs, truncate_wavelength_grid = False):
+    """
+    Construct a dictionary containing an input spectrum from a MUSCLES spectrum.
+    MUSCLES reports spectra as observed at Earth, the code scales this to the spectrum
+    received at your planet provided a value for the scaled semimajor axis a_rs.
+
+    Parameters
+    ----------
+    specname (``str``):
+        Name of the stellar spectrum you want to use in MUSCLES. Must be one of:
+	['gj176', 'gj436', 'gj551', 'gj581', 'gj667c', 'gj832',
+         'gj876', 'gj1214', 'hd40307', 'hd85512', 'hd97658', 'v-eps-eri']
+
+    muscles_dir (``str``):
+        Path to the directory with the MUSCLES data.
+
+    a_rs (``float`):
+        Scaled semi-major axis of the planet. The code first converts the MUSCLES
+        spectrum to what it would be at R_star; a_rs is needed to get the spectrum
+        at the planet.
+
+    truncate_wavelength_grid (``boolean``, optional):
+        If True, will only return the spectrum with E > 13.6 eV. This may be useful
+        for computational expediency. If False, returns the whole spectrum.
+
+    Returns
+    -------
+    spectrum (``dict``):
+        Spectrum dictionary with entries for the wavelength and flux, and their
+        units.
+
+    """
+
+    #Hard coding some values...
+    #The stellar radii and distances are taken from NASA Exoplanet Archive.
+
+    thresh = 13.6*u.eV
+    stars = ['gj176', 'gj436', 'gj551', 'gj581', 'gj667c', 'gj832',
+         'gj876', 'gj1214', 'hd40307', 'hd85512', 'hd97658', 'v-eps-eri']
+    st_rads = np.array([0.46, 0.449, 0.154, 0.3297020, 0.42, 0.45,
+           0.35, 0.22, 0.71, 0.69, 0.74, 0.77])*u.R_sun
+    dists = np.array([9.470450, 9.75321, 1.30119, 6.298100, 7.24396, 4.964350,
+         4.67517, 14.6427, 12.9363, 11.2810, 21.5618, 3.20260])*u.pc
+    muscles_dists = {starname: dist for starname, dist in zip(stars, dists)}
+    muscles_rstars = {starname: st_rad for starname, st_rad in zip(stars, st_rads)}
+
+    #muscles records spectra as observed at earth
+    dist = muscles_dists[specname]
+    rstar = muscles_rstars[specname]
+    conv = float((dist/rstar)**2) #conversion to spectum at R_*
+
+    spec = fits.getdata(muscles_dir + \
+                        f'hlsp_muscles_multi_multi_{specname}_broadband_v22_adapt-const-res-sed.fits', 1)
+
+    if truncate_wavelength_grid:
+        mask = spec['WAVELENGTH']*u.AA < thresh.to(u.AA, equivalencies = u.spectral())
+    else:
+        mask = np.ones(spec.shape, dtype = 'bool')
+
+    spectrum = {'wavelength': spec['WAVELENGTH'][mask],
+               'flux_lambda': spec['FLUX'][mask] * conv * (a_rs)**-2, #for flux at planet
+                'wavelength_unit': u.AA, #angstrom 
+                'flux_unit': u.erg/u.s/u.cm/u.cm/u.AA #erg/cm2/s/Angstrom
+               }
+
+    return spectrum
+
 def make_spectrum_from_file(filename, units, path='', skiprows=0,
                             scale_flux=1.0):
     """
