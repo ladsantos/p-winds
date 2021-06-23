@@ -289,7 +289,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     # size than `r`. So we raise an exception if this happens
     if len(f_r) != len(r):
         raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
-                           'solution.')
+                           ' solution.')
 
     # For the sake of self-consistency, there is the option of repeating the
     # calculation of f_r by updating the optical depth with the new ion
@@ -319,7 +319,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
             # of `r`
             if len(f_r) != len(r):
                 raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
-                                   'solution.')
+                                   ' solution.')
 
             # Calculate the relative change of f_ion in the outer shell of the
             # atmosphere (where we expect the most important change)

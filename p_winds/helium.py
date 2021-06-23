@@ -561,7 +561,7 @@ def population_fraction(radius_profile, velocity, density,
         # size than `r`. So we raise an exception if this happens
         if len(f_1_r) != len(r) or len(f_3_r) != len(r):
             raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
-                               'solution.')
+                               ' solution.')
 
     # High densities can be numerically unstable and produce unphysical values
     # of `f_r`, so we replace negative values with zero and values above 1.0
