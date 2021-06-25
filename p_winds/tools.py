@@ -12,7 +12,8 @@ import warnings
 from astropy.io import fits
 
 
-__all__ = ["nearest_index", "make_spectrum_from_file"]
+__all__ = ["nearest_index", "generate_muscles_spectrum",
+           "make_spectrum_from_file"]
 
 # Warn about change in usage of 'generate_MUSCLES_spectrum'
 warnings.warn('The function ``generate_MUSCLES_spectrum`` has changed in how it'
@@ -77,7 +78,7 @@ def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
         Spectrum dictionary with entries for the wavelength and flux, and their
         units.
     """
-    # Hard coding some values...
+    # Hard coding some values
     # The stellar radii and distances are taken from NASA Exoplanet Archive.
 
     thresh = 13.6 * u.eV
@@ -95,7 +96,7 @@ def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
     # MUSCLES records spectra as observed at earth
     dist = muscles_dists[host_star_name]
     rstar = muscles_rstars[host_star_name]
-    conv = float((dist / rstar) ** 2)  # conversion to spectum at R_star
+    conv = float((dist / rstar) ** 2)  # conversion to spectrum at R_star
 
     # Read the MUSCLES spectrum
     spec = fits.getdata(muscles_dir +
