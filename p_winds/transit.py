@@ -10,6 +10,13 @@ from scipy.interpolate import interp1d
 from scipy.integrate import simps
 from scipy.special import voigt_profile
 from flatstar import draw, utils
+from warnings import warn
+
+
+# Warn about future changes in this module
+warn('Future versions of the code will have a significant syntax change in the '
+     'transit.py module.', FutureWarning)
+
 
 __all__ = ["draw_transit", "radiative_transfer"]
 
