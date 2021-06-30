@@ -191,6 +191,13 @@ def radiative_transfer(intensity_0, r_from_planet, px_size, radius_profile,
         Bulk velocity of the gas cell in the line of sight in unit of m / s.
         Default is 0.0.
 
+    method (``str``, optional):
+        Method of calculation for the radiative transfer. There are two options:
+        1) ``'formal'``: the formal definition of radiative transfer;
+        2) ``'fast'``: assumes that the Parker wind broadening as a Gaussian
+        shape. The fast calculation is one order of magnitude faster than the
+        formal method. Default is ``'fast'``.
+
     Returns
     -------
     intensity (``numpy.ndarray``):
@@ -270,7 +277,8 @@ def profile_los(radius_profile, density_profile, velocity_profile):
     return los_density_r_z, los_velocity_r_z
 
 
-# Optical depth in function of cylindrical radius from the planet and wavelength
+# Optical depth in function of cylindrical radius from the planet and
+# wavelength. Hold on to your hat because this code is very complex.
 def optical_depth(radius_profile, density_profile, velocity_profile,
                   central_wavelength, oscillator_strength,
                   einstein_coefficient, wavelength_grid, gas_temperature,
@@ -327,6 +335,13 @@ def optical_depth(radius_profile, density_profile, velocity_profile,
         Bulk velocity of the gas cell in the line of sight in unit of m / s.
         Default is 0.0.
 
+    method (``str``, optional):
+        Method of calculation for the radiative transfer. There are two options:
+        1) ``'formal'``: the formal definition of radiative transfer;
+        2) ``'fast'``: assumes that the Parker wind broadening as a Gaussian
+        shape. The fast calculation is one order of magnitude faster than the
+        formal method. Default is ``'fast'``.
+
     Returns
     -------
     optical_depth_array (``numpy.ndarray``):
@@ -363,7 +378,6 @@ def optical_depth(radius_profile, density_profile, velocity_profile,
     wl_grid = wavelength_grid
     c_speed = 2.99792458e+08  # Speed of light in m / s
     k_b = 1.380649e-23  # Boltzmann's constant in J / K
-    k = 2.654008854574474e-06  # Physical constant in units of m ** 2 * Hz
     nu0 = c_speed / w0  # Reference frequency in Hz
     nu_grid_rest = c_speed / wl_grid
     v_turb = turbulence_speed
@@ -379,10 +393,12 @@ def optical_depth(radius_profile, density_profile, velocity_profile,
     delta_nu = (nu_grid_rest - nu0).T
 
     # Cross-section
+    k = 2.654008854574474e-06  # Physical constant in units of m ** 2 * Hz
     sigma = k * f
 
     # Expand the velocities in the line of sight to include the front of the
-    # atmosphere, which comes towards the observer
+    # atmosphere, which comes towards the observer. This part of the code is
+    # very hacky, but necessary.
     velocity_los_back = np.copy(velocity_los)
     velocity_los_front = np.flip(-velocity_los, axis=0)
     velocity_los_both = np.concatenate(
@@ -397,7 +413,7 @@ def optical_depth(radius_profile, density_profile, velocity_profile,
     density_multi = np.reshape(density_los_both, spatial_shape + (1,))
 
     # This is convoluted, but we create a nested function to calculate the
-    # optical depth divided by the cross-section
+    # optical depth divided by the cross-section (i.e. normalized optical depth)
     def _normalized_optical_depth(delta_nu_grid, nu0_k, a_ij_k, _method=method):
         # Calculate the Lorentzian width of the Voigt profile
         gamma = a_ij_k / 4 / np.pi
@@ -408,19 +424,25 @@ def optical_depth(radius_profile, density_profile, velocity_profile,
             alpha_nu = nu0_k / c_speed * (2 * np.log(2) * k_b * temp / mass +
                                           v_turb ** 2) ** 0.5
 
-            # Calculate the frequency shifts due to wind
+            # Calculate the frequency shifts due to wind and bulk motion
             delta_nu_wind = (velocity_los_both + v_bulk) / c_speed * nu0_k
             delta_nu_add = np.reshape(delta_nu_wind, spatial_shape + (1,))
 
         # Faster calculation of optical depth
         elif _method == 'fast':
-            parker_wind_velocity = \
+            # We assume that the Parker wind broadening has a Gaussian shape.
+            # To this end, we take the density-averaged line-of-sight velocity
+            # and add it quadratically to the Gaussian broadening term of the
+            # Voigt profile.
+            parker_wind_broadening = \
                 np.sum(velocity_los * density_los) / np.sum(density_los)
             # Calculate Doppler width of the Voigt profile
             alpha_nu = nu0_k / c_speed * (2 * np.log(2) * k_b * temp / mass +
                                           v_turb ** 2 +
-                                          parker_wind_velocity ** 2) ** 0.5
+                                          parker_wind_broadening ** 2) ** 0.5
 
+            # Frequency shift due to bulk line-of-sight velocity (not to be
+            # confused with the Parker wind velocity).
             delta_nu_add = v_bulk / c_speed * nu0_k
 
         else:
