@@ -9,6 +9,13 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.special import voigt_profile
 from flatstar import draw, utils
+from warnings import warn
+
+
+# Show a warning about changes on how this module works now
+warn('The transit module has significant syntax changes since version 0.6. '
+     'Consult the documentation.', SyntaxWarning)
+
 
 __all__ = ["draw_transit", "radiative_transfer", "profile_los",
            "optical_depth"]
