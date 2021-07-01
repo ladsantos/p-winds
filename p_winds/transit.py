@@ -14,7 +14,7 @@ from warnings import warn
 
 
 # Warn about future changes in this module
-warn('Future versions of the code will have a significant syntax change in the '
+warn('p-winds versions >=0.7 will have a significant syntax change in the '
      'transit.py module.', FutureWarning)
 
 
