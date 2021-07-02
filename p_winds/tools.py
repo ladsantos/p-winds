@@ -12,12 +12,12 @@ import warnings
 from astropy.io import fits
 
 
-__all__ = ["nearest_index", "make_spectrum_from_file"]
+__all__ = ["nearest_index", "generate_muscles_spectrum",
+           "make_spectrum_from_file"]
 
-# Warn about slight change in usage of 'generate_MUSCLES_spectrum'
-warnings.warn('Future versions will have some changes in how the function '
-              '``generate_MUSCLES_spectrum`` is called. Check the '
-              'documentation.', FutureWarning)
+# Warn about change in usage of 'generate_MUSCLES_spectrum'
+warnings.warn('The function ``generate_MUSCLES_spectrum`` has changed in how it'
+              ' is called. Check the documentation.', DeprecationWarning)
 
 
 def nearest_index(array, target_value):
@@ -44,32 +44,28 @@ def nearest_index(array, target_value):
     return index
 
 
-def generate_MUSCLES_spectrum(specname, muscles_dir, a_rs,
+def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
                               truncate_wavelength_grid=False):
     """
     Construct a dictionary containing an input spectrum from a MUSCLES spectrum.
     MUSCLES reports spectra as observed at Earth, the code scales this to the
     spectrum received at your planet provided a value for the scaled semi-major
-    axis a_rs. In future versions, the input parameters of this function will
-    have a few changes, and its name will change to
-    ``generate_muscles_spectrum``.
+    axis a_rs.
 
     Parameters
     ----------
-    specname (``str``):
+    host_star_name (``str``):
         Name of the stellar spectrum you want to use in MUSCLES. Must be one of:
         ['gj176', 'gj436', 'gj551', 'gj581', 'gj667c', 'gj832', 'gj876',
-        'gj1214', 'hd40307', 'hd85512', 'hd97658', 'v-eps-eri']. In future
-        versions, this parameter will change its name to ``host_star_name``.
+        'gj1214', 'hd40307', 'hd85512', 'hd97658', 'v-eps-eri'].
 
     muscles_dir (``str``):
         Path to the directory with the MUSCLES data.
 
-    a_rs (``float``):
-        Scaled semi-major axis of the planet. The code first converts the
-        MUSCLES spectrum to what it would be at R_star; a_rs is needed to get
-        the spectrum at the planet. In future versions, this parameter will
-        change its name to ``semi_major_axis``.
+    semi_major_axis (``float``):
+        Semi-major axis of the planet in units of stellar radii. The code first
+        converts the MUSCLES spectrum to what it would be at R_star;
+        ``semi_major_axis`` is needed to get the spectrum at the planet.
 
     truncate_wavelength_grid (``bool``, optional):
         If True, will only return the spectrum with energy > 13.6 eV. This may
@@ -82,7 +78,7 @@ def generate_MUSCLES_spectrum(specname, muscles_dir, a_rs,
         Spectrum dictionary with entries for the wavelength and flux, and their
         units.
     """
-    # Hard coding some values...
+    # Hard coding some values
     # The stellar radii and distances are taken from NASA Exoplanet Archive.
 
     thresh = 13.6 * u.eV
@@ -98,23 +94,24 @@ def generate_MUSCLES_spectrum(specname, muscles_dir, a_rs,
                                                                    st_rads)}
 
     # MUSCLES records spectra as observed at earth
-    dist = muscles_dists[specname]
-    rstar = muscles_rstars[specname]
-    conv = float((dist / rstar) ** 2)  # conversion to spectum at R_star
+    dist = muscles_dists[host_star_name]
+    rstar = muscles_rstars[host_star_name]
+    conv = float((dist / rstar) ** 2)  # conversion to spectrum at R_star
 
     # Read the MUSCLES spectrum
     spec = fits.getdata(muscles_dir +
-                        f'hlsp_muscles_multi_multi_{specname}_broadband_v22_'
-                        f'adapt-const-res-sed.fits', 1)
+                        f'hlsp_muscles_multi_multi_{host_star_name}_broadband_'
+                        f'v22_adapt-const-res-sed.fits', 1)
 
     if truncate_wavelength_grid:
         mask = spec['WAVELENGTH'] * u.AA < thresh.to(u.AA,
                                                      equivalencies=u.spectral())
     else:
-        mask = np.ones(spec.shape, dtype = 'bool')
+        mask = np.ones(spec.shape, dtype='bool')
 
     spectrum = {'wavelength': spec['WAVELENGTH'][mask],
-                'flux_lambda': spec['FLUX'][mask] * conv * a_rs ** (-2),
+                'flux_lambda': spec['FLUX'][mask] * conv *
+                semi_major_axis ** (-2),
                 'wavelength_unit': u.AA,
                 'flux_unit': u.erg / u.s / u.cm / u.cm / u.AA}
     return spectrum
