@@ -8,6 +8,7 @@ planets and atmospheres.
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.special import voigt_profile
+from scipy.integrate import simpson
 from flatstar import draw, utils
 from warnings import warn
 
@@ -17,8 +18,8 @@ warn('The transit module has significant syntax changes since version 0.6. '
      'Consult the documentation.', SyntaxWarning)
 
 
-__all__ = ["draw_transit", "radiative_transfer", "profile_los",
-           "optical_depth"]
+__all__ = ["draw_transit", "radiative_transfer_2d", "profile_los",
+           "optical_depth_2d"]
 
 
 # Draw a grid
@@ -85,10 +86,6 @@ def draw_transit(planet_to_star_ratio, planet_physical_radius,
         Absorption caused by the opaque disk of the planet in the specified
         transit configuration.
 
-    px_size (``float``):
-        Physical size of one pixel in the same unit as
-        ``planet_physical_radius``.
-
     r_from_planet (``numpy.ndarray``):
         2-D map of radial distances of each pixel from the center of the planet
         in the same unit as ``planet_physical_radius``.
@@ -122,15 +119,16 @@ def draw_transit(planet_to_star_ratio, planet_physical_radius,
     normalized_intensity_map = transit_grid.intensity
     transit_depth = transit_grid.transit_depth
 
-    return normalized_intensity_map, transit_depth, px_size, r_from_planet
+    return normalized_intensity_map, transit_depth, r_from_planet
 
 
 # Calculate the radiative transfer
-def radiative_transfer(intensity_0, r_from_planet, px_size, radius_profile,
-                       density_profile, velocity_profile, central_wavelength,
-                       oscillator_strength, einstein_coefficient,
-                       wavelength_grid, gas_temperature, particle_mass,
-                       bulk_los_velocity=0.0, wind_broadening_method='average'):
+def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
+                          density_profile, velocity_profile, central_wavelength,
+                          oscillator_strength, einstein_coefficient,
+                          wavelength_grid, gas_temperature, particle_mass,
+                          bulk_los_velocity=0.0,
+                          wind_broadening_method='average'):
     """
     Calculate the absorbed intensity profile in a wavelength grid.
 
@@ -142,19 +140,19 @@ def radiative_transfer(intensity_0, r_from_planet, px_size, radius_profile,
         ``r_from_planet``.
 
     r_from_planet (``numpy.ndarray``):
-        2-D map of radial distances of each pixel from the center of the planet
-        in the same unit as ``px_size``.
-
-    px_size (``float``):
-        Physical size of one pixel in whatever unit you want to work with.
+        2-D map of radial distances of each pixel from the center of the planet.
+        The unit has to be consistent with the other input parameters. E.g., if
+        you use unit of meters, all other input parameters with length in the
+        unit also have to be in meters.
 
     radius_profile (``numpy.ndarray``):
         1-D profile of radii in which the densities are sampled. Unit has to be
-        the same as ``px_size``.
+        the same as ``r_from_planet``.
 
     density_profile (``numpy.ndarray``):
         1-D profile of volumetric number densities in function of radius. Unit
-        has to be 1 / length ** 3, where length is the same unit as ``px_size``.
+        has to be 1 / length ** 3, where length is the same unit as
+        ``r_from_planet``.
 
     velocity_profile (``numpy.ndarray``):
         1-D profile of velocities in function of radius. Unit has to be
@@ -205,10 +203,10 @@ def radiative_transfer(intensity_0, r_from_planet, px_size, radius_profile,
     """
     # First, calculate the optical depth in function of radial distance from the
     # planet and the wavelength
-    optical_depth_profile = optical_depth(
+    optical_depth_profile = optical_depth_2d(
         radius_profile, density_profile, velocity_profile, central_wavelength,
         oscillator_strength, einstein_coefficient, wavelength_grid,
-        gas_temperature, particle_mass, px_size, bulk_los_velocity,
+        gas_temperature, particle_mass, bulk_los_velocity,
         wind_broadening_method
     )
 
@@ -227,7 +225,8 @@ def radiative_transfer(intensity_0, r_from_planet, px_size, radius_profile,
 
 
 # Density and velocity profiles in the line of sight
-def profile_los(radius_profile, density_profile, velocity_profile):
+def profile_los(radius_profile, density_profile, velocity_profile,
+                z_grid_size=200):
     """
     Calculate the profiles of radius and line-of-sight velocities in function of
     sky-projected radial distance from the planet (axis 0) and the line of sight
@@ -259,31 +258,39 @@ def profile_los(radius_profile, density_profile, velocity_profile):
     """
     # Create a two-dimensional array that measures the distance from the planet
     # The second dimension is the line-of-sight direction.
-    coordinates = np.array(np.meshgrid(radius_profile, radius_profile))
+    r_top_atm = radius_profile[-1]
+    los_z = np.linspace(-r_top_atm, r_top_atm, z_grid_size)
+    # Maybe in the future implement z in log-space instead of linear space
+
+    coordinates = np.array(np.meshgrid(radius_profile, los_z))
     distances = np.sum(coordinates ** 2, axis=0) ** 0.5
 
     # The line-of-sight wind velocity is given by Eq. 6 in Seidel et al.
     # (2020)
     # (https://ui.adsabs.harvard.edu/abs/2020A%26A...633A..86S/abstract)
-    x = np.array([radius_profile for i in range(len(radius_profile))]).T
-    los_velocity_r_z = np.interp(distances, radius_profile, velocity_profile,
-                                 left=0.0, right=0.0) * x / \
-        (x ** 2 + radius_profile ** 2) ** 0.5
+    f_v = interp1d(radius_profile, velocity_profile, bounds_error=False,
+                   fill_value=0.0)
+    v_vertical = f_v(distances)
+    # We need to add one dimension to `z` to allow for proper array broadcasting
+    z_expanded = np.expand_dims(los_z, axis=1)
+    los_velocity_r_z = v_vertical * z_expanded / \
+        (z_expanded ** 2 + radius_profile ** 2) ** 0.5
 
     # Calculate the line-of-sight density
-    los_density_r_z = np.interp(distances, radius_profile, density_profile,
-                                left=0.0, right=0.0)
+    d_v = interp1d(radius_profile, density_profile, bounds_error=False,
+                   fill_value=0.0)
+    los_density_r_z = d_v(distances)
 
-    return los_density_r_z, los_velocity_r_z
+    return los_density_r_z, los_velocity_r_z, los_z
 
 
 # Optical depth in function of cylindrical radius from the planet and
 # wavelength. Hold on to your hat because this code is very complex.
-def optical_depth(radius_profile, density_profile, velocity_profile,
-                  central_wavelength, oscillator_strength,
-                  einstein_coefficient, wavelength_grid, gas_temperature,
-                  particle_mass, px_size, bulk_los_velocity=0.0,
-                  wind_broadening_method='average'):
+def optical_depth_2d(radius_profile, density_profile, velocity_profile,
+                     central_wavelength, oscillator_strength,
+                     einstein_coefficient, wavelength_grid, gas_temperature,
+                     particle_mass, bulk_los_velocity=0.0,
+                     wind_broadening_method='average'):
     """
     Calculate the optical depth in function of cylindrical radius from the
     planet and the wavelength.
@@ -292,11 +299,13 @@ def optical_depth(radius_profile, density_profile, velocity_profile,
     ----------
     radius_profile (``numpy.ndarray``):
         1-D profile of radii in which the densities are sampled. Unit has to be
-        the same as ``px_size``.
+        consistent with the other input parameters involving lenghts and
+        densities.
 
     density_profile (``numpy.ndarray``):
         1-D profile of volumetric number densities in function of radius. Unit
-        has to be 1 / length ** 3, where length is the same unit as ``px_size``.
+        has to be 1 / length ** 3, where length is the same unit as
+        ``radius_profile``.
 
     velocity_profile (``numpy.ndarray``):
         1-D profile of velocities in function of radius. Unit has to be
@@ -324,9 +333,6 @@ def optical_depth(radius_profile, density_profile, velocity_profile,
     particle_mass (``float``):
         Mass of the particle corresponding to the transition in unit of kg.
 
-    px_size (``float``):
-        Physical size of one pixel in whatever unit you want to work with.
-
     bulk_los_velocity (``float``, optional):
         Bulk velocity of the gas cell in the line of sight in unit of m / s.
         Default is 0.0.
@@ -350,8 +356,9 @@ def optical_depth(radius_profile, density_profile, velocity_profile,
         planet (axis 0) and in function of wavelength (axis 1).
     """
     # Calculate density and velocity profiles in the line of sight
-    density_los, velocity_los = profile_los(radius_profile, density_profile,
-                                            velocity_profile)
+    density_los, velocity_los, z_los = \
+        profile_los(radius_profile, density_profile, velocity_profile)
+    spatial_shape = np.shape(density_los)
 
     # Spectral line properties
     w0 = central_wavelength  # Reference wavelength in m
@@ -385,7 +392,7 @@ def optical_depth(radius_profile, density_profile, velocity_profile,
     temp = gas_temperature
     mass = particle_mass
 
-    # Change the shape of `nu_grid_rest` to allow some clever array manipulation
+    # Change the shape of `nu_grid_rest` to allow for proper array broadcasting
     nu_grid_rest = np.reshape(nu_grid_rest, (len(nu_grid_rest), 1))
 
     # For each line we calculate the grid of frequency shifts from the central
@@ -395,22 +402,6 @@ def optical_depth(radius_profile, density_profile, velocity_profile,
     # Cross-section
     k = 2.654008854574474e-06  # Physical constant in units of m ** 2 * Hz
     sigma = k * f
-
-    # Expand the velocities in the line of sight to include the front of the
-    # atmosphere, which comes towards the observer. This part of the code is
-    # very hacky, but necessary.
-    velocity_los_back = np.copy(velocity_los)
-    velocity_los_front = np.flip(-velocity_los, axis=0)
-    velocity_los_both = np.concatenate(
-        (velocity_los_front, velocity_los_back), axis=0)
-
-    # Do the same for densities
-    density_los_back = np.copy(density_los)
-    density_los_front = np.flip(density_los, axis=0)
-    density_los_both = np.concatenate((density_los_front, density_los_back),
-                                      axis=0)
-    spatial_shape = np.shape(density_los_both)
-    density_multi = np.reshape(density_los_both, spatial_shape + (1,))
 
     # This is convoluted, but we create a nested function to calculate the
     # optical depth divided by the cross-section (i.e. normalized optical depth)
@@ -426,7 +417,7 @@ def optical_depth(radius_profile, density_profile, velocity_profile,
                 nu0_k / c_speed * (2 * np.log(2) * k_b * temp / mass) ** 0.5
 
             # Calculate the frequency shifts due to wind and bulk motion
-            delta_nu_wind = (velocity_los_both + v_bulk) / c_speed * nu0_k
+            delta_nu_wind = (velocity_los + v_bulk) / c_speed * nu0_k
             delta_nu_add = np.reshape(delta_nu_wind, spatial_shape + (1,))
 
         # Faster calculation of optical depth
@@ -438,7 +429,8 @@ def optical_depth(radius_profile, density_profile, velocity_profile,
                 # Calculate the wind broadening velocity as the density-averaged
                 # line-of-sight velocity of the Parker wind
                 wind_broadening_velocity = \
-                    np.sum(velocity_los * density_los) / np.sum(density_los)
+                    (np.sum(velocity_los ** 2 * density_los) /
+                     np.sum(density_los)) ** 0.5
             elif _method == 'turbulent':
                 # Similar to Lampon et al. (2020), calculate the broadening
                 # as the turbulent velocity = sqrt(5/3 * kT / m)
@@ -459,8 +451,9 @@ def optical_depth(radius_profile, density_profile, velocity_profile,
                                  gamma)
 
         # Calculate the optical depths divided by the cross section
+        density_expanded = np.expand_dims(density_los, axis=-1)
         opt_depth_over_cross_section_r_nu = \
-            np.sum(profiles * density_multi * px_size, axis=0)
+            simpson(profiles * density_expanded, z_los, axis=0)
 
         return opt_depth_over_cross_section_r_nu
 
