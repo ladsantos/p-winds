@@ -39,10 +39,10 @@ def test_draw_transit_and_radiative_transfer(precision_threshold=5E-3):
     assert abs((t_depth - 0.015012130070238605) / t_depth) < \
            precision_threshold
 
-    spectrum = transit.radiative_transfer(flux_map, r_from_planet,
-                                          r, n_he_3, v, w_array, f_array,
-                                          a_array, wl, t_0, m_He,
-                                          bulk_los_velocity=v_wind,
-                                          wind_broadening_method='average')
+    spectrum = transit.radiative_transfer_2d(flux_map, r_from_planet,
+                                             r, n_he_3, v, w_array, f_array,
+                                             a_array, wl, t_0, m_He,
+                                             bulk_los_velocity=v_wind,
+                                             wind_broadening_method='average')
     test_value_2 = spectrum[60]
     assert abs((test_value_2 - 0.97946) / test_value_2) < precision_threshold
