@@ -8,7 +8,7 @@ planets and atmospheres.
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.special import voigt_profile
-from scipy.integrate import simpson
+from scipy.integrate import simps
 from flatstar import draw, utils
 from warnings import warn
 
@@ -453,7 +453,7 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
         # Calculate the optical depths divided by the cross section
         density_expanded = np.expand_dims(density_los, axis=-1)
         opt_depth_over_cross_section_r_nu = \
-            simpson(profiles * density_expanded, z_los, axis=0)
+            simps(profiles * density_expanded, z_los, axis=0)
 
         return opt_depth_over_cross_section_r_nu
 
