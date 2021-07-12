@@ -8,16 +8,11 @@ from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 import numpy as np
 import astropy.units as u
-import warnings
 from astropy.io import fits
 
 
 __all__ = ["nearest_index", "generate_muscles_spectrum",
            "make_spectrum_from_file"]
-
-# Warn about change in usage of 'generate_MUSCLES_spectrum'
-warnings.warn('The function ``generate_MUSCLES_spectrum`` has changed in how it'
-              ' is called. Check the documentation.', DeprecationWarning)
 
 
 def nearest_index(array, target_value):

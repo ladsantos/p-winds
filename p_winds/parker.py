@@ -9,7 +9,6 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 import scipy.optimize as so
 from p_winds import tools
-from warnings import warn
 
 
 __all__ = ["sound_speed", "radius_sonic_point", "density_sonic_point",
