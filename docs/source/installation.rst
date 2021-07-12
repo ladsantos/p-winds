@@ -4,8 +4,8 @@ Installation
 ``p-winds`` requires the packages ``numpy``, ``scipy``, ``astropy``, and
 ``flatstar`` for running its core calculations.
 
-Option 1: Using ``pip`` (more up-to-date version, recommended)
---------------------------------------
+Option 1: Using ``pip`` (stable version)
+--------------------------------------------------------------
 
 Simply run the following command:
 
@@ -13,21 +13,7 @@ Simply run the following command:
 
    pip install p-winds
 
-Option 2: Using ``conda-forge`` (stable version)
-------------------------------------------------
-
-If you have Anaconda, the recommended way to install ``p-winds`` and its
-dependencies is through the ``conda-forge`` channel.
-
-.. code-block:: bash
-
-   conda update conda
-   conda install -c conda-forge p-winds
-
-The ``conda-forge`` version might be a few numbers behind the `pip` and
-development versions.
-
-Option 3: Compile from source (development version)
+Option 2: Compile from source (development version)
 ---------------------------------------------------
 
 First, clone the repository and navigate to it:

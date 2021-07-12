@@ -1,6 +1,6 @@
 
 `transit`
-============
+=========
 
 .. autofunction:: transit.draw_transit
 .. autofunction:: transit.radiative_transfer_2d

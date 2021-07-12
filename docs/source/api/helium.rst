@@ -1,6 +1,6 @@
 
 `helium`
-============
+========
 
 .. autofunction:: helium.radiative_processes
 .. autofunction:: helium.radiative_processes_mono

@@ -17,24 +17,16 @@ Background
 Installation
 ------------
 
-You can install `p-winds` using `pip`, [`conda-forge`](https://conda-forge.org), or by compiling it from source.
+You can install `p-winds` using `pip` or by compiling it from source.
 
-### Option 1: Using `pip` (more up-to-date)
+### Option 1: Using `pip` (stable version)
 
 Simply run the following command:
 ```angular2html
 pip install p-winds
 ```
 
-### Option 2: Using `conda-forge` (stable version)
-
-Simply run the following commands:
-```angular2html
-conda update conda
-conda install -c conda-forge p-winds
-```
-
-### Option 3: Compile from source (development version)
+### Option 2: Compile from source (development version)
 
 First, clone the repository and then navigate to it:
 ```angular2html

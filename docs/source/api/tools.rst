@@ -1,6 +1,6 @@
 
 `tools`
-========
+=======
 
 .. autofunction:: tools.nearest_index
 .. autofunction:: tools.generate_muscles_spectrum
