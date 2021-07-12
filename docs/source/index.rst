@@ -36,8 +36,7 @@ microns.
 If you want to use the code without installing it locally, you can always run it
 on the cloud (see `this Google Colaboratory quickstart notebook
 <https://colab.research.google.com/drive/1mTh6_YEgCRl6DAKqnmRp2XMOW8CTCvm7?usp=sharing>`_).
-Otherwise, check out the :ref:`installation` guide, or the :ref:`quickstart`
-Jupyter Notebook.
+Otherwise, check out the :ref:`Installation <installation>` guide.
 
 You can `contribute <https://github.com/ladsantos/p-winds>`_ to the project
 using GitHub.
