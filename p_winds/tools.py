@@ -40,7 +40,8 @@ def nearest_index(array, target_value):
 
 
 def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
-                              truncate_wavelength_grid=False):
+                              truncate_wavelength_grid=False,
+                              cutoff_thresh=13.6):
     """
     Construct a dictionary containing an input spectrum from a MUSCLES spectrum.
     MUSCLES reports spectra as observed at Earth, the code scales this to the
@@ -63,9 +64,14 @@ def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
         ``semi_major_axis`` is needed to get the spectrum at the planet.
 
     truncate_wavelength_grid (``bool``, optional):
-        If True, will only return the spectrum with energy > 13.6 eV. This may
-        be useful for computational expediency. If False, returns the whole
+        If ``True``, will only return the spectrum with energy > 13.6 eV. This
+        may be useful for computational expediency. If False, returns the whole
         spectrum. Default is ``False``.
+
+    cutoff_thresh (`float`, optional):
+        If ``truncate_wavelength_grid`` is set to ``True``, then the truncation
+        happens for energies whose value in eV is above this threshold, also in
+        eV. Default is ``13.6``.
 
     Returns
     -------
@@ -76,7 +82,7 @@ def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
     # Hard coding some values
     # The stellar radii and distances are taken from NASA Exoplanet Archive.
 
-    thresh = 13.6 * u.eV
+    thresh = cutoff_thresh * u.eV
     stars = ['gj176', 'gj436', 'gj551', 'gj581', 'gj667c', 'gj832', 'gj876',
              'gj1214', 'hd40307', 'hd85512', 'hd97658', 'v-eps-eri']
     st_rads = np.array([0.46, 0.449, 0.154, 0.3297020, 0.42, 0.45, 0.35, 0.22,
