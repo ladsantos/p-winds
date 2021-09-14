@@ -16,7 +16,7 @@ __all__ = ["sound_speed", "radius_sonic_point", "density_sonic_point",
 
 
 # Speed of sound
-def sound_speed(temperature, h_he_fraction, ion_fraction=0.0):
+def sound_speed(temperature, h_fraction, ion_fraction=0.0):
     """
     Speed of sound in an isothermal ideal gas.
 
@@ -27,8 +27,8 @@ def sound_speed(temperature, h_he_fraction, ion_fraction=0.0):
         maximum thermospheric temperature (see Oklopčić & Hirata 2018 and
         Lampón et al. 2020 for more details).
 
-    h_he_fraction (``float``):
-        Average H/He fraction of the upper atmosphere.
+    h_fraction (``float``):
+        Average H number fraction of the upper atmosphere.
 
     ion_fraction (``float``):
         Average ionization fraction of the upper atmosphere.
@@ -40,7 +40,7 @@ def sound_speed(temperature, h_he_fraction, ion_fraction=0.0):
     """
     # H has one proton and one electron
     # He has 2 protons and 2 neutrons, and 2 electrons
-    he_h_fraction = 1 - h_he_fraction
+    he_h_fraction = (1 - h_fraction) / h_fraction
     mu = (1 + 4 * he_h_fraction) / (1 + he_h_fraction + ion_fraction)
     m_h = 1.67262192369e-27  # Hydrogen mass in kg
     mean_molecular_weight = m_h * mu
