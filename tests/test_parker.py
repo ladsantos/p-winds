@@ -16,7 +16,8 @@ def test_structure(r=1.0, precision_threshold=1E-6):
 
 
 # The sound speed for a gas made of 100% atomic hydrogen at 10,000 K should be
-# around 9.08537273 km /s
-def test_sound_speed(temperature=10000, precision_threshold=1E-6):
-    vs = parker.sound_speed(temperature)
+# 9.08537273 km /s
+def test_sound_speed(temperature=10000, h_he=1.0,
+                     precision_threshold=1E-6):
+    vs = parker.sound_speed(temperature, h_he)
     assert abs((vs - 9.08537273) / vs) < precision_threshold
