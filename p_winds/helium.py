@@ -299,7 +299,7 @@ def collision(temperature):
 # Fraction of helium in singlet and triplet vs. radius profile
 def population_fraction(radius_profile, velocity, density,
                         hydrogen_ion_fraction, planet_radius, temperature,
-                        h_he_fraction, speed_sonic_point, radius_sonic_point,
+                        h_fraction, speed_sonic_point, radius_sonic_point,
                         density_sonic_point, spectrum_at_planet=None,
                         flux_euv=None, flux_fuv=None,
                         initial_state=np.array([0.5, 0.5]),
@@ -324,8 +324,9 @@ def population_fraction(radius_profile, velocity, density,
         ``parker.structure()``.
 
     hydrogen_ion_fraction (``numpy.ndarray``):
-        Hydrogen ion fraction in the upper atmosphere in function of radius.
-        Similar to the output of ``hydrogen.ion_fraction()``.
+        Number fraction of H ion over total H in the upper atmosphere in
+        function of radius. Similar to the output of
+        ``hydrogen.ion_fraction()``.
 
     planet_radius (``float``):
         Planetary radius in unit of Jupiter radius.
@@ -333,8 +334,8 @@ def population_fraction(radius_profile, velocity, density,
     temperature (``float``):
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
-    h_he_fraction (``float``):
-        H/He fraction of the atmosphere.
+    h_fraction (``float``):
+        Total (ion + neutral) H number fraction of the atmosphere.
 
     speed_sonic_point (``float``):
         Speed of sound in the outflow in units of km / s.
@@ -485,8 +486,9 @@ def population_fraction(radius_profile, velocity, density,
                                                                 # density
     column_density_h_0 = np.flip(  # Column density of H only
         np.cumsum(np.flip(dr * density * (1 - hydrogen_ion_fraction))))
-    k1 = h_he_fraction / (h_he_fraction + 4 * (1 - h_he_fraction)) / m_h
-    k2 = (1 - h_he_fraction) / (h_he_fraction + 4 * (1 - h_he_fraction)) / m_h
+    he_fraction = 1 - h_fraction
+    k1 = h_fraction / (h_fraction + 4 * he_fraction) / m_h
+    k2 = he_fraction / (h_fraction + 4 * he_fraction) / m_h
     tau_1_h = k1 * a_h_1 * column_density_h_0
     tau_3_h = k1 * a_h_3 * column_density_h_0
     tau_1_initial = (initial_state[0] * k2 * a_1 * column_density + tau_1_h)
