@@ -10,13 +10,80 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 import astropy.units as u
 import astropy.constants as c
-from scipy.integrate import simps, solve_ivp
+from scipy.integrate import simps, solve_ivp, cumulative_trapezoid
 from scipy.interpolate import interp1d
 from p_winds import parker, tools, microphysics
 
 
 __all__ = ["radiative_processes", "radiative_processes_mono", "recombination",
            "ion_fraction"]
+
+def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r, h_he):
+    """
+    Calculate the photoionization rate of hydrogen as a function of radius based
+    on the EUV spectrum arriving at the planet and the neutral H density profile.
+
+    Parameters
+    ----------
+    spectrum_at_planet (``dict``):
+        Spectrum of the host star arriving at the planet covering fluxes at
+        least up to the wavelength corresponding to the energy to ionize
+        hydrogen (13.6 eV, or 911.65 Angstrom).
+    
+    r_grid (``array``):
+        Radius grid for the calculation, in units of cm
+
+    density (``array``):
+        Number density profile for the atmosphere, in units of cm**-3
+
+    f_r (``array``):
+        Ionization fraction profile for the atmosphere.
+
+    h_he (``float``):
+        Hydrogen / helium fraction of the outflow.
+
+    Returns
+    -------
+    phi_prime (``float``):
+        Ionization rate of hydrogen for each point on r_grid in unit of 1 / s.
+    """
+    wavelength = (spectrum_at_planet['wavelength'] *
+                  spectrum_at_planet['wavelength_unit']).to(u.angstrom).value
+    flux_lambda = (spectrum_at_planet['flux_lambda'] * spectrum_at_planet[
+        'flux_unit']).to(u.erg / u.s / u.cm ** 2 / u.angstrom).value
+    energy = (c.h * c.c).to(u.erg * u.angstrom).value / wavelength
+
+    # Wavelength corresponding to the energy to ionize H
+    wl_break = 911.65  # angstrom
+
+    # Index of the lambda_0 in the wavelength array
+    i_break = tools.nearest_index(wavelength, wl_break)
+
+    # Auxiliary definitions
+    wavelength_cut = wavelength[:i_break + 1]
+    flux_lambda_cut = flux_lambda[:i_break + 1]
+    energy_cut = energy[:i_break + 1]
+
+    #2d grid of radius and wavelength
+    xx, yy = np.meshgrid(wavelength_cut, r_grid)
+
+    # Photoionization cross-section in function of wavelength
+    a_lambda = microphysics.hydrogen_cross_section(wavelength=xx)
+
+    #optical depth to hydrogen photoionization
+    m_h = 1.67262192E-24
+    r_grid_temp = r_grid[::-1]
+    n_h = (h_he * density / (1 + (1 - h_he) * 4) / m_h) * (1-f_r)
+    n_h_temp = n_h[::-1]
+    column_h = cumulative_trapezoid(n_h_temp, r_grid_temp, initial=0)
+    column_density = -column_h[::-1]
+    tau_rnu = column_density[:,None]*a_lambda
+
+    # Finally calculate the photoionization rate
+    phi_prime = abs(simps(flux_lambda_cut * a_lambda / energy_cut * \
+                     np.exp(-tau_rnu), wavelength_cut, axis = -1))
+
+    return phi_prime
 
 
 # Hydrogen photoionization
@@ -133,7 +200,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
                  mass_loss_rate, planet_mass, average_ion_fraction=0.0,
                  spectrum_at_planet=None, flux_euv=None, initial_f_ion=0.0,
                  relax_solution=False, convergence=0.01, max_n_relax=10,
-                 **options_solve_ivp):
+                 exact_phi=False, **options_solve_ivp):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
     function of the radius in unit of planetary radius.
@@ -212,7 +279,16 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
 
     # Photoionization rate at null optical depth at the distance of the planet
     # from the host star, in unit of vs / rs
-    if spectrum_at_planet is not None:
+    if exact_phi and spectrum_at_planet is not None:
+        vs = parker.sound_speed(temperature, h_he_fraction, average_ion_fraction)
+        rs = parker.radius_sonic_point(planet_mass, vs)
+        rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
+        _, rho_norm = parker.structure(radius_profile*planet_radius/rs)
+        phi_abs = radiative_processes_exact(spectrum_at_planet, 
+            (radius_profile*planet_radius*u.Rjup).to(u.cm).value, rho_norm*rhos, 
+            average_ion_fraction, h_he_fraction)
+        a_0 = 0.
+    elif spectrum_at_planet is not None:
         phi_abs, a_0 = radiative_processes(spectrum_at_planet)
     elif flux_euv is not None:
         phi_abs, a_0 = radiative_processes_mono(flux_euv)
@@ -256,29 +332,38 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
 
         return phi_norm, k1_norm, k2_norm, r_norm, dr_norm, v_norm, rho_norm
 
+
     phi, k1, k2, r, dr, velocity, density = _normalize(
         phi_abs, k1_abs, k2_abs, radius_profile, average_ion_fraction)
 
-    # To start the calculations we need the optical depth, but technically we
-    # don't know it yet, because it depends on the ion fraction in the
-    # atmosphere, which is what we want to obtain. However, the optical depth
-    # depends more strongly on the densities of H than the ion fraction, so a
-    # good approximation is to assume the whole atmosphere is neutral at first.
-    column_density = np.flip(np.cumsum(np.flip(dr * density)))
-    tau_initial = k1 * column_density
-    # We do a dirty hack to make tau_initial a callable function so it's easily
-    # parsed inside the differential equation solver
-    _tau_fun = interp1d(r, tau_initial, fill_value="extrapolate")
+    if exact_phi:
+        _phi_prime_fun = interp1d(r, phi, fill_value="extrapolate")
+    else:
+        # To start the calculations we need the optical depth, but technically we
+        # don't know it yet, because it depends on the ion fraction in the
+        # atmosphere, which is what we want to obtain. However, the optical depth
+        # depends more strongly on the densities of H than the ion fraction, so a
+        # good approximation is to assume the whole atmosphere is neutral at first.
+        column_density = np.flip(np.cumsum(np.flip(dr * density)))
+        tau_initial = k1 * column_density
+        # We do a dirty hack to make tau_initial a callable function so it's easily
+        # parsed inside the differential equation solver
+        _tau_fun = interp1d(r, tau_initial, fill_value="extrapolate")
 
     # Now let's solve the differential eq. 13 of Oklopcic & Hirata 2018
     # The differential equation in function of r
     def _fun(_r, _f, _phi, _k1, _k2):
-        _t = _tau_fun(np.array([_r, ]))[0]
+        if exact_phi:
+            _phi_prime = _phi_prime_fun(np.array([_r, ]))[0]
+        else:
+            _t = _tau_fun(np.array([_r, ]))[0]
+            _phi_prime = np.exp(-_t)*_phi
         _v, _rho = parker.structure(_r)
         # In terms 1 and 2 we use the values of k2 and phi from above
-        term1 = (1. - _f) / _v * _phi * np.exp(-_t)
+        term1 = (1. - _f) / _v * _phi_prime
         term2 = _k2 * _rho * _f ** 2 / _v
         df_dr = term1 - term2
+
         return df_dr
 
     # We solve it using `scipy.solve_ivp`
@@ -304,11 +389,14 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
             phi, k1, k2, r, dr, velocity, density = _normalize(
                 phi_abs, k1_abs, k2_abs, radius_profile, average_ion_fraction)
 
-            # Re-calculate the column densities
-            column_density = np.flip(np.cumsum(np.flip(dr * density *
-                                                       (1 - f_r))))
-            tau = k1 * column_density
-            _tau_fun = interp1d(r, tau, fill_value="extrapolate")
+            if exact_phi:
+                _phi_prime_fun = interp1d(r, phi, fill_value="extrapolate")
+            else:
+                # Re-calculate the column densities
+                column_density = np.flip(np.cumsum(np.flip(dr * density *
+                                                           (1 - f_r))))
+                tau = k1 * column_density
+                _tau_fun = interp1d(r, tau, fill_value="extrapolate")
 
             # And solve it again
             sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
