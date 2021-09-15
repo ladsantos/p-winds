@@ -150,7 +150,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
     h_fraction (``float``):
-        Total (ion + neutral) H number fraction of the atmosphere.
+        H number fraction of the atmosphere.
 
     mass_loss_rate (``float``):
         Mass loss rate of the planet in units of g / s.
