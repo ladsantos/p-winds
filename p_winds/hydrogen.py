@@ -129,7 +129,7 @@ def recombination(temperature):
 
 
 # Fraction of ionized hydrogen vs. radius profile
-def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
+def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                  mass_loss_rate, planet_mass, average_ion_fraction=0.0,
                  spectrum_at_planet=None, flux_euv=None, initial_f_ion=0.0,
                  relax_solution=False, convergence=0.01, max_n_relax=10,
@@ -149,8 +149,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
     temperature (``float``):
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
-    h_he_fraction (``float``):
-        H/He fraction of the atmosphere.
+    h_fraction (``float``):
+        H number fraction of the atmosphere.
 
     mass_loss_rate (``float``):
         Mass loss rate of the planet in units of g / s.
@@ -222,11 +222,13 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
 
     # Multiplicative factor of Eq. 11 of Oklopcic & Hirata 2018, unit of
     # cm ** 2 / g
-    k1_abs = (h_he_fraction * a_0 / (1 + (1 - h_he_fraction) * 4) / m_h)
+    # We assume that the remaining of the number fraction is pure He
+    he_fraction = 1 - h_fraction
+    k1_abs = (h_fraction * a_0 / (1 + he_fraction * 4) / m_h)
 
     # Multiplicative factor of the second term in the right-hand side of Eq.
     # 13 of Oklopcic & Hirata 2018, unit of cm ** 3 / s / g
-    k2_abs = h_he_fraction / (1 + (1 - h_he_fraction) * 4) * alpha_rec / m_h
+    k2_abs = h_fraction / (1 + he_fraction * 4) * alpha_rec / m_h
 
     # In order to avoid numerical overflows, we need to normalize a few key
     # variables. Since the normalization may need to be repeated to relax the
@@ -235,7 +237,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         # First calculate the sound speed, radius at the sonic point and the
         # density at the sonic point. They will be useful to change the units of
         # the calculation aiming to avoid numerical overflows
-        vs = parker.sound_speed(temperature, h_he_fraction, _mean_f_ion)
+        vs = parker.sound_speed(temperature, h_fraction, _mean_f_ion)
         rs = parker.radius_sonic_point(planet_mass, vs)
         rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
         # And now normalize everything
