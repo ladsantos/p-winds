@@ -76,8 +76,16 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r, h_he):
     n_h = (h_he * density / (1 + (1 - h_he) * 4) / m_h) * (1-f_r)
     n_h_temp = n_h[::-1]
     column_h = cumulative_trapezoid(n_h_temp, r_grid_temp, initial=0)
-    column_density = -column_h[::-1]
-    tau_rnu = column_density[:,None]*a_lambda
+    column_density_h = -column_h[::-1]
+    tau_rnu = column_density_h[:,None]*a_lambda
+
+    #optical depth to helium photoionization
+    n_he = ((1 - h_he) * density / (1 + (1 - h_he) * 4) / m_h) * (1-f_r)
+    n_he_temp = n_he[::-1]
+    column_he = cumulative_trapezoid(n_he_temp, r_grid_temp, initial=0)
+    column_density_he = -column_he[::-1]
+    a_lambda_he = microphysics.helium_total_cross_section(wavelength=xx)
+    tau_rnu += column_density_he[:,None]*a_lambda_he
 
     # Finally calculate the photoionization rate
     phi_prime = abs(simps(flux_lambda_cut * a_lambda / energy_cut * \
@@ -383,6 +391,18 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
         for i in range(max_n_relax):
             previous_f_r_outer_layer = np.copy(f_r)[-1]
             average_ion_fraction = np.mean(np.copy(f_r))
+            
+            if exact_phi:
+                #phi_abs will need to be recomputed here with the
+                #new density structure
+                vs = parker.sound_speed(temperature, h_he_fraction,
+                    average_ion_fraction)
+                rs = parker.radius_sonic_point(planet_mass, vs)
+                rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
+                _, rho_norm = parker.structure(radius_profile*planet_radius/rs)
+                phi_abs = radiative_processes_exact(spectrum_at_planet,
+                    (radius_profile*planet_radius*u.Rjup).to(u.cm).value,
+                    rho_norm*rhos, f_r, h_he_fraction)
 
             # We re-normalize key parameters because the newly-calculated f_ion
             # changes the value of the mean molecular weight of the atmosphere
@@ -397,7 +417,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_he_fraction,
                                                            (1 - f_r))))
                 tau = k1 * column_density
                 _tau_fun = interp1d(r, tau, fill_value="extrapolate")
-
+            
             # And solve it again
             sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
                             t_eval=r, args=(phi, k1, k2), **options_solve_ivp)
