@@ -130,7 +130,7 @@ def recombination(temperature):
 
 # Fraction of ionized hydrogen vs. radius profile
 def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
-                 mass_loss_rate, planet_mass, average_ion_fraction=0.0,
+                 mass_loss_rate, planet_mass, mean_molecular_weight=1.0,
                  spectrum_at_planet=None, flux_euv=None, initial_f_ion=0.0,
                  relax_solution=False, convergence=0.01, max_n_relax=10,
                  **options_solve_ivp):
@@ -158,8 +158,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     planet_mass (``float``):
         Planetary mass in unit of Jupiter mass.
 
-    average_ion_fraction (``float``):
-        Average ion fraction in the upper atmosphere.
+    mean_molecular_weight (``float``):
+        Mean molecular weight of the atmosphere in unit of proton mass.
 
     spectrum_at_planet (``dict``, optional):
         Spectrum of the host star arriving at the planet covering fluxes at
@@ -233,11 +233,11 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     # In order to avoid numerical overflows, we need to normalize a few key
     # variables. Since the normalization may need to be repeated to relax the
     # solution, we have a function to do it.
-    def _normalize(_phi, _k1, _k2, _r, _mean_f_ion):
+    def _normalize(_phi, _k1, _k2, _r, _mu):
         # First calculate the sound speed, radius at the sonic point and the
         # density at the sonic point. They will be useful to change the units of
         # the calculation aiming to avoid numerical overflows
-        vs = parker.sound_speed(temperature, h_fraction, _mean_f_ion)
+        vs = parker.sound_speed(temperature, _mu)
         rs = parker.radius_sonic_point(planet_mass, vs)
         rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
         # And now normalize everything
@@ -259,7 +259,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         return phi_norm, k1_norm, k2_norm, r_norm, dr_norm, v_norm, rho_norm
 
     phi, k1, k2, r, dr, velocity, density = _normalize(
-        phi_abs, k1_abs, k2_abs, radius_profile, average_ion_fraction)
+        phi_abs, k1_abs, k2_abs, radius_profile, mean_molecular_weight)
 
     # To start the calculations we need the optical depth, but technically we
     # don't know it yet, because it depends on the ion fraction in the
@@ -299,12 +299,15 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     if relax_solution is True:
         for i in range(max_n_relax):
             previous_f_r_outer_layer = np.copy(f_r)[-1]
+            he_h_fraction = he_fraction / h_fraction
             average_ion_fraction = np.mean(np.copy(f_r))
+            new_mu = (1 + 4 * he_h_fraction) / \
+                (1 + he_h_fraction + average_ion_fraction)
 
             # We re-normalize key parameters because the newly-calculated f_ion
             # changes the value of the mean molecular weight of the atmosphere
             phi, k1, k2, r, dr, velocity, density = _normalize(
-                phi_abs, k1_abs, k2_abs, radius_profile, average_ion_fraction)
+                phi_abs, k1_abs, k2_abs, radius_profile, new_mu)
 
             # Re-calculate the column densities
             column_density = np.flip(np.cumsum(np.flip(dr * density *
