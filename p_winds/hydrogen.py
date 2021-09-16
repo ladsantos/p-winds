@@ -18,10 +18,14 @@ from p_winds import parker, tools, microphysics
 __all__ = ["radiative_processes", "radiative_processes_mono", "recombination",
            "ion_fraction"]
 
-def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r, h_he):
+
+# Exact calculation of hydrogen photoionization
+def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r,
+                              h_fraction):
     """
     Calculate the photoionization rate of hydrogen as a function of radius based
-    on the EUV spectrum arriving at the planet and the neutral H density profile.
+    on the EUV spectrum arriving at the planet and the neutral H density
+    profile.
 
     Parameters
     ----------
@@ -31,16 +35,16 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r, h_he):
         hydrogen (13.6 eV, or 911.65 Angstrom).
     
     r_grid (``array``):
-        Radius grid for the calculation, in units of cm
+        Radius grid for the calculation, in units of cm.
 
     density (``array``):
-        Number density profile for the atmosphere, in units of cm**-3
+        Number density profile for the atmosphere, in units of 1 / cm ** 3.
 
     f_r (``array``):
         Ionization fraction profile for the atmosphere.
 
-    h_he (``float``):
-        Hydrogen / helium fraction of the outflow.
+    h_fraction (``float``):
+        Hydrogen number fraction of the outflow.
 
     Returns
     -------
@@ -64,37 +68,39 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r, h_he):
     flux_lambda_cut = flux_lambda[:i_break + 1]
     energy_cut = energy[:i_break + 1]
 
-    #2d grid of radius and wavelength
+    # 2d grid of radius and wavelength
     xx, yy = np.meshgrid(wavelength_cut, r_grid)
 
     # Photoionization cross-section in function of wavelength
     a_lambda = microphysics.hydrogen_cross_section(wavelength=xx)
 
-    #optical depth to hydrogen photoionization
-    m_h = 1.67262192E-24
+    # Optical depth to hydrogen photoionization
+    m_h = 1.67262192E-24  # Proton mass in unit of kg
     r_grid_temp = r_grid[::-1]
-    n_h = (h_he * density / (1 + (1 - h_he) * 4) / m_h) * (1-f_r)
+    # We assume that the atmosphere is made of only H + He
+    he_fraction = 1 - h_fraction
+    n_h = (h_fraction * density / (1 + he_fraction * 4) / m_h) * (1 - f_r)
     n_h_temp = n_h[::-1]
     column_h = cumulative_trapezoid(n_h_temp, r_grid_temp, initial=0)
     column_density_h = -column_h[::-1]
-    tau_rnu = column_density_h[:,None]*a_lambda
+    tau_rnu = column_density_h[:, None] * a_lambda
 
-    #optical depth to helium photoionization
-    n_he = ((1 - h_he) * density / (1 + (1 - h_he) * 4) / m_h) * (1-f_r)
+    # Optical depth to helium photoionization
+    n_he = (he_fraction * density / (1 + he_fraction * 4) / m_h) * (1 - f_r)
     n_he_temp = n_he[::-1]
     column_he = cumulative_trapezoid(n_he_temp, r_grid_temp, initial=0)
     column_density_he = -column_he[::-1]
     a_lambda_he = microphysics.helium_total_cross_section(wavelength=xx)
-    tau_rnu += column_density_he[:,None]*a_lambda_he
+    tau_rnu += column_density_he[:, None] * a_lambda_he
 
     # Finally calculate the photoionization rate
-    phi_prime = abs(simps(flux_lambda_cut * a_lambda / energy_cut * \
-                     np.exp(-tau_rnu), wavelength_cut, axis = -1))
+    phi_prime = abs(simps(flux_lambda_cut * a_lambda / energy_cut *
+                    np.exp(-tau_rnu), wavelength_cut, axis=-1))
 
     return phi_prime
 
 
-# Hydrogen photoionization
+# Stellar flux-average calculation of hydrogen photoionization
 def radiative_processes(spectrum_at_planet):
     """
     Calculate the photoionization rate of hydrogen at null optical depth based
@@ -288,13 +294,14 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     # Photoionization rate at null optical depth at the distance of the planet
     # from the host star, in unit of vs / rs
     if exact_phi and spectrum_at_planet is not None:
-        vs = parker.sound_speed(temperature, h_he_fraction, average_ion_fraction)
+        vs = parker.sound_speed(temperature, h_fraction, average_ion_fraction)
         rs = parker.radius_sonic_point(planet_mass, vs)
         rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
-        _, rho_norm = parker.structure(radius_profile*planet_radius/rs)
-        phi_abs = radiative_processes_exact(spectrum_at_planet, 
-            (radius_profile*planet_radius*u.Rjup).to(u.cm).value, rho_norm*rhos, 
-            average_ion_fraction, h_he_fraction)
+        _, rho_norm = parker.structure(radius_profile * planet_radius / rs)
+        phi_abs = radiative_processes_exact(
+            spectrum_at_planet,
+            (radius_profile * planet_radius * u.Rjup).to(u.cm).value,
+            rho_norm * rhos, average_ion_fraction, h_fraction)
         a_0 = 0.
     elif spectrum_at_planet is not None:
         phi_abs, a_0 = radiative_processes(spectrum_at_planet)
@@ -321,17 +328,17 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         # First calculate the sound speed, radius at the sonic point and the
         # density at the sonic point. They will be useful to change the units of
         # the calculation aiming to avoid numerical overflows
-        vs = parker.sound_speed(temperature, h_fraction, _mean_f_ion)
-        rs = parker.radius_sonic_point(planet_mass, vs)
-        rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
+        _vs = parker.sound_speed(temperature, h_fraction, _mean_f_ion)
+        _rs = parker.radius_sonic_point(planet_mass, _vs)
+        _rhos = parker.density_sonic_point(mass_loss_rate, _rs, _vs)
         # And now normalize everything
-        phi_unit = vs * 1E5 / rs / 7.1492E+09  # 1 / s
+        phi_unit = _vs * 1E5 / _rs / 7.1492E+09  # 1 / s
         phi_norm = _phi / phi_unit
-        k1_unit = 1 / (rhos * rs * 7.1492E+09)  # cm ** 2 / g
+        k1_unit = 1 / (_rhos * _rs * 7.1492E+09)  # cm ** 2 / g
         k1_norm = _k1 / k1_unit
-        k2_unit = vs * 1E5 / rs / 7.1492E+09 / rhos  # cm ** 3 / g / s
+        k2_unit = _vs * 1E5 / _rs / 7.1492E+09 / _rhos  # cm ** 3 / g / s
         k2_norm = _k2 / k2_unit
-        r_norm = (_r * planet_radius / rs)
+        r_norm = (_r * planet_radius / _rs)
 
         # The differential r will be useful at some point
         dr_norm = np.diff(r_norm)
@@ -342,22 +349,22 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
 
         return phi_norm, k1_norm, k2_norm, r_norm, dr_norm, v_norm, rho_norm
 
-
     phi, k1, k2, r, dr, velocity, density = _normalize(
         phi_abs, k1_abs, k2_abs, radius_profile, average_ion_fraction)
 
     if exact_phi:
         _phi_prime_fun = interp1d(r, phi, fill_value="extrapolate")
     else:
-        # To start the calculations we need the optical depth, but technically we
-        # don't know it yet, because it depends on the ion fraction in the
-        # atmosphere, which is what we want to obtain. However, the optical depth
-        # depends more strongly on the densities of H than the ion fraction, so a
-        # good approximation is to assume the whole atmosphere is neutral at first.
+        # To start the calculations we need the optical depth, but technically
+        # we don't know it yet, because it depends on the ion fraction in the
+        # atmosphere, which is what we want to obtain. However, the optical
+        # depth depends more strongly on the densities of H than the ion
+        # fraction, so a good approximation is to assume the whole atmosphere is
+        # neutral at first.
         column_density = np.flip(np.cumsum(np.flip(dr * density)))
         tau_initial = k1 * column_density
-        # We do a dirty hack to make tau_initial a callable function so it's easily
-        # parsed inside the differential equation solver
+        # We do a dirty hack to make tau_initial a callable function so it's
+        # easily parsed inside the differential equation solver
         _tau_fun = interp1d(r, tau_initial, fill_value="extrapolate")
 
     # Now let's solve the differential eq. 13 of Oklopcic & Hirata 2018
@@ -395,16 +402,18 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
             average_ion_fraction = np.mean(np.copy(f_r))
             
             if exact_phi:
-                #phi_abs will need to be recomputed here with the
-                #new density structure
-                vs = parker.sound_speed(temperature, h_he_fraction,
+                # phi_abs will need to be recomputed here with the new density
+                # structure
+                vs = parker.sound_speed(temperature, h_fraction,
                     average_ion_fraction)
                 rs = parker.radius_sonic_point(planet_mass, vs)
                 rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
-                _, rho_norm = parker.structure(radius_profile*planet_radius/rs)
-                phi_abs = radiative_processes_exact(spectrum_at_planet,
-                    (radius_profile*planet_radius*u.Rjup).to(u.cm).value,
-                    rho_norm*rhos, f_r, h_he_fraction)
+                _, rho_norm = parker.structure(
+                    radius_profile * planet_radius / rs)
+                phi_abs = radiative_processes_exact(
+                    spectrum_at_planet,
+                    (radius_profile * planet_radius * u.Rjup).to(u.cm).value,
+                    rho_norm * rhos, f_r, h_fraction)
 
             # We re-normalize key parameters because the newly-calculated f_ion
             # changes the value of the mean molecular weight of the atmosphere

@@ -122,7 +122,6 @@ def structure(r):
     density_r (``numpy.ndarray`` or ``float``):
         Density sampled at the radius or radii `r` and in unit of density at the
         sonic point.
-
     """
     def _eq_to_solve(v, r_k):
         eq = v * np.exp(-0.5 * v ** 2) - (1 / r_k) ** 2 * np.exp(

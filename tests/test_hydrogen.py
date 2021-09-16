@@ -27,8 +27,16 @@ def test_ion_fraction_spectrum(precision_threshold=1E-5):
                                                u.angstrom}
     spectrum = tools.make_spectrum_from_file(data_test_url, units)
 
+    # Test the approximate photoionization
     f_r = hydrogen.ion_fraction(r, R_pl, T_0, h_fraction, m_dot, M_pl,
                                 average_f_ion,
                                 spectrum_at_planet=spectrum,
                                 relax_solution=True)
     assert abs((f_r[-1] - 0.998199) / f_r[-1]) < precision_threshold
+
+    # Test the exact photoionization
+    f_r = hydrogen.ion_fraction(r, R_pl, T_0, h_fraction, m_dot, M_pl,
+                                average_f_ion,
+                                spectrum_at_planet=spectrum,
+                                relax_solution=True, exact_phi=True)
+    assert abs((f_r[-1] - .99799) / f_r[-1]) < precision_threshold
