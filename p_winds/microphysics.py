@@ -66,6 +66,8 @@ def hydrogen_cross_section(wavelength=None, energy=None):
     else:
         raise ValueError('Either the wavelength or energy has to be provided.')
 
+
+# Total He photoionization cross-section
 def helium_total_cross_section(wavelength):
     """
     Compute the total photoionization cross-section of helium in function of
@@ -83,15 +85,11 @@ def helium_total_cross_section(wavelength):
     a_lambda_1 (``numpy.ndarray``):
         Cross-section in function of wavelength and in unit of cm ** 2.
     """
-    
-    nu_init = (wavelength*u.AA).to(u.Hz, equivalencies = u.spectral())
-
-    threshold_energy = 24.58*u.eV
-    
-    nu = nu_init.to(u.eV, equivalencies = u.spectral())
-    
+    nu_init = (wavelength * u.AA).to(u.Hz, equivalencies=u.spectral())
+    threshold_energy = 24.58 * u.eV
+    nu = nu_init.to(u.eV, equivalencies=u.spectral())
     x = nu / threshold_energy
-    e_term = (nu / u.eV / 1000.)**(7/2)
+    e_term = (nu / u.eV / 1000.) ** (7 / 2)
     
     coefs = [-4.7416, 14.8200, -30.8678, 37.3584, -23.4585, 5.9133]
     sum_term = 0.
@@ -99,10 +97,11 @@ def helium_total_cross_section(wavelength):
         sum_term += coef / x**((i+1)/2)
     
     num = 733 * u.barn
-    out = num.to(u.cm * u.cm)/e_term * (1 + sum_term)
-    out[nu < threshold_energy] = 0.*(u.cm**2)
+    out = num.to(u.cm * u.cm) / e_term * (1 + sum_term)
+    out[nu < threshold_energy] = 0. * (u.cm ** 2)
 
-    return out.to(u.cm**2).value
+    return out.to(u.cm ** 2).value
+
 
 # Photoionization cross-section of helium singlet
 def helium_singlet_cross_section(wavelength):
