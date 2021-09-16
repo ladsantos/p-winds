@@ -10,7 +10,7 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 import astropy.units as u
 import astropy.constants as c
-from scipy.integrate import simps, solve_ivp, cumulative_trapezoid
+from scipy.integrate import simps, solve_ivp, cumtrapz
 from scipy.interpolate import interp1d
 from p_winds import parker, tools, microphysics
 
@@ -81,14 +81,14 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r,
     he_fraction = 1 - h_fraction
     n_h = (h_fraction * density / (1 + he_fraction * 4) / m_h) * (1 - f_r)
     n_h_temp = n_h[::-1]
-    column_h = cumulative_trapezoid(n_h_temp, r_grid_temp, initial=0)
+    column_h = cumtrapz(n_h_temp, r_grid_temp, initial=0)
     column_density_h = -column_h[::-1]
     tau_rnu = column_density_h[:, None] * a_lambda
 
     # Optical depth to helium photoionization
     n_he = (he_fraction * density / (1 + he_fraction * 4) / m_h) * (1 - f_r)
     n_he_temp = n_he[::-1]
-    column_he = cumulative_trapezoid(n_he_temp, r_grid_temp, initial=0)
+    column_he = cumtrapz(n_he_temp, r_grid_temp, initial=0)
     column_density_he = -column_he[::-1]
     a_lambda_he = microphysics.helium_total_cross_section(wavelength=xx)
     tau_rnu += column_density_he[:, None] * a_lambda_he

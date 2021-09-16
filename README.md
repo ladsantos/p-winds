@@ -8,7 +8,7 @@ The main objective of this code is to produce simplified, 1-D models of the uppe
 
 The scalable implementation of 1D models allows for atmospheric retrievals to calculate atmospheric escape rates and temperatures. In addition, the modular implementation allows for a smooth plugging-in of more complex descriptions to forward model their corresponding spectral signatures (e.g., self-consistent or 3D models).
 
-A paper describing `p-winds` and its usage for research-grade astronomical applications is currently in preparation. In the meantime, if you use this code in your research, please consider citing it: [10.5281/zenodo.4551621](https://doi.org/10.5281/zenodo.4551621).
+A paper describing `p-winds` and its usage for research-grade astronomical applications has been submitted for publication. In the meantime, if you use this code in your research, please consider citing it: [10.5281/zenodo.4551621](https://doi.org/10.5281/zenodo.4551621).
 
 Background
 ----------
