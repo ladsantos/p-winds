@@ -155,7 +155,7 @@ def radiative_processes(spectrum_at_planet):
 
 
 # Hydrogen photoionization if you have only a monochromatic channel flux
-def radiative_processes_mono(flux_euv):
+def radiative_processes_mono(flux_euv, average_photon_energy=20.):
     """
     Calculate the photoionization rate of hydrogen at null optical depth based
     on the monochromatic EUV flux arriving at the planet.
@@ -166,6 +166,10 @@ def radiative_processes_mono(flux_euv):
         Monochromatic extreme-ultraviolet (0 - 912 Angstrom) flux arriving at
         the planet in unit of erg / s / cm ** 2.
 
+    average_photon_energy (``float``, optional):
+        Average energy of the photons ionizing H in unit of eV. Default is 20 eV
+        (as in Murray-Clay et al 2009, Allan & Vidotto 2019).
+
     Returns
     -------
     phi (``float``):
@@ -175,17 +179,12 @@ def radiative_processes_mono(flux_euv):
         Flux-averaged photoionization cross-section of hydrogen in unit of
         cm ** 2.
     """
-    energy = np.flip(np.logspace(3, np.log10(13.61), 1000))  # eV
-
-    # Photoionization cross-section in function of frequency
-    a_nu = microphysics.hydrogen_cross_section(energy=energy)
-
     # Average cross-section
-    a_0 = np.mean(a_nu)
+    a_0 = 6.3E-18 * (average_photon_energy / 13.6) ** (-3)  # Unit 1 / cm ** 2.
 
     # Monochromatic ionization rate
     flux_euv *= 6.24150907E+11  # Convert erg to eV
-    phi = flux_euv * np.mean(a_nu / energy)
+    phi = flux_euv * a_0 / average_photon_energy
     return phi, a_0
 
 
