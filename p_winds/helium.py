@@ -127,7 +127,9 @@ def radiative_processes(spectrum_at_planet):
 
 
 # Helium radiative processes if you have only monochromatic fluxes
-def radiative_processes_mono(flux_euv, flux_fuv):
+def radiative_processes_mono(flux_euv, flux_fuv,
+                             average_euv_photon_wavelength=242.0,
+                             average_fuv_photon_wavelength=2348.0):
     """
     Calculate the photoionization rate of helium at null optical depth based
     on the EUV spectrum arriving at the planet.
@@ -143,6 +145,18 @@ def radiative_processes_mono(flux_euv, flux_fuv):
     flux_fuv (``float``):
         Monochromatic far- to middle-ultraviolet (911 - 2593 Angstrom) flux
         arriving at the planet in units of erg / s / cm ** 2.
+
+    average_euv_photon_wavelength (``float``):
+        Average wavelength of EUV photons ionizing the He singlet state, in unit
+        of Angstrom. Default value is 242 Angstrom. The default value is based
+        on a flux-weighted average of the solar spectrum between 0 and 504
+        Angstrom.
+
+    average_fuv_photon_wavelength (``float``):
+        Average wavelength of FUV-NUV photons ionizing the He triplet state, in
+        unit of Angstrom. Default value is 2348 Angstrom. The default value is
+        based on a flux-weighted average of the solar spectrum between 911 and
+        2593 Angstrom.
 
     Returns
     -------
@@ -170,35 +184,32 @@ def radiative_processes_mono(flux_euv, flux_fuv):
         Flux-averaged photoionization cross-section of hydrogen in the range
         absorbed by helium triplet in unit of cm ** 2.
     """
-    energy_1 = np.logspace(np.log10(24.6), 3, 1000)  # Unit of eV
-    wavelength_1 = 12398.419843320025 / energy_1  # Unit of angstrom
-
-    # Hydrogen cross-section within the range important to helium singlet
-    a_nu_h_1 = microphysics.hydrogen_cross_section(energy=energy_1)
-
-    # Photoionization cross-section of He singlet
-    a_lambda_1 = microphysics.helium_singlet_cross_section(wavelength_1)
     # Average cross-section to ionize helium singlet
-    a_1 = np.mean(a_lambda_1)
+    a_1 = microphysics.helium_singlet_cross_section(average_euv_photon_wavelength)
 
     # The photoionization cross-section of He triplet
     wavelength_3, a_lambda_3 = microphysics.helium_triplet_cross_section()
-    energy_3 = (12398.419843320025 / wavelength_3)  # Unit of eV
-    # Average cross-section to ionize helium triplet
-    a_3 = np.mean(a_lambda_3)
+    # # Average cross-section to ionize helium triplet
+    a_3 = np.interp(average_fuv_photon_wavelength, wavelength_3, a_lambda_3)
 
     # The flux-averaged photoionization cross-section of H is also going to be
     # needed because it adds to the optical depth that the He atoms see.
     # Contribution to the optical depth seen by He singlet atoms:
-    a_h_1 = np.mean(a_nu_h_1)
+    # Hydrogen cross-section within the range important to helium singlet
+    a_h_1 = 6.3E-18 * (average_euv_photon_wavelength / 13.6) ** (-3)
+    # Unit 1 / cm ** 2.
     # Contribution to the optical depth seen by He triplet atoms:
-    a_nu_h_3 = microphysics.hydrogen_cross_section(
-        energy=energy_3[energy_3 > 13.6])
-    a_h_3 = np.mean(a_nu_h_3)
+    if average_fuv_photon_wavelength < 911.0:
+        a_h_3 = microphysics.hydrogen_cross_section(
+            wavelength=average_fuv_photon_wavelength)
+    else:
+        a_h_3 = 0.0
 
     # Convert the fluxes from erg to eV and calculate the photoionization rates
-    phi_1 = flux_euv * 6.24150907e+11 * a_1 / np.mean(energy_1)
-    phi_3 = flux_fuv * 6.24150907e+11 * a_3 / np.mean(energy_3)
+    energy_1 = 12398.419843320025 / average_euv_photon_wavelength
+    energy_3 = 12398.419843320025 / average_fuv_photon_wavelength
+    phi_1 = flux_euv * 6.24150907e+11 * a_1 / energy_1
+    phi_3 = flux_fuv * 6.24150907e+11 * a_3 / energy_3
 
     return phi_1, phi_3, a_1, a_3, a_h_1, a_h_3
 
