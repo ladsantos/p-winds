@@ -1,5 +1,5 @@
 numpy
-scipy
+scipy>=1.7
 astropy
 flatstar
 ipykernel
