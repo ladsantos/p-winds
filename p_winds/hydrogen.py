@@ -15,8 +15,8 @@ from scipy.interpolate import interp1d
 from p_winds import parker, tools, microphysics
 
 
-__all__ = ["radiative_processes", "radiative_processes_mono", "recombination",
-           "ion_fraction"]
+__all__ = ["radiative_processes_exact", "radiative_processes",
+           "radiative_processes_mono", "recombination", "ion_fraction"]
 
 
 # Exact calculation of hydrogen photoionization
