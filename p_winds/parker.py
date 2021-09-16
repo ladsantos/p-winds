@@ -80,7 +80,7 @@ def average_molecular_weight(ion_fraction_profile, r_profile, v_profile,
 
 
 # Speed of sound
-def sound_speed(temperature, h_fraction, ion_fraction=0.0):
+def sound_speed(temperature, mean_molecular_weight=1.0):
     """
     Speed of sound in an isothermal ideal gas.
 
@@ -91,25 +91,19 @@ def sound_speed(temperature, h_fraction, ion_fraction=0.0):
         maximum thermospheric temperature (see Oklopčić & Hirata 2018 and
         Lampón et al. 2020 for more details).
 
-    h_fraction (``float``):
-        Average H number fraction of the upper atmosphere.
-
-    ion_fraction (``float``):
-        Average ionization fraction of the upper atmosphere.
+    mean_molecular_weight (``float``):
+        Mean molecular weight of the atmosphere in unit of proton mass. Default
+        value is 1.0 (100% neutral H).
 
     Returns
     -------
-    sound_speed (``float``):
+    cs (``float``):
         Sound speed in the gas in unit of km / s.
     """
-    # H has one proton and one electron
-    # He has 2 protons and 2 neutrons, and 2 electrons
-    he_h_fraction = (1 - h_fraction) / h_fraction
-    mu = (1 + 4 * he_h_fraction) / (1 + he_h_fraction + ion_fraction)
     m_h = 1.67262192369e-27  # Hydrogen mass in kg
-    mean_molecular_weight = m_h * mu
     k_b = 1.380649e-29  # Boltzmann constant in km ** 2 / s ** 2 * kg / K
-    return (k_b * temperature / mean_molecular_weight) ** 0.5
+    cs = (k_b * temperature / mean_molecular_weight / m_h) ** 0.5
+    return cs
 
 
 # Radius of sonic point

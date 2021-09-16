@@ -34,13 +34,13 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r,
         least up to the wavelength corresponding to the energy to ionize
         hydrogen (13.6 eV, or 911.65 Angstrom).
     
-    r_grid (``array``):
+    r_grid (``numpy.ndarray``):
         Radius grid for the calculation, in units of cm.
 
-    density (``array``):
+    density (``numpy.ndarray``):
         Number density profile for the atmosphere, in units of 1 / cm ** 3.
 
-    f_r (``array``):
+    f_r (``numpy.ndarray`` or ``float``):
         Ionization fraction profile for the atmosphere.
 
     h_fraction (``float``):
@@ -210,7 +210,7 @@ def recombination(temperature):
 
 # Fraction of ionized hydrogen vs. radius profile
 def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
-                 mass_loss_rate, planet_mass, average_ion_fraction=0.0,
+                 mass_loss_rate, planet_mass, mean_molecular_weight_0=1.0,
                  spectrum_at_planet=None, flux_euv=None, initial_f_ion=0.0,
                  relax_solution=False, convergence=0.01, max_n_relax=10,
                  exact_phi=False, **options_solve_ivp):
@@ -238,8 +238,11 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     planet_mass (``float``):
         Planetary mass in unit of Jupiter mass.
 
-    average_ion_fraction (``float``):
-        Average ion fraction in the upper atmosphere.
+    mean_molecular_weight_0 (``float``):
+        Initial mean molecular weight of the atmosphere in unit of proton mass.
+        Default value is 1.0 (100% neutral H). Since its final value depend on
+        the H ion fraction itself, the mean molecular weight can be
+        self-consistently calculated by setting `relax_solution` to `True`.
 
     spectrum_at_planet (``dict``, optional):
         Spectrum of the host star arriving at the planet covering fluxes at
@@ -291,16 +294,17 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     m_h = 1.67262192E-24
 
     # Photoionization rate at null optical depth at the distance of the planet
-    # from the host star, in unit of vs / rs
+    # from the host star, in unit of 1 / s.
     if exact_phi and spectrum_at_planet is not None:
-        vs = parker.sound_speed(temperature, h_fraction, average_ion_fraction)
+        vs = parker.sound_speed(temperature, mean_molecular_weight_0)
         rs = parker.radius_sonic_point(planet_mass, vs)
         rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
         _, rho_norm = parker.structure(radius_profile * planet_radius / rs)
+        f_outer = 0.0  # Assume completely ionized at the top of atmosphere
         phi_abs = radiative_processes_exact(
             spectrum_at_planet,
             (radius_profile * planet_radius * u.Rjup).to(u.cm).value,
-            rho_norm * rhos, average_ion_fraction, h_fraction)
+            rho_norm * rhos, f_outer, h_fraction)
         a_0 = 0.
     elif spectrum_at_planet is not None:
         phi_abs, a_0 = radiative_processes(spectrum_at_planet)
@@ -314,20 +318,20 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     # cm ** 2 / g
     # We assume that the remaining of the number fraction is pure He
     he_fraction = 1 - h_fraction
-    k1_abs = (h_fraction * a_0 / (1 + he_fraction * 4) / m_h)
+    k1_abs = (h_fraction * a_0 / (h_fraction + he_fraction * 4) / m_h)
 
     # Multiplicative factor of the second term in the right-hand side of Eq.
     # 13 of Oklopcic & Hirata 2018, unit of cm ** 3 / s / g
-    k2_abs = h_fraction / (1 + he_fraction * 4) * alpha_rec / m_h
+    k2_abs = h_fraction / (h_fraction + he_fraction * 4) * alpha_rec / m_h
 
     # In order to avoid numerical overflows, we need to normalize a few key
     # variables. Since the normalization may need to be repeated to relax the
     # solution, we have a function to do it.
-    def _normalize(_phi, _k1, _k2, _r, _mean_f_ion):
+    def _normalize(_phi, _k1, _k2, _r, _mu):
         # First calculate the sound speed, radius at the sonic point and the
         # density at the sonic point. They will be useful to change the units of
         # the calculation aiming to avoid numerical overflows
-        _vs = parker.sound_speed(temperature, h_fraction, _mean_f_ion)
+        _vs = parker.sound_speed(temperature, _mu)
         _rs = parker.radius_sonic_point(planet_mass, _vs)
         _rhos = parker.density_sonic_point(mass_loss_rate, _rs, _vs)
         # And now normalize everything
@@ -349,7 +353,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         return phi_norm, k1_norm, k2_norm, r_norm, dr_norm, v_norm, rho_norm
 
     phi, k1, k2, r, dr, velocity, density = _normalize(
-        phi_abs, k1_abs, k2_abs, radius_profile, average_ion_fraction)
+        phi_abs, k1_abs, k2_abs, radius_profile, mean_molecular_weight_0)
 
     if exact_phi:
         _phi_prime_fun = interp1d(r, phi, fill_value="extrapolate")
@@ -398,13 +402,17 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     if relax_solution is True:
         for i in range(max_n_relax):
             previous_f_r_outer_layer = np.copy(f_r)[-1]
-            average_ion_fraction = np.mean(np.copy(f_r))
+
+            # Here we update the density-averaged mean molecular weight of the
+            # atmosphere
+            he_h_fraction = he_fraction / h_fraction
+            mu_r = (1 + 4 * he_h_fraction) / (1 + he_h_fraction + f_r)
+            new_mu = np.sum(density * mu_r) / np.sum(density)
             
             if exact_phi:
                 # phi_abs will need to be recomputed here with the new density
                 # structure
-                vs = parker.sound_speed(temperature, h_fraction,
-                    average_ion_fraction)
+                vs = parker.sound_speed(temperature, new_mu)
                 rs = parker.radius_sonic_point(planet_mass, vs)
                 rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
                 _, rho_norm = parker.structure(
@@ -417,7 +425,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
             # We re-normalize key parameters because the newly-calculated f_ion
             # changes the value of the mean molecular weight of the atmosphere
             phi, k1, k2, r, dr, velocity, density = _normalize(
-                phi_abs, k1_abs, k2_abs, radius_profile, average_ion_fraction)
+                phi_abs, k1_abs, k2_abs, radius_profile, new_mu)
 
             if exact_phi:
                 _phi_prime_fun = interp1d(r, phi, fill_value="extrapolate")
