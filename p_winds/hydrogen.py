@@ -213,7 +213,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                  mass_loss_rate, planet_mass, mean_molecular_weight_0=1.0,
                  spectrum_at_planet=None, flux_euv=None, initial_f_ion=0.0,
                  relax_solution=False, convergence=0.01, max_n_relax=10,
-                 exact_phi=False, **options_solve_ivp):
+                 exact_phi=False, return_mu=False, **options_solve_ivp):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
     function of the radius in unit of planetary radius.
@@ -274,6 +274,12 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         Maximum number of loops to perform the relaxation of the solution for
         ``f_r``. Default is 10.
 
+    return_mu (``bool``, optional):
+        If ``True``, then this function returns a second variable ``mu_bar``,
+        which is the self-consistent, density-averaged mean molecular weight of
+        the atmosphere. Equivalent to the ``mu_bar`` of Eq. A.3 in Lampón et
+        al. 2020.
+
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
         may want to change the options ``method`` (integration method; default
@@ -286,6 +292,12 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     -------
     f_r (``numpy.ndarray``):
         Values of the fraction of ionized hydrogen in function of the radius.
+
+    mu_bar (``float``):
+        Mean molecular weight of the atmosphere, in unit of proton mass,
+        averaged across the radial distance using according to the function
+        `average_molecular_weight` in the `parker` module. Only returned when
+        ``return_mu`` is set to ``True``.
     """
     # Hydrogen recombination rate
     alpha_rec = recombination(temperature)
@@ -318,6 +330,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     # cm ** 2 / g
     # We assume that the remaining of the number fraction is pure He
     he_fraction = 1 - h_fraction
+    he_h_fraction = he_fraction / h_fraction
     k1_abs = (h_fraction * a_0 / (h_fraction + he_fraction * 4) / m_h)
 
     # Multiplicative factor of the second term in the right-hand side of Eq.
@@ -390,6 +403,13 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
                     t_eval=r, args=(phi, k1, k2), **options_solve_ivp)
     f_r = sol['y'][0]
+
+    # Calculate the average mean molecular weight using Eq. A.3 from Lampón et
+    # al. 2020
+    mu_bar = parker.average_molecular_weight(f_r, radius_profile, velocity,
+                                             planet_mass, temperature,
+                                             he_h_fraction)
+
     # When `solve_ivp` has problems, it may return an array with different
     # size than `r`. So we raise an exception if this happens
     if len(f_r) != len(r):
@@ -401,18 +421,12 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     # fractions.
     if relax_solution is True:
         for i in range(max_n_relax):
-            previous_f_r_outer_layer = np.copy(f_r)[-1]
-
-            # Here we update the density-averaged mean molecular weight of the
-            # atmosphere
-            he_h_fraction = he_fraction / h_fraction
-            mu_r = (1 + 4 * he_h_fraction) / (1 + he_h_fraction + f_r)
-            new_mu = np.sum(density * mu_r) / np.sum(density)
+            previous_f_r = np.copy(f_r)
             
             if exact_phi:
                 # phi_abs will need to be recomputed here with the new density
                 # structure
-                vs = parker.sound_speed(temperature, new_mu)
+                vs = parker.sound_speed(temperature, mu_bar)
                 rs = parker.radius_sonic_point(planet_mass, vs)
                 rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
                 _, rho_norm = parker.structure(
@@ -425,7 +439,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
             # We re-normalize key parameters because the newly-calculated f_ion
             # changes the value of the mean molecular weight of the atmosphere
             phi, k1, k2, r, dr, velocity, density = _normalize(
-                phi_abs, k1_abs, k2_abs, radius_profile, new_mu)
+                phi_abs, k1_abs, k2_abs, radius_profile, mu_bar)
 
             if exact_phi:
                 _phi_prime_fun = interp1d(r, phi, fill_value="extrapolate")
@@ -441,6 +455,12 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                             t_eval=r, args=(phi, k1, k2), **options_solve_ivp)
             f_r = sol['y'][0]
 
+            # Here we update the average mean molecular weight
+            mu_bar = parker.average_molecular_weight(f_r, radius_profile,
+                                                     velocity,
+                                                     planet_mass, temperature,
+                                                     he_h_fraction)
+
             # Raise an error if the length of `f_r` is different from the length
             # of `r`
             if len(f_r) != len(r):
@@ -449,8 +469,10 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
 
             # Calculate the relative change of f_ion in the outer shell of the
             # atmosphere (where we expect the most important change)
-            relative_delta_f = abs(f_r[-1] - previous_f_r_outer_layer) \
-                / previous_f_r_outer_layer
+            # relative_delta_f = abs(f_r[-1] - previous_f_r_outer_layer) \
+            #     / previous_f_r_outer_layer
+            relative_delta_f = abs(
+                np.sum(f_r - previous_f_r) / np.sum(previous_f_r))
 
             # Break the loop if convergence is achieved
             if relative_delta_f < convergence:
@@ -459,4 +481,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                 pass
     else:
         pass
-    return f_r
+
+    if return_mu is False:
+        return f_r
+    else:
+        return f_r, mu_bar
