@@ -314,11 +314,11 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     # cm ** 2 / g
     # We assume that the remaining of the number fraction is pure He
     he_fraction = 1 - h_fraction
-    k1_abs = (h_fraction * a_0 / (1 + he_fraction * 4) / m_h)
+    k1_abs = (h_fraction * a_0 / (h_fraction + he_fraction * 4) / m_h)
 
     # Multiplicative factor of the second term in the right-hand side of Eq.
     # 13 of Oklopcic & Hirata 2018, unit of cm ** 3 / s / g
-    k2_abs = h_fraction / (1 + he_fraction * 4) * alpha_rec / m_h
+    k2_abs = h_fraction / (h_fraction + he_fraction * 4) * alpha_rec / m_h
 
     # In order to avoid numerical overflows, we need to normalize a few key
     # variables. Since the normalization may need to be repeated to relax the
