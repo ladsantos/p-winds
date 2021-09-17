@@ -331,7 +331,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     # We assume that the remaining of the number fraction is pure He
     he_fraction = 1 - h_fraction
     he_h_fraction = he_fraction / h_fraction
-    k1_abs = (h_fraction * a_0 / (h_fraction + he_fraction * 4) / m_h)
+    k1_abs = h_fraction * a_0 / (h_fraction + he_fraction * 4) / m_h
 
     # Multiplicative factor of the second term in the right-hand side of Eq.
     # 13 of Oklopcic & Hirata 2018, unit of cm ** 3 / s / g
