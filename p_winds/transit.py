@@ -408,7 +408,7 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
         if _method == 'formal':
             # Calculate Doppler width of the Voigt profile
             alpha_nu = \
-                nu0_k / c_speed * (2 * np.log(2) * k_b * temp / mass) ** 0.5
+                nu0_k / c_speed * (2 * k_b * temp / mass) ** 0.5
 
             # Calculate the frequency shifts due to wind and bulk motion
             delta_nu_wind = (velocity_los + v_bulk) / c_speed * nu0_k
@@ -433,7 +433,7 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
                 raise ValueError('The chosen ``wind_broadening_method`` is not '
                                  'implemented.')
             # Calculate Doppler width of the Voigt profile
-            alpha_nu = nu0_k / c_speed * (2 * np.log(2) * k_b * temp / mass +
+            alpha_nu = nu0_k / c_speed * (2 * k_b * temp / mass +
                                           wind_broadening_velocity ** 2) ** 0.5
 
             # Frequency shift due to bulk line-of-sight velocity (not to be
