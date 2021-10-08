@@ -311,8 +311,8 @@ def collision(temperature):
 def population_fraction(radius_profile, velocity, density,
                         hydrogen_ion_fraction, planet_radius, temperature,
                         h_fraction, speed_sonic_point, radius_sonic_point,
-                        density_sonic_point, spectrum_at_planet=None,
-                        flux_euv=None, flux_fuv=None,
+                        density_sonic_point, average_mean_molecular_weight=None,
+                        spectrum_at_planet=None, flux_euv=None, flux_fuv=None,
                         initial_state=np.array([0.5, 0.5]),
                         relax_solution=False, convergence=0.01, max_n_relax=10,
                         method='odeint', **options_solve_ivp):
@@ -356,6 +356,12 @@ def population_fraction(radius_profile, velocity, density,
 
     density_sonic_point (``float``):
         Density at the sonic point in units of g / cm ** 3.
+
+    average_mean_molecular_weight (``float``, optional):
+        Mean molecular weight of the atmosphere averaged along the profile of
+        radial distances. Same as the `mu_bar` output of
+        `hydrogen.ion_fraction`. If `None`, then calculate it as a
+        density-average. Default is `None`.
 
     spectrum_at_planet (``dict``, optional):
         Spectrum of the host star arriving at the planet covering fluxes at
@@ -423,6 +429,7 @@ def population_fraction(radius_profile, velocity, density,
     vs = speed_sonic_point  # km / s
     rs = radius_sonic_point  # jupiterRad
     rhos = density_sonic_point  # g / cm ** 3
+    mu_bar = average_mean_molecular_weight
 
     # Recombination rates of helium singlet and triplet in unit of rs ** 2 * vs
     alpha_rec_unit = ((rs * 7.1492E+09) ** 2 * vs * 1E5)  # cm ** 3 / s
@@ -498,8 +505,18 @@ def population_fraction(radius_profile, velocity, density,
     column_density_h_0 = np.flip(  # Column density of H only
         np.cumsum(np.flip(dr * density * (1 - hydrogen_ion_fraction))))
     he_fraction = 1 - h_fraction
-    k1 = h_fraction / (h_fraction + 4 * he_fraction) / m_h
-    k2 = he_fraction / (h_fraction + 4 * he_fraction) / m_h
+    he_h_fraction = he_fraction / h_fraction
+
+    # Calculate `mu_bar` if it is `None`
+    if mu_bar is None:
+        mu_r = (1 + 4 * he_h_fraction) / \
+               (1 + he_h_fraction + hydrogen_ion_fraction)
+        mu_bar = np.sum(mu_r * density) / np.sum(density)
+    else:
+        pass
+
+    k1 = h_fraction / mu_bar / m_h
+    k2 = he_fraction / mu_bar / m_h
     tau_1_h = k1 * a_h_1 * column_density_h_0
     tau_3_h = k1 * a_h_3 * column_density_h_0
     tau_1_initial = (initial_state[0] * k2 * a_1 * column_density + tau_1_h)

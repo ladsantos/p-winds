@@ -55,7 +55,7 @@ def test_population_fraction_spectrum():
     # Now calculate the population of helium
     f_he_1_odeint, f_he_3_odeint = helium.population_fraction(
         r, v_array, rho_array, f_r,
-        R_pl, T_0, h_fraction, vs, rs, rhos, spectrum,
+        R_pl, T_0, h_fraction, vs, rs, rhos, spectrum_at_planet=spectrum,
         initial_state=initial_state, relax_solution=True)
 
     # Assert if all values of the fractions are between 0 and 1
@@ -68,7 +68,7 @@ def test_population_fraction_spectrum():
 
     f_he_1_ivp, f_he_3_ivp = helium.population_fraction(
         r, v_array, rho_array, f_r,
-        R_pl, T_0, h_fraction, vs, rs, rhos, spectrum,
+        R_pl, T_0, h_fraction, vs, rs, rhos, spectrum_at_planet=spectrum,
         initial_state=initial_state, relax_solution=True, method='Radau',
         atol=1E-8, rtol=1E-8
     )
