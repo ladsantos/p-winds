@@ -406,7 +406,7 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
 
         # Formal calculation of optical depth (slower)
         if _method == 'formal':
-            # Calculate Doppler width of the Voigt profile
+            # Calculate Doppler width (standard deviation) of the Voigt profile
             alpha_nu = \
                 nu0_k / c_speed * (2 * k_b * temp / mass) ** 0.5
 
