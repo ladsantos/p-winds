@@ -70,7 +70,6 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r,
 
     # 2d grid of radius and wavelength
     xx, yy = np.meshgrid(wavelength_cut, r_grid)
-
     # Photoionization cross-section in function of wavelength
     a_lambda = microphysics.hydrogen_cross_section(wavelength=xx)
 
@@ -79,14 +78,21 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r,
     r_grid_temp = r_grid[::-1]
     # We assume that the atmosphere is made of only H + He
     he_fraction = 1 - h_fraction
-    n_h = (h_fraction * density / (1 + he_fraction * 4) / m_h) * (1 - f_r)
+    f_he_to_h = he_fraction / h_fraction
+    mu = (1 + 4*f_he_to_h)/(1 + f_r + f_he_to_h)
+
+    n_tot = density / mu / m_h
+    n_htot = 1/(1 + f_r + f_he_to_h) * n_tot
+    n_h = n_htot * (1 - f_r)
+    n_hetot = n_htot * f_he_to_h
+    n_he = n_hetot * (1 - f_r)
+
     n_h_temp = n_h[::-1]
     column_h = cumtrapz(n_h_temp, r_grid_temp, initial=0)
     column_density_h = -column_h[::-1]
     tau_rnu = column_density_h[:, None] * a_lambda
 
     # Optical depth to helium photoionization
-    n_he = (he_fraction * density / (1 + he_fraction * 4) / m_h) * (1 - f_r)
     n_he_temp = n_he[::-1]
     column_he = cumtrapz(n_he_temp, r_grid_temp, initial=0)
     column_density_he = -column_he[::-1]
