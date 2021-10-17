@@ -79,10 +79,10 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r,
     # We assume that the atmosphere is made of only H + He
     he_fraction = 1 - h_fraction
     f_he_to_h = he_fraction / h_fraction
-    mu = (1 + 4*f_he_to_h)/(1 + f_r + f_he_to_h)
+    mu = (1 + 4 * f_he_to_h) / (1 + f_r + f_he_to_h)
 
     n_tot = density / mu / m_h
-    n_htot = 1/(1 + f_r + f_he_to_h) * n_tot
+    n_htot = 1 / (1 + f_r + f_he_to_h) * n_tot
     n_h = n_htot * (1 - f_r)
     n_hetot = n_htot * f_he_to_h
     n_he = n_hetot * (1 - f_r)
