@@ -122,7 +122,8 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
                           oscillator_strength, einstein_coefficient,
                           wavelength_grid, gas_temperature, particle_mass,
                           bulk_los_velocity=0.0,
-                          wind_broadening_method='average'):
+                          wind_broadening_method='average',
+                          turbulence_broadening=False):
     """
     Calculate the absorbed intensity profile in a wavelength grid.
 
@@ -179,16 +180,16 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
         Default is 0.0.
 
     wind_broadening_method (``str``, optional):
-        Method of calculation for the wind broadening. There are three options:
+        Method of calculation for the wind broadening. There are two options:
         1) ``'formal'``: the formal definition of radiative transfer taking into
         account the full dimensionality of the wind (slower);
         2) ``'average'``: assumes the Parker wind broadening contributes to the
         Gaussian term of the Voigt profile with an additive factor proportional
-        to the square of the density-averaged, line-of-sight velocity (faster);
-        3) ``'turbulent'``: assumes that the wind broadening comes from an
-        additive turbulent square velocity term to the Gaussian term of the
-        Voigt profile (fastest). The faster methods are one order of magnitude
-        faster than the formal method. Default is ``'average'``.
+        to the square of the density-averaged, line-of-sight velocity (faster).
+
+    turbulence_broadening (``bool``, optional):
+        If ``True``, adds a turbulence broadening, defined as in Lampón et al.
+        2020, to the Gaussian term of the Voigt profile. Default is ``False``.
 
     Returns
     -------
@@ -201,7 +202,7 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
         radius_profile, density_profile, velocity_profile, central_wavelength,
         oscillator_strength, einstein_coefficient, wavelength_grid,
         gas_temperature, particle_mass, bulk_los_velocity,
-        wind_broadening_method
+        wind_broadening_method, turbulence_broadening
     )
 
     # Now we interpolate the optical depths to each radius from the planet
@@ -284,7 +285,8 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
                      central_wavelength, oscillator_strength,
                      einstein_coefficient, wavelength_grid, gas_temperature,
                      particle_mass, bulk_los_velocity=0.0,
-                     wind_broadening_method='average'):
+                     wind_broadening_method='average',
+                     turbulence_broadening=False):
     """
     Calculate the optical depth in function of cylindrical radius from the
     planet and the wavelength.
@@ -332,16 +334,17 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
         Default is 0.0.
 
     wind_broadening_method (``str``, optional):
-        Method of calculation for the wind broadening. There are three options:
+        Method of calculation for the wind broadening. There are two options:
         1) ``'formal'``: the formal definition of radiative transfer taking into
         account the full dimensionality of the wind (slower);
         2) ``'average'``: assumes the Parker wind broadening contributes to the
         Gaussian term of the Voigt profile with an additive factor proportional
-        to the square of the density-averaged, line-of-sight velocity (faster);
-        3) ``'turbulent'``: assumes that the wind broadening comes from an
-        additive turbulent square velocity term to the Gaussian term of the
-        Voigt profile (fastest). The faster methods are one order of magnitude
-        faster than the formal method. Default is ``'average'``.
+        to the square of the density-averaged, line-of-sight velocity (faster).
+
+    turbulence_broadening (``bool``, optional):
+        If ``True``, adds a turbulence broadening, defined as in Lampón et al.
+        2020, to the Gaussian term of the Voigt profile. Only used if
+        ``wind_broadening_method`` is set to ``'average'``. Default is ``False``.
 
     Returns
     -------
@@ -414,31 +417,36 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
             delta_nu_wind = (velocity_los + v_bulk) / c_speed * nu0_k
             delta_nu_add = np.reshape(delta_nu_wind, spatial_shape + (1,))
 
-        # Faster calculation of optical depth
-        else:
-            # We assume that the Parker wind broadening has a Gaussian shape.
-            # To this end, we take a wind velocity and add it quadratically to
-            # the Gaussian broadening term of the Voigt profile.
-            if _method == 'average':
-                # Calculate the wind broadening velocity as the density-averaged
-                # line-of-sight velocity of the Parker wind
-                wind_broadening_velocity = \
-                    (np.sum(velocity_los ** 2 * density_los) /
-                     np.sum(density_los)) ** 0.5
-            elif _method == 'turbulent':
+        # Faster calculation of optical depth: We assume that the Parker wind
+        # broadening has a Gaussian shape. To this end, we take a wind velocity
+        # and add it quadratically to the Gaussian broadening term of the Voigt
+        # profile.
+        elif _method == 'average':
+            # Calculate the wind broadening velocity as the density-averaged
+            # line-of-sight velocity of the Parker wind
+            wind_broadening_velocity = \
+                (np.sum(velocity_los ** 2 * density_los) /
+                 np.sum(density_los)) ** 0.5
+
+            if turbulence_broadening is True:
                 # Similar to Lampon et al. (2020), calculate the broadening
                 # as the turbulent velocity = sqrt(5/3 * kT / m)
-                wind_broadening_velocity = np.sqrt(5 / 3 * k_b * temp / mass)
+                turbulence_velocity = np.sqrt(5 / 3 * k_b * temp / mass)
             else:
-                raise ValueError('The chosen ``wind_broadening_method`` is not '
-                                 'implemented.')
+                turbulence_velocity = 0.0
+
             # Calculate Doppler width of the Voigt profile
             alpha_nu = nu0_k / c_speed * (2 * k_b * temp / mass +
-                                          wind_broadening_velocity ** 2) ** 0.5
+                                          wind_broadening_velocity ** 2 +
+                                          turbulence_velocity ** 2) ** 0.5
 
             # Frequency shift due to bulk line-of-sight velocity (not to be
             # confused with the Parker wind velocity).
             delta_nu_add = v_bulk / c_speed * nu0_k
+
+        else:
+            raise ValueError('The chosen ``wind_broadening_method`` is not '
+                             'implemented.')
 
         # Finally calculate the Voigt profiles
         profiles = voigt_profile(delta_nu_grid + delta_nu_add, alpha_nu,
