@@ -410,17 +410,17 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                     t_eval=r, args=(phi, k2), **options_solve_ivp)
     f_r = sol['y'][0]
 
-    # Calculate the average mean molecular weight using Eq. A.3 from Lampón et
-    # al. 2020
-    mu_bar = parker.average_molecular_weight(f_r, radius_profile, velocity,
-                                             planet_mass, temperature,
-                                             he_h_fraction)
-
     # When `solve_ivp` has problems, it may return an array with different
     # size than `r`. So we raise an exception if this happens
     if len(f_r) != len(r):
         raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
                            ' solution.')
+
+    # Calculate the average mean molecular weight using Eq. A.3 from Lampón et
+    # al. 2020
+    mu_bar = parker.average_molecular_weight(f_r, radius_profile, velocity,
+                                             planet_mass, temperature,
+                                             he_h_fraction)
 
     # For the sake of self-consistency, there is the option of repeating the
     # calculation of f_r by updating the optical depth with the new ion
@@ -469,17 +469,17 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                             t_eval=r, args=(phi, k2), **options_solve_ivp)
             f_r = sol['y'][0]
 
-            # Here we update the average mean molecular weight
-            mu_bar = parker.average_molecular_weight(f_r, radius_profile,
-                                                     velocity,
-                                                     planet_mass, temperature,
-                                                     he_h_fraction)
-
             # Raise an error if the length of `f_r` is different from the length
             # of `r`
             if len(f_r) != len(r):
                 raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
                                    ' solution.')
+
+            # Here we update the average mean molecular weight
+            mu_bar = parker.average_molecular_weight(f_r, radius_profile,
+                                                     velocity,
+                                                     planet_mass, temperature,
+                                                     he_h_fraction)
 
             # Calculate the relative change of f_ion in the outer shell of the
             # atmosphere (where we expect the most important change)

@@ -596,8 +596,8 @@ def population_fraction(radius_profile, velocity, density,
     # High densities can be numerically unstable and produce unphysical values
     # of `f_r`, so we replace negative values with zero and values above 1.0
     # with 1.0
-    f_1_r[f_1_r < 0] = 0.0
-    f_3_r[f_3_r < 0] = 0.0
+    f_1_r[f_1_r < 0] = 1E-15
+    f_3_r[f_3_r < 0] = 1E-15
     f_1_r[f_1_r > 1.0] = 1.0
     f_3_r[f_3_r > 1.0] = 1.0
 
@@ -629,8 +629,8 @@ def population_fraction(radius_profile, velocity, density,
                 f_3_r = sol['y'][1]
 
             # Replace negative values with zero and values above 1.0 with 1.0
-            f_1_r[f_1_r < 0] = 0.0
-            f_3_r[f_3_r < 0] = 0.0
+            f_1_r[f_1_r < 0] = 1E-15
+            f_3_r[f_3_r < 0] = 1E-15
             f_1_r[f_1_r > 1.0] = 1.0
             f_3_r[f_3_r > 1.0] = 1.0
 
