@@ -17,7 +17,7 @@ setup(
     name="p_winds",
     version="1.1.3",
     author="Leonardo dos Santos",
-    author_email="Leonardo.dosSantos@unige.ch",
+    author_email="ldsantos@stsci.edu",
     packages=["p_winds"],
     url="https://github.com/ladsantos/p-winds",
     license="MIT",
