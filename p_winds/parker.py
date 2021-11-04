@@ -11,6 +11,10 @@ import scipy.optimize as so
 from scipy.integrate import simps, trapz
 from p_winds import tools
 
+import warnings
+warnings.warn('`p-winds` versions >=1.2 will have a change in the syntax of '
+              '`parker.sound_speed()`.', FutureWarning)
+
 
 __all__ = ["sound_speed", "radius_sonic_point", "density_sonic_point",
            "structure"]
