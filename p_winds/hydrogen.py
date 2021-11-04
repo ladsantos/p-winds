@@ -337,11 +337,11 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     # We assume that the remaining of the number fraction is pure He
     he_fraction = 1 - h_fraction
     he_h_fraction = he_fraction / h_fraction
-    k1_abs = h_fraction * a_0 / mean_molecular_weight_0 / m_h
+    k1_abs = h_fraction * a_0 / (h_fraction + 4 * he_fraction) / m_h
 
     # Multiplicative factor of the second term in the right-hand side of Eq.
     # 13 of Oklopcic & Hirata 2018, unit of cm ** 3 / s / g
-    k2_abs = h_fraction / mean_molecular_weight_0 * alpha_rec / m_h
+    k2_abs = h_fraction / (h_fraction + 4 * he_fraction) * alpha_rec / m_h
 
     # In order to avoid numerical overflows, we need to normalize a few key
     # variables. Since the normalization may need to be repeated to relax the
@@ -428,14 +428,6 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     if relax_solution is True:
         for i in range(max_n_relax):
             previous_f_r = np.copy(f_r)
-
-            # Update k1 and k2
-            # mu_r = m_h * (1 + 4 * he_h_fraction) / (1 + he_h_fraction + f_r)
-            # There is a bug if we pass k2 as an array, so here we calculate it
-            # with mu_bar instead of mu_r for now. Currently investigating
-            # how to fix this bug
-            k1_abs = h_fraction * a_0 / mu_bar / m_h
-            k2_abs = h_fraction / mu_bar * alpha_rec / m_h
             
             if exact_phi:
                 # phi_abs will need to be recomputed here with the new density
