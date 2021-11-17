@@ -424,9 +424,10 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
         elif _method == 'average':
             # Calculate the wind broadening velocity as the density-averaged
             # line-of-sight velocity of the Parker wind
+            weights = density_los
             wind_broadening_velocity = \
-                (np.sum(velocity_los ** 2 * density_los) /
-                 np.sum(density_los)) ** 0.5
+                (np.sum(velocity_los ** 2 * weights) /
+                 np.sum(weights)) ** 0.5
 
             if turbulence_broadening is True:
                 # Similar to Lampon et al. (2020), calculate the broadening

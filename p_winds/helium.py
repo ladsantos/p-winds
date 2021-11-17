@@ -579,8 +579,8 @@ def population_fraction(radius_profile, velocity, density,
     # High densities can be numerically unstable and produce unphysical values
     # of `f_r`, so we replace negative values with zero and values above 1.0
     # with 1.0
-    f_1_r[f_1_r < 0] = 0.0
-    f_3_r[f_3_r < 0] = 0.0
+    f_1_r[f_1_r < 0] = 1E-15
+    f_3_r[f_3_r < 0] = 1E-15
     f_1_r[f_1_r > 1.0] = 1.0
     f_3_r[f_3_r > 1.0] = 1.0
 
@@ -589,8 +589,8 @@ def population_fraction(radius_profile, velocity, density,
     # fractions.
     if relax_solution is True:
         for i in range(max_n_relax):
-            previous_f_1_r_outer_layer = np.copy(f_1_r)[-1]
-            previous_f_3_r_outer_layer = np.copy(f_3_r)[-1]
+            previous_f_1_r = np.copy(f_1_r)
+            previous_f_3_r = np.copy(f_3_r)
 
             # Re-calculate the column densities
             tau_1 = k2 * a_1 * np.flip(
@@ -612,17 +612,17 @@ def population_fraction(radius_profile, velocity, density,
                 f_3_r = sol['y'][1]
 
             # Replace negative values with zero and values above 1.0 with 1.0
-            f_1_r[f_1_r < 0] = 0.0
-            f_3_r[f_3_r < 0] = 0.0
+            f_1_r[f_1_r < 0] = 1E-15
+            f_3_r[f_3_r < 0] = 1E-15
             f_1_r[f_1_r > 1.0] = 1.0
             f_3_r[f_3_r > 1.0] = 1.0
 
             # Calculate the relative change of f_ion in the outer shell of the
             # atmosphere (where we expect the most important change)
-            relative_delta_f_1 = abs(f_1_r[-1] - previous_f_1_r_outer_layer) \
-                / previous_f_1_r_outer_layer
-            relative_delta_f_3 = abs(f_3_r[-1] - previous_f_3_r_outer_layer) \
-                / previous_f_3_r_outer_layer
+            relative_delta_f_1 = abs(np.sum(f_1_r - previous_f_1_r)) \
+                / np.sum(previous_f_1_r)
+            relative_delta_f_3 = abs(np.sum(f_3_r - previous_f_3_r)) \
+                / np.sum(previous_f_3_r)
 
             # Break the loop if convergence is achieved
             if relative_delta_f_1 < convergence and \
