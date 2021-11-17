@@ -15,11 +15,6 @@ from scipy.interpolate import interp1d
 from p_winds import parker, tools, microphysics
 
 
-import warnings
-warnings.warn('`p-winds` versions >=1.2 will have a change in the syntax of '
-              '`hydrogen.ion_fraction()`.', FutureWarning)
-
-
 __all__ = ["radiative_processes_exact", "radiative_processes",
            "radiative_processes_mono", "recombination", "ion_fraction"]
 
