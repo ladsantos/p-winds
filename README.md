@@ -1,14 +1,15 @@
 # p-winds
 
-[![Documentation Status](https://readthedocs.org/projects/p-winds/badge/?version=latest)](https://p-winds.readthedocs.io/en/latest/?badge=latest) [![Build Status](https://travis-ci.com/ladsantos/p-winds.svg?branch=main)](https://travis-ci.com/ladsantos/p-winds) [![Coverage Status](https://coveralls.io/repos/github/ladsantos/p-winds/badge.svg?branch=main)](https://coveralls.io/github/ladsantos/p-winds?branch=main) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4551621.svg)](https://doi.org/10.5281/zenodo.4551621)
+[![Documentation Status](https://readthedocs.org/projects/p-winds/badge/?version=latest)](https://p-winds.readthedocs.io/en/latest/?badge=latest) [![Build Status](https://travis-ci.com/ladsantos/p-winds.svg?branch=main)](https://travis-ci.com/ladsantos/p-winds) [![Coverage Status](https://coveralls.io/repos/github/ladsantos/p-winds/badge.svg?branch=main)](https://coveralls.io/github/ladsantos/p-winds?branch=main) [![arXiv](https://img.shields.io/badge/arXiv-2111.11370-b31b1b.svg)](https://arxiv.org/abs/2111.11370)
+ [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4551621.svg)](https://doi.org/10.5281/zenodo.4551621)
 
- Python implementation of Parker wind models for planetary atmospheres. **So many p's!** (Hence the name for the code.)
+Python implementation of Parker wind models for planetary atmospheres. **So many p's!** (Hence the name for the code.)
 
 The main objective of this code is to produce simplified, 1-D models of the upper atmosphere of a planet, and perform radiative transfer to calculate observable spectral signatures. 
 
 The scalable implementation of 1D models allows for atmospheric retrievals to calculate atmospheric escape rates and temperatures. In addition, the modular implementation allows for a smooth plugging-in of more complex descriptions to forward model their corresponding spectral signatures (e.g., self-consistent or 3D models).
 
-A paper describing `p-winds` and its usage for research-grade astronomical applications has been submitted for publication. In the meantime, if you use this code in your research, please consider citing it: [10.5281/zenodo.4551621](https://doi.org/10.5281/zenodo.4551621).
+A paper describing `p-winds` and its usage for research-grade astronomical applications has been submitted for publication. If you use this code in your research, please consider citing the [arXiv pre-print](https://arxiv.org/abs/2111.11370).
 
 Background
 ----------
