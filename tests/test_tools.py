@@ -25,3 +25,16 @@ def test_make_spectrum_from_file(precision_threshold=1E-6):
     test_value = (spectrum['flux_lambda'][0] * spectrum['flux_unit']).to(
         u.W / u.m ** 2 / u.angstrom).value
     assert abs((test_value - 2.08405464e-11) / test_value) < precision_threshold
+
+
+# Test the generate_muscles_spectrum function
+def test_generate_muscles_spectrum(precision_threshold=1E-6):
+    try:
+        spectrum = tools.generate_muscles_spectrum('gj436', '../data/MUSCLES/',
+                                                   semi_major_axis=2.0)
+    except FileNotFoundError:
+        spectrum = tools.generate_muscles_spectrum('gj436', 'data/MUSCLES/',
+                                                   semi_major_axis=2.0)
+    test_value = (spectrum['flux_lambda'][0] * spectrum['flux_unit']).to(
+        u.W / u.m ** 2 / u.angstrom).value
+    assert abs((test_value - 0.0170225) / test_value) < precision_threshold
