@@ -121,7 +121,7 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
                           density_profile, velocity_profile, central_wavelength,
                           oscillator_strength, einstein_coefficient,
                           wavelength_grid, gas_temperature, particle_mass,
-                          bulk_los_velocity=0.0,
+                          bulk_los_velocity=0.0, planet_radial_velocity=0.0,
                           wind_broadening_method='average',
                           turbulence_broadening=False):
     """
@@ -179,6 +179,11 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
         Bulk velocity of the gas cell in the line of sight in unit of m / s.
         Default is 0.0.
 
+    planet_radial_velocity (``float``, optional):
+        Radial velocity (i.e., the component in the line of sight) of the planet
+        in relation to the rest frame of the host star and in unit of m / s.
+        Default is 0.0.
+
     wind_broadening_method (``str``, optional):
         Method of calculation for the wind broadening. There are two options:
         1) ``'formal'``: the formal definition of radiative transfer taking into
@@ -202,7 +207,7 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
         radius_profile, density_profile, velocity_profile, central_wavelength,
         oscillator_strength, einstein_coefficient, wavelength_grid,
         gas_temperature, particle_mass, bulk_los_velocity,
-        wind_broadening_method, turbulence_broadening
+        planet_radial_velocity, wind_broadening_method, turbulence_broadening
     )
 
     # Now we interpolate the optical depths to each radius from the planet
@@ -285,6 +290,7 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
                      central_wavelength, oscillator_strength,
                      einstein_coefficient, wavelength_grid, gas_temperature,
                      particle_mass, bulk_los_velocity=0.0,
+                     planet_radial_velocity=0.0,
                      wind_broadening_method='average',
                      turbulence_broadening=False):
     """
@@ -331,6 +337,11 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
 
     bulk_los_velocity (``float``, optional):
         Bulk velocity of the gas cell in the line of sight in unit of m / s.
+        Default is 0.0.
+
+    planet_radial_velocity (``float``, optional):
+        Radial velocity (i.e., the component in the line of sight) of the planet
+        in relation to the rest frame of the host star and in unit of m / s.
         Default is 0.0.
 
     wind_broadening_method (``str``, optional):
@@ -386,6 +397,7 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
     nu0 = c_speed / w0  # Reference frequency in Hz
     nu_grid_rest = c_speed / wl_grid
     v_bulk = bulk_los_velocity
+    rv_planet = planet_radial_velocity
     temp = gas_temperature
     mass = particle_mass
 
@@ -414,7 +426,8 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
                 nu0_k / c_speed * (2 * k_b * temp / mass) ** 0.5
 
             # Calculate the frequency shifts due to wind and bulk motion
-            delta_nu_wind = (velocity_los + v_bulk) / c_speed * nu0_k
+            delta_nu_wind = (velocity_los + v_bulk +
+                             rv_planet) / c_speed * nu0_k
             delta_nu_add = np.reshape(delta_nu_wind, spatial_shape + (1,))
 
         # Faster calculation of optical depth: We assume that the Parker wind
@@ -443,7 +456,7 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
 
             # Frequency shift due to bulk line-of-sight velocity (not to be
             # confused with the Parker wind velocity).
-            delta_nu_add = v_bulk / c_speed * nu0_k
+            delta_nu_add = (v_bulk + rv_planet) / c_speed * nu0_k
 
         else:
             raise ValueError('The chosen ``wind_broadening_method`` is not '
