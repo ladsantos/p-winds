@@ -537,8 +537,9 @@ def population_fraction(radius_profile, velocity, density,
                                          # ionization and Penning ionization
         term_18 = f_1 * n_h_plus * big_q_he  # Charge exchange consuming He
                                              # singlet
-        term_19 = f_1 * n_h0 * big_q_he_plus  # Charge exchange producing He
-                                              # singlet
+        term_19 = (1 - f_1 - f_3) * n_h0 * big_q_he_plus  # Charge exchange
+                                                          # producing He
+                                                          # singlet
 
         # Terms of df3_dr
         term_31 = (1 - f_1 - f_3) * n_e * alpha_rec_3  # Recombination
