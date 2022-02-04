@@ -200,8 +200,7 @@ def structure(r):
         ind = tools.nearest_index(r, 1.0)  # Find the index where r == 1.0
         x0_array = np.ones_like(r) * 0.1   # Setup the array of first guesses
         x0_array[ind:] *= 20.0
-        velocity_r = np.array([so.newton(_eq_to_solve, x0=x0_array[k],
-                                         args=(r[k],)) for k in range(len(r))])
+        velocity_r = so.newton(_eq_to_solve, x0=x0_array, args=(r,))
     # If r is float, just do a simple if statement
     elif r <= 1.0:
         velocity_r = so.newton(_eq_to_solve, x0=1E-1, args=(r,))
