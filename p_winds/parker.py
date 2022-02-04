@@ -159,7 +159,7 @@ def density_sonic_point(mass_loss_rate, radius_sp, sound_speed_0):
 
 
 # Velocity and density in function of radius at the sonic point
-def structure(r):
+def structure(r, v_guess=None):
     """
     Calculate the velocity and density of the atmosphere in function of radius
     at the sonic point (r_s), and in units of sound speed (v_s) and density at
@@ -189,11 +189,16 @@ def structure(r):
     # The transcendental equation above has many solutions. In order to converge
     # to the physical solution for a planetary wind, we need to provide
     # different first guesses depending if the radius at which we are evaluating
-    # the velocity is either above or below the sonic radius. If the radius is
-    # below, the first guess is 0.1. If the radius is above, the first guess
-    # is 2.0. This is a hacky solution, but it seems to work well.
+    # the velocity is either above or below the sonic radius. The user has the
+    # option of passing a `v_guess`.
 
-    if isinstance(r, np.ndarray):
+    if v_guess is not None:
+        velocity_r = so.newton(_eq_to_solve, x0=v_guess, args=(r,))
+
+    # Otherwise, we set it automatically: If the radius is below the sonic
+    # radius, the first guess is 0.1. If the radius is above, the first
+    # guess is 2.0. This is a hacky solution, but it seems to work well.
+    elif isinstance(r, np.ndarray):
         # If r is a ``numpy.ndarray``, we do a dirty little hack to setup an
         # array of first guesses `x0` whose values are 0.1 for r <= 1, and 2 if
         # r > 1.
@@ -202,10 +207,11 @@ def structure(r):
         x0_array[ind:] *= 20.0
         velocity_r = so.newton(_eq_to_solve, x0=x0_array, args=(r,))
     # If r is float, just do a simple if statement
-    elif r <= 1.0:
-        velocity_r = so.newton(_eq_to_solve, x0=1E-1, args=(r,))
     else:
-        velocity_r = so.newton(_eq_to_solve, x0=2.0, args=(r,))
+        if r <= 1.0:
+            velocity_r = so.newton(_eq_to_solve, x0=1E-1, args=(r,))
+        else:
+            velocity_r = so.newton(_eq_to_solve, x0=2.0, args=(r,))
 
     density_r = np.exp(2 * 1 / r - 3 / 2 - 0.5 * velocity_r ** 2)
 
