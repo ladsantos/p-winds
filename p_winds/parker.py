@@ -170,6 +170,13 @@ def structure(r, v_guess=None):
     r (``numpy.ndarray`` or ``float``):
         Radius at which to sample the velocity in unit of radius at the sonic
         point.
+        
+    v_guess (``numpy.ndarray`` or ``float``, optional):
+        Guessed value(s) of velocity, in unit of sound speed, corresponding to 
+        the radius(ii) ``r``. If ``None``, then the code assumes a standard 
+        guess for the velocity. If not ``None``, ``v_guess`` must have the same
+        shape as ``r``. Default is ``None``.
+        
 
     Returns
     -------

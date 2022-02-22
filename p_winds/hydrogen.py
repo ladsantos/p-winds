@@ -385,9 +385,10 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         # neutral at first.
         column_density = np.flip(np.cumsum(np.flip(dr * density)))
         tau_initial = k1 * column_density
-        # We do a dirty hack to make tau_initial a callable function so it's
-        # easily parsed inside the differential equation solver
+        # We do a dirty hack to make tau_initial and velocity a callable
+        # function so it's easily parsed inside the differential equation solver
         _tau_fun = interp1d(r, tau_initial, fill_value="extrapolate")
+    _v_fun = interp1d(r, velocity, fill_value="extrapolate")
 
     # Now let's solve the differential eq. 13 of Oklopcic & Hirata 2018
     # The differential equation in function of r
@@ -397,7 +398,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         else:
             _t = _tau_fun(np.array([_r, ]))[0]
             _phi_prime = np.exp(-_t)*_phi
-        _v, _rho = parker.structure(_r)
+        _v_guess = _v_fun(_r)
+        _v, _rho = parker.structure(_r, _v_guess)
         # In terms 1 and 2 we use the values of k2 and phi from above
         term1 = (1. - _f) / _v * _phi_prime
         term2 = _k2 * _rho * _f ** 2 / _v
@@ -455,6 +457,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                                                            (1 - f_r))))
                 tau = k1 * column_density
                 _tau_fun = interp1d(r, tau, fill_value="extrapolate")
+            _v_fun = interp1d(r, velocity, fill_value="extrapolate")
             
             # And solve it again
             sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
