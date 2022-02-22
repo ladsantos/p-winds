@@ -40,6 +40,7 @@ def nearest_index(array, target_value):
 
 
 def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
+                              stellar_radius=None,
                               truncate_wavelength_grid=False,
                               cutoff_thresh=13.6):
     """
@@ -51,7 +52,7 @@ def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
     Parameters
     ----------
     host_star_name (``str``):
-        Name of the stellar spectrum you want to use in MUSCLES. Must be one of:
+        Name of the MUSCLES stellar spectrum you want to use. Must be one of:
         ['gj176', 'gj436', 'gj551', 'gj581', 'gj667c', 'gj832', 'gj876',
         'gj1214', 'hd40307', 'hd85512', 'hd97658', 'v-eps-eri'].
 
@@ -62,6 +63,13 @@ def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
         Semi-major axis of the planet in units of stellar radii. The code first
         converts the MUSCLES spectrum to what it would be at R_star;
         ``semi_major_axis`` is needed to get the spectrum at the planet.
+
+    stellar_radius (``float``, optional):
+        Stellar radius in unit of solar radii. Setting a value for this
+        parameter allows the spectrum to be scaled to an arbitrary stellar
+        radius instead of the radius of the MUSCLES star. If ``None``, then the
+        scaling is performed using the radius of the MUSCLES star. Default is
+        ``None``.
 
     truncate_wavelength_grid (``bool``, optional):
         If ``True``, will only return the spectrum with energy > 13.6 eV. This
@@ -94,9 +102,16 @@ def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
     muscles_rstars = {starname: st_rad for starname, st_rad in zip(stars,
                                                                    st_rads)}
 
-    # MUSCLES records spectra as observed at earth
+    # MUSCLES records spectra as observed at earth, so we need to convert it to
+    # spectrum at R_star. The user has the option of setting an arbitary stellar
+    # radius instead of the MUSCLES star radius to allow for more flexibility.
+    # This can be especially useful for slightly evolved stars, whose radius
+    # are larger than the MUSCLES stars.
     dist = muscles_dists[host_star_name]
-    rstar = muscles_rstars[host_star_name]
+    if stellar_radius is None:
+        rstar = muscles_rstars[host_star_name]
+    else:
+        rstar = stellar_radius * u.solRad
     conv = float((dist / rstar) ** 2)  # conversion to spectrum at R_star
 
     # Read the MUSCLES spectrum
