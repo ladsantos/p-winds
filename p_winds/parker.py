@@ -10,10 +10,11 @@ import numpy as np
 import scipy.optimize as so
 from scipy.integrate import simps, trapz
 from p_winds import tools
-
+from astropy import units as u, constants as c
 
 __all__ = ["average_molecular_weight", "sound_speed", "radius_sonic_point",
-           "density_sonic_point", "structure"]
+           "density_sonic_point", "structure","radius_sonic_point_tidal",
+           "structure_tidal"]
 
 
 # Average mean-molecular weight following the formulation of Lampón et al. 2020
@@ -211,3 +212,115 @@ def structure(r):
     density_r = np.exp(2 * 1 / r - 3 / 2 - 0.5 * velocity_r ** 2)
 
     return velocity_r, density_r
+
+def radius_sonic_point_tidal(M_p, c_s, M_star, a):
+    """
+    Radius of the sonic point, i.e., where the wind speed matches the speed of
+    sound, accounting for the tidal gravity of the host star.
+
+    Parameters
+    ----------
+    M_p (``astropy.Quantity``):
+        Planetary mass with associated unit (for instance u.Mjup)
+
+    c_s (``astropy.Quantity``):
+        Constant speed of sound with associated unit (for instance u.km/u.s)
+
+    M_star (``astropy.Quantity``):
+        Stellar mass with associated unit (for instance u.Msun)
+
+    a (``astropy.Quantity``):
+        Planetary semimajor axis with associated unit (for instance u.au)
+
+    Returns
+    -------
+    r_s (``astropy.Quantity``):
+        Radius of the sonic point in units of Jupiter radius.
+    """
+    v_K = np.sqrt(c.G*M_star/a)
+    M1 = np.sqrt(M_p**2/4 + 8*M_star**2 / 81 * (c_s/v_K)**6)
+    r_s = a*(((M1 + M_p/2)/(3*M_star))**(1/3) - \
+        ((M1 - M_p/2)/(3*M_star))**(1/3))
+    r_s = r_s.to(u.Rjup)
+    return r_s #in jup rads
+
+# Velocity and density in function of radius at the sonic point
+def structure_tidal(r, c_s, r_s, M_p, M_star, a):
+    """
+    Calculate the velocity and density of the atmosphere in function of radius
+    at the sonic point (r_s), and in units of sound speed (c_s) and density at
+    the sonic point (rho_s), respectively. This version accounts for the tidal
+    gravity of the host star.
+
+    Parameters
+    ----------
+    r (``numpy.ndarray`` or ``float``):
+        Radius at which to sample the velocity in unit of radius at the sonic
+        point.
+
+    c_s (``astropy.Quantity``):
+        Constant speed of sound with associated unit (for instance u.km/u.s)
+
+    r_s (``astropy.Quantity``):
+        Sonic radius with associated unit (for instance u.Msun). Note: ensure
+        that this is computed with radius_sonic_point_tidal. 
+
+    M_p (``astropy.Quantity``):
+        Planetary mass with associated unit (for instance u.Mjup)
+
+    M_star (``astropy.Quantity``):
+        Stellar mass with associated unit (for instance u.Msun)
+
+    a (``astropy.Quantity``):
+        Planetary semimajor axis with associated unit (for instance u.au)
+
+    Returns
+    -------
+    velocity_r (``numpy.ndarray`` or ``float``):
+        `numpy` array or a single value of velocity at the given radius or radii
+        in unit of sound speed.
+
+    density_r (``numpy.ndarray`` or ``float``):
+        Density sampled at the radius or radii `r` and in unit of density at the
+        sonic point.
+    """
+
+    #first make all quantities cgs, then work with values only
+    c_s = c_s.to(u.cm/u.s).value
+    r_s = r_s.to(u.cm).value
+    M_p = M_p.to(u.g).value
+    M_star = M_star.to(u.g).value
+    a = a.to(u.cm).value
+    G = c.G.to(u.cm**3 / u.g / u.s**2).value
+
+    #equation for the velocity profile
+    def _eq_to_solve(v, r, c_s, r_s, M_p, M_star, a):
+        eq = v * np.exp(-v**2 / 2) - (1/r)**2*np.exp(
+        - G*M_p/(c_s**2*(r*r_s)) + G*M_p/(c_s**2*r_s) \
+        - 3*G*M_star*(r*r_s)**2/(2*a**3*c_s**2) \
+        + 3*G*M_star*r_s**2/(2*a**3*c_s**2) - 0.5)
+        return eq
+
+    if isinstance(r, np.ndarray):
+        # One line verison of Leo's initial value hack
+        #gives 0.1 below sonic point and 2 above
+        v_init = (np.array(r > 1, dtype = int) * 2 + 0.1)
+
+        #compute velocity profile
+        velocity_r = np.array([so.newton(_eq_to_solve, x0=v_init[k],
+            args=(r[k],c_s,r_s,M_p,M_star,a), 
+            maxiter = 1000) for k in range(len(r))])    
+    elif r <= 1.0:
+        velocity_r = so.newton(_eq_to_solve, x0=1E-1, args=(r,c_s,r_s,
+            M_p,M_star,a,))
+    else:
+        velocity_r = so.newton(_eq_to_solve, x0=2.0, args=(r,c_s,r_s,
+            M_p,M_star,a,))
+
+    density_r = np.exp(G*M_p/(c_s**2*(r*r_s)) - G*M_p/(c_s**2*r_s) \
+        + 3*G*M_star*(r*r_s)**2/(2*a**3*c_s**2) \
+        - 3*G*M_star*r_s**2/(2*a**3*c_s**2) + 0.5 - np.array(velocity_r)**2/2)
+
+    return velocity_r, density_r
+
+
