@@ -262,7 +262,7 @@ def structure_tidal(r, c_s, r_s, M_p, M_star, a):
         Constant speed of sound with associated unit (for instance u.km/u.s)
 
     r_s (``astropy.Quantity``):
-        Sonic radius with associated unit (for instance u.Msun). Note: ensure
+        Sonic radius with associated unit (for instance u.Rjup). Note: ensure
         that this is computed with radius_sonic_point_tidal. 
 
     M_p (``astropy.Quantity``):
