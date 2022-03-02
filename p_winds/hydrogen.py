@@ -219,7 +219,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                  mass_loss_rate, planet_mass, mean_molecular_weight_0=1.0,
                  spectrum_at_planet=None, flux_euv=None, initial_f_ion=0.0,
                  relax_solution=False, convergence=0.01, max_n_relax=10,
-                 exact_phi=False, return_mu=False, **options_solve_ivp):
+                 exact_phi=False, return_mu=False, stellar_mass = 1.,
+                 semimajor_axis = 1., **options_solve_ivp):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
     function of the radius in unit of planetary radius.
@@ -286,6 +287,15 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         the atmosphere. Equivalent to the ``mu_bar`` of Eq. A.3 in Lampón et
         al. 2020.
 
+    stellar_mass (``float``, optional):
+        Stellar mass in units of M_sun, needed for the tidal gravity
+        calculation. Default is 1.
+
+    semimajor_axis (``float``, optional):
+        Planetary semimajor axis in units of au, needed for the tidal gravity
+        calculation. Default is 1 (so the tidal gravity correction is minimal by
+        default). 
+
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
         may want to change the options ``method`` (integration method; default
@@ -315,9 +325,13 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     # from the host star, in unit of 1 / s.
     if exact_phi and spectrum_at_planet is not None:
         vs = parker.sound_speed(temperature, mean_molecular_weight_0)
-        rs = parker.radius_sonic_point(planet_mass, vs)
+        rs = parker.radius_sonic_point_tidal(planet_mass*u.Mjup, 
+            vs*(u.km/u.s), stellar_mass*u.Msun, semimajor_axis*u.au).value
         rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
-        _, rho_norm = parker.structure(radius_profile * planet_radius / rs)
+        _, rho_norm = parker.structure_tidal(
+            radius_profile * planet_radius / rs,
+            vs*(u.km/u.s), rs*u.Rjup, planet_mass*u.Mjup, stellar_mass*u.Msun,
+            semimajor_axis*u.au)
         f_outer = 0.0  # Assume completely ionized at the top of atmosphere
         phi_abs = radiative_processes_exact(
             spectrum_at_planet,
@@ -351,7 +365,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         # density at the sonic point. They will be useful to change the units of
         # the calculation aiming to avoid numerical overflows
         _vs = parker.sound_speed(temperature, _mu)
-        _rs = parker.radius_sonic_point(planet_mass, _vs)
+        _rs = parker.radius_sonic_point_tidal(planet_mass*u.Mjup, 
+            _vs*(u.km/u.s), stellar_mass*u.Msun, semimajor_axis*u.au).value
         _rhos = parker.density_sonic_point(mass_loss_rate, _rs, _vs)
         # And now normalize everything
         phi_unit = _vs * 1E5 / _rs / 7.1492E+09  # 1 / s
@@ -367,7 +382,9 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         dr_norm = np.concatenate((dr_norm, np.array([dr_norm[-1], ])))
 
         # The structure of the atmosphere
-        v_norm, rho_norm = parker.structure(r_norm)
+        v_norm, rho_norm = parker.structure_tidal(r_norm, _vs*(u.km/u.s), 
+            _rs*u.Rjup, planet_mass*u.Mjup, stellar_mass*u.Msun, 
+            semimajor_axis*u.au)
 
         return phi_norm, k1_norm, k2_norm, r_norm, dr_norm, v_norm, rho_norm
 
@@ -389,6 +406,9 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         # easily parsed inside the differential equation solver
         _tau_fun = interp1d(r, tau_initial, fill_value="extrapolate")
 
+    _v_fun = interp1d(r, velocity, fill_value="extrapolate")
+    _rho_fun = interp1d(r, density, fill_value="extrapolate")
+
     # Now let's solve the differential eq. 13 of Oklopcic & Hirata 2018
     # The differential equation in function of r
     def _fun(_r, _f, _phi, _k2):
@@ -397,7 +417,10 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         else:
             _t = _tau_fun(np.array([_r, ]))[0]
             _phi_prime = np.exp(-_t)*_phi
-        _v, _rho = parker.structure(_r)
+
+        _v = _v_fun(_r)
+        _rho = _rho_fun(_r)
+
         # In terms 1 and 2 we use the values of k2 and phi from above
         term1 = (1. - _f) / _v * _phi_prime
         term2 = _k2 * _rho * _f ** 2 / _v
@@ -407,7 +430,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
 
     # We solve it using `scipy.solve_ivp`
     sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
-                    t_eval=r, args=(phi, k2), **options_solve_ivp)
+                    t_eval=r, args=(phi, k2,), 
+                    **options_solve_ivp)
     f_r = sol['y'][0]
 
     # When `solve_ivp` has problems, it may return an array with different
@@ -433,10 +457,14 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                 # phi_abs will need to be recomputed here with the new density
                 # structure
                 vs = parker.sound_speed(temperature, mu_bar)
-                rs = parker.radius_sonic_point(planet_mass, vs)
+                rs = parker.radius_sonic_point_tidal(planet_mass*u.Mjup, 
+                    vs*(u.km/u.s), stellar_mass*u.Msun, 
+                    semimajor_axis*u.au).value
                 rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
-                _, rho_norm = parker.structure(
-                    radius_profile * planet_radius / rs)
+                _, rho_norm = parker.structure_tidal(
+                    radius_profile * planet_radius / rs,
+                    vs*(u.km/u.s), rs*u.Rjup, planet_mass*u.Mjup, 
+                    stellar_mass*u.Msun, semimajor_axis*u.au)
                 phi_abs = radiative_processes_exact(
                     spectrum_at_planet,
                     (radius_profile * planet_radius * u.Rjup).to(u.cm).value,
@@ -458,7 +486,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
             
             # And solve it again
             sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
-                            t_eval=r, args=(phi, k2), **options_solve_ivp)
+                            t_eval=r, args=(phi, k2,), 
+                            **options_solve_ivp)
             f_r = sol['y'][0]
 
             # Raise an error if the length of `f_r` is different from the length
