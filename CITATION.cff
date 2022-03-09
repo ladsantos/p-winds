@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Dos Santos"
+  given-names: "Leonardo A."
+  orcid: "https://orcid.org/0000-0002-2248-3838"
+- family-names: "Vissapragada"
+  given-names: "Shreyas"
+  orcid: "https://orcid.org/0000-0003-2527-1475"
+title: "p-winds"
+version: 1.2.3
+doi: 10.1051/0004-6361/202142038
+date-released: 2021-12-21
+url: "https://github.com/ladsantos/p-winds"
