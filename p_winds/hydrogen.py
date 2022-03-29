@@ -381,8 +381,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         # we don't know it yet, because it depends on the ion fraction in the
         # atmosphere, which is what we want to obtain. However, the optical
         # depth depends more strongly on the densities of H than the ion
-        # fraction, so a good approximation is to assume the whole atmosphere is
-        # neutral at first.
+        # fraction, so a good first approximation is to assume the whole
+        # atmosphere is neutral at first.
         column_density = np.flip(np.cumsum(np.flip(dr * density)))
         tau_initial = k1 * column_density
         # We do a dirty hack to make tau_initial and velocity a callable
