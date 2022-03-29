@@ -1,7 +1,7 @@
 # p-winds
 
 [![Documentation Status](https://readthedocs.org/projects/p-winds/badge/?version=latest)](https://p-winds.readthedocs.io/en/latest/?badge=latest) [![Build Status](https://travis-ci.com/ladsantos/p-winds.svg?branch=main)](https://travis-ci.com/ladsantos/p-winds) [![Coverage Status](https://coveralls.io/repos/github/ladsantos/p-winds/badge.svg?branch=main)](https://coveralls.io/github/ladsantos/p-winds?branch=main) [![arXiv](https://img.shields.io/badge/arXiv-2111.11370-b31b1b.svg)](https://arxiv.org/abs/2111.11370)
- [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4551621.svg)](https://doi.org/10.5281/zenodo.4551621)
+ [![Code DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4551621.svg)](https://doi.org/10.5281/zenodo.4551621)
 
 Python implementation of Parker wind models for planetary atmospheres. **So many p's!** (Hence the name for the code.)
 
@@ -9,7 +9,7 @@ The main objective of this code is to produce simplified, 1-D models of the uppe
 
 The scalable implementation of 1D models allows for atmospheric retrievals to calculate atmospheric escape rates and temperatures. In addition, the modular implementation allows for a smooth plugging-in of more complex descriptions to forward model their corresponding spectral signatures (e.g., self-consistent or 3D models).
 
-A [paper describing `p-winds`](https://arxiv.org/abs/2111.11370) and its usage for research-grade astronomical applications has been accepted for publication in the journal Astronomy & Astrophysics. If you use this code in your research, please consider citing it.
+A [paper describing `p-winds`](https://ui.adsabs.harvard.edu/abs/2022A%26A...659A..62D/abstract) and its usage for research-grade astronomical applications has been accepted for publication in the journal Astronomy & Astrophysics. If you use this code in your research, please consider citing it.
 
 Background
 ----------
