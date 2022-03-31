@@ -418,6 +418,9 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         else:
             _t = _tau_fun(np.array([_r, ]))[0]
             _phi_prime = np.exp(-_t)*_phi
+
+        # The next two lines may need to be substituted by `structure_tidal()`
+        # instead of interpolated
         _v = _v_fun(_r)
         _rho = _rho_fun(_r)
 

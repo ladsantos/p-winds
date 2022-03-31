@@ -39,4 +39,4 @@ def test_ion_fraction_spectrum(precision_threshold=1E-5):
                                 average_f_ion,
                                 spectrum_at_planet=spectrum,
                                 relax_solution=True, exact_phi=True)
-    assert abs((f_r[-1] - 0.999010) / f_r[-1]) < precision_threshold
+    assert abs((f_r[-1] - 0.998997) / f_r[-1]) < precision_threshold
