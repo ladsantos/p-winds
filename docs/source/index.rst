@@ -18,11 +18,13 @@ p-winds: Documentation
     :alt: DOI
 
 ``p-winds`` is an open-source Python implementation of Parker wind models for
-planetary atmospheres, more specifically their upper atmosphere or corona. The
+planetary atmospheres, more specifically their upper atmosphere or corona. A paper
+describing ``p-winds`` was published in `Dos Santos et al. (2022)`_. The
 code is largely based on the theoretical framework of `Oklopčić & Hirata
 (2018)`_ and `Lampón et al. (2020)`_, which themselves based their work on the
 stellar wind model of `Parker (1958)`_.
 
+.. _Dos Santos et al. (2022): https://ui.adsabs.harvard.edu/abs/2022A%26A...659A..62D/abstract
 .. _Oklopčić & Hirata (2018): https://ui.adsabs.harvard.edu/abs/2018ApJ...855L..11O/abstract
 .. _Lampón et al. (2020): https://ui.adsabs.harvard.edu/abs/2020A%26A...636A..13L/abstract
 .. _Parker (1958): https://ui.adsabs.harvard.edu/abs/1958ApJ...128..664P/abstract
