@@ -13,7 +13,7 @@ from p_winds import tools
 from astropy import units as u, constants as c
 
 __all__ = ["average_molecular_weight", "sound_speed", "radius_sonic_point",
-           "density_sonic_point", "structure","radius_sonic_point_tidal",
+           "density_sonic_point", "structure", "radius_sonic_point_tidal",
            "structure_tidal"]
 
 
@@ -118,7 +118,7 @@ def radius_sonic_point(planet_mass, sound_speed_0):
     planet_mass (``float``):
         Planetary mass in unit of Jupiter mass.
 
-    sound_speed (``float``):
+    sound_speed_0 (``float``):
         Constant speed of sound in unit of km / s.
 
     Returns
@@ -128,7 +128,8 @@ def radius_sonic_point(planet_mass, sound_speed_0):
     """
     grav = 1772.0378503888546  # Gravitational constant in unit of
     # jupiterRad * km ** 2 / s ** 2 / jupiterMass
-    return grav * planet_mass / 2 / sound_speed_0 ** 2
+    radius_sonic_point = grav * planet_mass / 2 / sound_speed_0 ** 2
+    return radius_sonic_point
 
 
 # Density at the sonic point
@@ -225,36 +226,47 @@ def structure(r, v_guess=None):
 
     return velocity_r, density_r
 
-def radius_sonic_point_tidal(M_p, c_s, M_star, a):
+def radius_sonic_point_tidal(planet_mass, sound_speed_0, star_mass,
+                             semi_major_axis):
     """
     Radius of the sonic point, i.e., where the wind speed matches the speed of
     sound, accounting for the tidal gravity of the host star.
 
     Parameters
     ----------
-    M_p (``astropy.Quantity``):
-        Planetary mass with associated unit (for instance u.Mjup)
+    planet_mass (``float``):
+        Planetary mass in unit of Jupiter mass.
 
-    c_s (``astropy.Quantity``):
-        Constant speed of sound with associated unit (for instance u.km/u.s)
+    sound_speed_0 (``float``):
+        Constant speed of sound in unit of km / s.
 
-    M_star (``astropy.Quantity``):
-        Stellar mass with associated unit (for instance u.Msun)
+    star_mass (``float``):
+        Stellar mass in unit of solar mass.
 
-    a (``astropy.Quantity``):
-        Planetary semimajor axis with associated unit (for instance u.au)
+    semi_major_axis (``float``):
+        Planetary semimajor axis in unit of AU.
 
     Returns
     -------
-    r_s (``astropy.Quantity``):
+    radius_sonic_point (``float``):
         Radius of the sonic point in units of Jupiter radius.
     """
-    v_K = np.sqrt(c.G*M_star/a)
-    M1 = np.sqrt(M_p**2/4 + 8*M_star**2 / 81 * (c_s/v_K)**6)
-    r_s = a*(((M1 + M_p/2)/(3*M_star))**(1/3) - \
-        ((M1 - M_p/2)/(3*M_star))**(1/3))
-    r_s = r_s.to(u.Rjup)
-    return r_s #in jup rads
+    grav = 1772.0378503888546  # Gravitational constant in unit of
+    # jupiterRad * km ** 2 / s ** 2 / jupiterMass
+
+    # Convert stellar mass unit to Jupiter mass and semi_major_axis unit to
+    # Jupiter radius
+    star_mass = 1047.56551466 * star_mass
+    semi_major_axis = 2092.51203911 * semi_major_axis
+
+    # Calculate the radius at the sonic point
+    v_K = np.sqrt(grav * star_mass / semi_major_axis)
+    m1 = np.sqrt(planet_mass ** 2 / 4 + 8 * star_mass ** 2 / 81 *
+                 (sound_speed_0 / v_K) ** 6)
+    radius_sonic_point = \
+        semi_major_axis * (((m1 + planet_mass / 2)/(3 * star_mass)) ** (1 / 3) \
+        - ((m1 - planet_mass / 2) / (3 * star_mass)) ** (1 / 3))
+    return radius_sonic_point
 
 # Velocity and density in function of radius at the sonic point
 def structure_tidal(r, c_s, r_s, M_p, M_star, a):
