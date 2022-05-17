@@ -217,10 +217,10 @@ def recombination(temperature):
 # Fraction of ionized hydrogen vs. radius profile
 def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                  mass_loss_rate, planet_mass, mean_molecular_weight_0=1.0,
+                 star_mass = 1.0, semimajor_axis = 1.0,
                  spectrum_at_planet=None, flux_euv=None, initial_f_ion=0.0,
                  relax_solution=False, convergence=0.01, max_n_relax=10,
-                 exact_phi=False, return_mu=False, stellar_mass = 1.,
-                 semimajor_axis = 1., **options_solve_ivp):
+                 exact_phi=False, return_mu=False, **options_solve_ivp):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
     function of the radius in unit of planetary radius.
@@ -250,6 +250,15 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         Default value is 1.0 (100% neutral H). Since its final value depend on
         the H ion fraction itself, the mean molecular weight can be
         self-consistently calculated by setting `relax_solution` to `True`.
+
+    star_mass (``float``, optional):
+        Stellar mass in units of M_sun, needed for the tidal gravity
+        calculation. Default is 1.
+
+    semimajor_axis (``float``, optional):
+        Planetary semimajor axis in units of au, needed for the tidal gravity
+        calculation. Default is 1 (so the tidal gravity correction is minimal by
+        default).
 
     spectrum_at_planet (``dict``, optional):
         Spectrum of the host star arriving at the planet covering fluxes at
@@ -287,15 +296,6 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         the atmosphere. Equivalent to the ``mu_bar`` of Eq. A.3 in Lampón et
         al. 2020.
 
-    stellar_mass (``float``, optional):
-        Stellar mass in units of M_sun, needed for the tidal gravity
-        calculation. Default is 1.
-
-    semimajor_axis (``float``, optional):
-        Planetary semimajor axis in units of au, needed for the tidal gravity
-        calculation. Default is 1 (so the tidal gravity correction is minimal by
-        default). 
-
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
         may want to change the options ``method`` (integration method; default
@@ -325,13 +325,12 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     # from the host star, in unit of 1 / s.
     if exact_phi and spectrum_at_planet is not None:
         vs = parker.sound_speed(temperature, mean_molecular_weight_0)
-        rs = parker.radius_sonic_point_tidal(planet_mass*u.Mjup, 
-            vs*(u.km/u.s), stellar_mass*u.Msun, semimajor_axis*u.au).value
+        rs = parker.radius_sonic_point_tidal(planet_mass, vs, star_mass,
+                                             semimajor_axis)
         rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
         _, rho_norm = parker.structure_tidal(
-            radius_profile * planet_radius / rs,
-            vs*(u.km/u.s), rs*u.Rjup, planet_mass*u.Mjup, stellar_mass*u.Msun,
-            semimajor_axis*u.au)
+            radius_profile * planet_radius / rs, vs, rs, planet_mass,
+            star_mass, semimajor_axis)
         f_outer = 0.0  # Assume completely ionized at the top of atmosphere
         phi_abs = radiative_processes_exact(
             spectrum_at_planet,
@@ -365,8 +364,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         # density at the sonic point. They will be useful to change the units of
         # the calculation aiming to avoid numerical overflows
         _vs = parker.sound_speed(temperature, _mu)
-        _rs = parker.radius_sonic_point_tidal(planet_mass*u.Mjup, 
-            _vs*(u.km/u.s), stellar_mass*u.Msun, semimajor_axis*u.au).value
+        _rs = parker.radius_sonic_point_tidal(planet_mass, _vs, star_mass,
+                                              semimajor_axis)
         _rhos = parker.density_sonic_point(mass_loss_rate, _rs, _vs)
         # And now normalize everything
         phi_unit = _vs * 1E5 / _rs / 7.1492E+09  # 1 / s
@@ -382,9 +381,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         dr_norm = np.concatenate((dr_norm, np.array([dr_norm[-1], ])))
 
         # The structure of the atmosphere
-        v_norm, rho_norm = parker.structure_tidal(r_norm, _vs*(u.km/u.s), 
-            _rs*u.Rjup, planet_mass*u.Mjup, stellar_mass*u.Msun, 
-            semimajor_axis*u.au)
+        v_norm, rho_norm = parker.structure_tidal(r_norm, _vs, _rs, planet_mass,
+                                                  star_mass, semimajor_axis)
 
         return phi_norm, k1_norm, k2_norm, r_norm, dr_norm, v_norm, rho_norm
 
@@ -460,14 +458,12 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                 # phi_abs will need to be recomputed here with the new density
                 # structure
                 vs = parker.sound_speed(temperature, mu_bar)
-                rs = parker.radius_sonic_point_tidal(planet_mass*u.Mjup, 
-                    vs*(u.km/u.s), stellar_mass*u.Msun, 
-                    semimajor_axis*u.au).value
+                rs = parker.radius_sonic_point_tidal(planet_mass, vs, star_mass,
+                                                     semimajor_axis)
                 rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
                 _, rho_norm = parker.structure_tidal(
-                    radius_profile * planet_radius / rs,
-                    vs*(u.km/u.s), rs*u.Rjup, planet_mass*u.Mjup, 
-                    stellar_mass*u.Msun, semimajor_axis*u.au)
+                    radius_profile * planet_radius / rs, vs, rs, planet_mass,
+                    star_mass, semimajor_axis)
                 phi_abs = radiative_processes_exact(
                     spectrum_at_planet,
                     (radius_profile * planet_radius * u.Rjup).to(u.cm).value,
