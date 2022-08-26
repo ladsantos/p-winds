@@ -50,4 +50,5 @@ using GitHub.
    installation
    api
    quickstart
+   tidal_effects
    advanced_tutorial
