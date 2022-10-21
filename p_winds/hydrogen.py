@@ -85,7 +85,8 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r,
     n_htot = 1 / (1 + f_r + f_he_to_h) * n_tot
     n_h = n_htot * (1 - f_r)
     n_hetot = n_htot * f_he_to_h
-    n_he = n_hetot * (1 - f_r)
+    n_he = n_hetot * (1 - f_r)  # Here we assume that He has the same ion
+    # fraction as H
 
     n_h_temp = n_h[::-1]
     column_h = cumtrapz(n_h_temp, r_grid_temp, initial=0)
