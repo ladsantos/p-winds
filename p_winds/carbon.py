@@ -23,19 +23,13 @@ _SOLAR_CARBON_ABUNDANCE_ = 8.43  # Asplund et al. 2009
 _SOLAR_CARBON_FRACTION_ = 10 ** (_SOLAR_CARBON_ABUNDANCE_ - 12.00)
 
 
-# Photoionization of neutral C into singly-ionized C
-def radiative_processes_cii(spectrum_at_planet, r_grid, density, f_r,
-                            h_fraction, c_fraction=_SOLAR_CARBON_FRACTION_):
+# Photoionization of C I (neutral) into C II (singly-ionized)
+def radiative_processes_ci(spectrum_at_planet):
     """
 
     Parameters
     ----------
     spectrum_at_planet
-    r_grid
-    density
-    f_r
-    h_fraction
-    c_fraction
 
     Returns
     -------
@@ -45,53 +39,13 @@ def radiative_processes_cii(spectrum_at_planet, r_grid, density, f_r,
                   spectrum_at_planet['wavelength_unit']).to(u.angstrom).value
     flux_lambda = (spectrum_at_planet['flux_lambda'] * spectrum_at_planet[
         'flux_unit']).to(u.erg / u.s / u.cm ** 2 / u.angstrom).value
-    energy = (c.h * c.c).to(u.erg * u.angstrom).value / wavelength
+    energy = ((c.h * (c.c / wavelength / u.angstrom).to(u.Hz)).to(u.eV)).value
+    energy_erg = (energy * u.eV).to(u.erg).value
 
-    # Wavelength corresponding to the energy to ionize H
-    wl_break = 911.65  # angstrom
+    # Calculate the photoionization cross-section
+    a_lambda = microphysics.general_cross_section(wavelength, species='C I')
 
-    # Index of the lambda_0 in the wavelength array
-    i_break = tools.nearest_index(wavelength, wl_break)
-
-    # Auxiliary definitions
-    wavelength_cut = wavelength[:i_break + 1]
-    flux_lambda_cut = flux_lambda[:i_break + 1]
-    energy_cut = energy[:i_break + 1]
-
-    # 2d grid of radius and wavelength
-    xx, yy = np.meshgrid(wavelength_cut, r_grid)
-    # Photoionization cross-section in function of wavelength
-    a_lambda = microphysics.hydrogen_cross_section(wavelength=xx)
-
-    # Optical depth to hydrogen photoionization
-    m_h = 1.67262192E-24  # Proton mass in unit of kg
-    r_grid_temp = r_grid[::-1]
-    # We assume that the atmosphere is made of only H + He and that other
-    # species are trace elements
-    he_fraction = 1 - h_fraction
-    f_he_to_h = he_fraction / h_fraction
-    mu = (1 + 4 * f_he_to_h) / (1 + f_r + f_he_to_h)
-
-    n_tot = density / mu / m_h
-    n_htot = 1 / (1 + f_r + f_he_to_h) * n_tot
-    n_h = n_htot * (1 - f_r)
-    n_hetot = n_htot * f_he_to_h
-    n_he = n_hetot * (1 - f_r)
-    n_ctot = n_htot * c_fraction
-
-    n_h_temp = n_h[::-1]
-    column_h = cumtrapz(n_h_temp, r_grid_temp, initial=0)
-    column_density_h = -column_h[::-1]
-    tau_rnu = column_density_h[:, None] * a_lambda
-
-    # Optical depth to helium photoionization
-    n_he_temp = n_he[::-1]
-    column_he = cumtrapz(n_he_temp, r_grid_temp, initial=0)
-    column_density_he = -column_he[::-1]
-    a_lambda_he = microphysics.helium_total_cross_section(wavelength=xx)
-    tau_rnu += column_density_he[:, None] * a_lambda_he
-
-    # XXX Still working on this function XXX
+    # XXX STILL WORKING ON THIS
     pass
 
 
@@ -183,7 +137,7 @@ def charge_transfer(temperature):
     return ct_rate_h, ct_rate_hp, ct_rate_he, ct_rate_si
 
 
-def single_ion_fraction():
+def singly_ion_fraction():
     """
 
     Returns

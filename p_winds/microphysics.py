@@ -9,6 +9,7 @@ from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 import numpy as np
 import astropy.units as u
+import astropy.constants as c
 from warnings import warn
 
 
@@ -262,7 +263,7 @@ def he_3_properties():
 
 
 # Parametrized photoionization cross-section of atoms and ions from Verner+1996
-def general_cross_section(energy, species):
+def general_cross_section(wavelength, species):
     """
     Calculates the photoionization cross-section of an atomic or ion species
     using the parametrization of Verner et al. (1996)
@@ -270,8 +271,8 @@ def general_cross_section(energy, species):
 
     Parameters
     ----------
-    energy (``float`` or ``numpy.ndarray``)
-        Photon energy in eV.
+    wavelength (``float`` or ``numpy.ndarray``)
+        Photon wavelength in angstrom.
 
     species (``str``):
         String containing the species for which you request the cross-section in
@@ -280,8 +281,12 @@ def general_cross_section(energy, species):
 
     Returns
     -------
-
+    cross_section (``float`` or ``numpy.ndarray``):
+        Cross-section in unit of cm ** (-2)
     """
+    # Convert wavelength to energy
+    energy = (c.h * c.c / wavelength / u.angstrom).to(u.eV).value
+
     parameters_dict = sigma_properties_v1996()
     energy_threshold, energy_max, energy_0, sigma_0, y_a, p, y_w, y_0, y_1 = \
         parameters_dict[species]
@@ -313,6 +318,7 @@ def general_cross_section(energy, species):
     function_y = term1 * term2 * term3
 
     cross_section = sigma_0 * function_y * mb  # cm ** (-2)
+    cross_section[energy < energy_threshold] = 0.0
 
     return cross_section
 
