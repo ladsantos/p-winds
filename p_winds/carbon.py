@@ -12,6 +12,7 @@ import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp, odeint, cumtrapz
 from scipy.interpolate import interp1d
+from scipy.special import exp1
 from p_winds import tools, microphysics
 import warnings
 
@@ -42,11 +43,49 @@ def radiative_processes_ci(spectrum_at_planet):
     energy = ((c.h * (c.c / wavelength / u.angstrom).to(u.Hz)).to(u.eV)).value
     energy_erg = (energy * u.eV).to(u.erg).value
 
-    # Calculate the photoionization cross-section
-    a_lambda = microphysics.general_cross_section(wavelength, species='C I')
+    # Auxiliary definitions
+    parameters_dict = microphysics.sigma_properties_v1996()
+    energy_threshold = parameters_dict['C I'][0]  # Ionization threshold in eV
+    wl_break = 12398.42 / energy_threshold  # C ionization threshold in angstrom
+    wl_break_he = 504  # He ionization threshold in angstrom
+    i0 = tools.nearest_index(wavelength, wl_break_he)
+    i1 = tools.nearest_index(wavelength, wl_break)
+    wavelength_cut_0 = wavelength[:i0]
+    flux_lambda_cut_0 = flux_lambda[:i0]
+    energy_cut_0 = energy_erg[:i0]
+    wavelength_cut_1 = wavelength[:i1]
+    flux_lambda_cut_1 = flux_lambda[:i1]
+    energy_cut_1 = energy_erg[:i1]
 
-    # XXX STILL WORKING ON THIS
-    pass
+    # Calculate the photoionization cross-section
+    a_lambda = microphysics.general_cross_section(wavelength_cut_1,
+                                                  species='C I')
+
+    # The flux-averaged photoionization cross-section of C I
+    a_ci = abs(simps(flux_lambda_cut_1 * a_lambda, wavelength_cut_1) /
+               simps(flux_lambda_cut_1, wavelength_cut_1))
+
+    # The flux-averaged photoionization cross-section of H is also going to be
+    # needed because it adds to the optical depth that the C atoms see.
+    a_lambda_h = microphysics.hydrogen_cross_section(
+        wavelength=wavelength_cut_1)
+    a_h = abs(simps(flux_lambda_cut_1 * a_lambda_h, wavelength_cut_1) /
+              simps(flux_lambda_cut_1, wavelength_cut_1))
+
+    # Same for the He atoms, but only up to the He ionization threshold
+    a_lambda_he = microphysics.helium_total_cross_section(wavelength_cut_0)
+    a_he = abs(simps(flux_lambda_cut_0 * a_lambda_he, wavelength_cut_0) /
+               simps(flux_lambda_cut_0, wavelength_cut_0))
+
+    # Calculate the photoionization rates
+    phi_ci = abs(simps(flux_lambda_cut_1 * a_lambda / energy_cut_1,
+                 wavelength_cut_1))
+    phi_h = abs(simps(flux_lambda_cut_1 * a_lambda_h / energy_cut_1,
+                wavelength_cut_1))
+    phi_he = abs(simps(flux_lambda_cut_0 * a_lambda_he / energy_cut_0,
+                 wavelength_cut_0))
+
+    return phi_ci, phi_h, phi_he, a_ci, a_h, a_he
 
 
 # Ionization rate of neutral C by electron impact
@@ -135,6 +174,48 @@ def charge_transfer(temperature):
     ct_rate_si = 2.1E-9
 
     return ct_rate_h, ct_rate_hp, ct_rate_he, ct_rate_si
+
+
+# Excitation of C atoms and ions by electron impact using the formulation of
+# Suno & Kato 2006
+def electron_impact_excitation(electron_temperature, excitation_energy,
+                               statistical_weight, coefficients,
+                               forbidden_transition=False):
+    """
+    Calculate th C ion excitation rates by electron impact following the
+    Type 1 formulation of Suno & Kato 2006
+    (https://ui.adsabs.harvard.edu/abs/2006ADNDT..92..407S/abstract).
+
+    Parameters
+    ----------
+    electron_temperature
+    excitation_energy
+    statistical_weight
+    coefficients
+    forbidden_transition
+
+    Returns
+    -------
+
+    """
+    # Some auxiliary definitions
+    ka, kb, kc, kd, ke = coefficients
+    if forbidden_transition is True:
+        ke = 0
+    else:
+        pass
+    electron_energy = 1.380649E-16 * electron_temperature  # erg
+    electron_energy_ev = 8.6173333E-5 * electron_temperature  # eV
+    y = excitation_energy / electron_energy
+
+    # We use the Type 1 excitation formula (Eq. 10 in Suno & Kato 2006)
+    term1 = (ka / y + kc) + kd / 2 * (1 - y)
+    term2 = np.exp(y) * exp1(y) * (kb - kc * y + kd / 2 * y ** 2 + ke / y)
+    gamma = y * (term1 + term2)
+    excitation_rate = 8.010E-8 * np.exp(-y) * gamma / statistical_weight / \
+        electron_energy_ev ** 0.5  # cm ** 3 / s
+
+    return excitation_rate
 
 
 def singly_ion_fraction():
