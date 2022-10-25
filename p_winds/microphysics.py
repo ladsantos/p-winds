@@ -407,8 +407,8 @@ def collisional_excitation(particle_density, downward_rate_coefficient,
         Einstein coefficient of the transition in unit of 1 / s.
 
     specific_energy_density (``float``):
-        Specific energy density (a.k.a. the spectrum) at frequencies near
-        nu = E_10 / h, where E_10 is the energy of the transition and h is
+        Average specific energy density (a.k.a. the spectrum) at frequencies
+        near nu = E_10 / h, where E_10 is the energy of the transition and h is
         Planck's constant. The unit should be erg / s / cm ** 2 / Hz.
 
     energy_transition (``float``):

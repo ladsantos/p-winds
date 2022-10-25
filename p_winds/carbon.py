@@ -27,14 +27,35 @@ _SOLAR_CARBON_FRACTION_ = 10 ** (_SOLAR_CARBON_ABUNDANCE_ - 12.00)
 # Photoionization of C I (neutral) into C II (singly-ionized)
 def radiative_processes_ci(spectrum_at_planet):
     """
+    Calculate the photoionization rate of carbon at null optical depth based
+    on the EUV spectrum arriving at the planet.
 
     Parameters
     ----------
-    spectrum_at_planet
+    spectrum_at_planet (``dict``):
+        Spectrum of the host star arriving at the planet covering fluxes at
+        least up to the wavelength corresponding to the energy to ionize
+        carbon (11.26 eV, or 1101 Angstrom).
 
-    Returns
+    Returns  phi_ci, phi_h, phi_he, a_ci, a_h, a_he
     -------
+    phi_ci (``float``):
+        Ionization rate of C I at null optical depth in unit of 1 / s.
 
+    phi_h (``float``):
+        Ionization rate of H I at null optical depth in unit of 1 / s.
+
+    phi_he (``float``):
+        Ionization rate of He I at null optical depth in unit of 1 / s.
+
+    a_ci (``float``):
+        Flux-averaged photoionization cross-section of C I in unit of cm ** 2.
+
+    a_h (``float``):
+        Flux-averaged photoionization cross-section of H I in unit of cm ** 2.
+
+    a_he (``float``):
+        Flux-averaged photoionization cross-section of He I in unit of cm ** 2.
     """
     wavelength = (spectrum_at_planet['wavelength'] *
                   spectrum_at_planet['wavelength_unit']).to(u.angstrom).value
@@ -218,11 +239,41 @@ def electron_impact_excitation(electron_temperature, excitation_energy,
     return excitation_rate
 
 
-def singly_ion_fraction():
+def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
+                 planet_radius, temperature, h_fraction, speed_sonic_point,
+                 radius_sonic_point,  density_sonic_point, spectrum_at_planet):
     """
 
     Returns
     -------
 
     """
-    pass
+    vs = speed_sonic_point  # km / s
+    rs = radius_sonic_point  # jupiterRad
+    rhos = density_sonic_point  # g / cm ** 3
+
+    # Recombination rates of C in unit of rs ** 2 * vs
+    alpha_rec_unit = ((rs * 7.1492E+09) ** 2 * vs * 1E5)  # cm ** 3 / s
+    alpha_rec = recombination(temperature)
+    alpha_rec = alpha_rec / alpha_rec_unit
+
+    # Hydrogen mass in unit of rhos * rs ** 3
+    m_h_unit = (rhos * (rs * 7.1492E+09) ** 3)  # Converted to g
+    m_h = 1.67262192E-24 / m_h_unit
+
+    # Photoionization rates at null optical depth at the distance of the planet
+    # from the host star, in unit of vs / rs, and the flux-averaged
+    # cross-sections in units of rs ** 2
+    phi_unit = vs * 1E5 / rs / 7.1492E+09  # 1 / s
+    phi_ci, phi_h, phi_he, a_ci, a_h, a_he = radiative_processes_ci(
+        spectrum_at_planet)
+    phi_ci = phi_ci / phi_unit
+    phi_h = phi_h / phi_unit
+    phi_he = phi_he / phi_unit
+    a_ci = a_ci / (rs * 7.1492E+09) ** 2
+    a_h = a_h / (rs * 7.1492E+09) ** 2
+    a_he = a_he / (rs * 7.1492E+09) ** 2
+
+    # Electron-impact ionization rate for C I in the same unit as the
+    # recombination rates
+    ionization_rate = electron_impact_ionization(temperature)
