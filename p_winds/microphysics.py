@@ -16,7 +16,8 @@ from warnings import warn
 __all__ = ["hydrogen_cross_section", "helium_total_cross_section",
            "helium_singlet_cross_section", "helium_triplet_cross_section",
            "he_collisional_strength", "he_3_properties",
-           "general_cross_section", "sigma_properties_v1996"]
+           "general_cross_section", "sigma_properties_v1996",
+           "collisional_excitation"]
 
 
 # Photoionization cross-section of hydrogen
@@ -375,3 +376,74 @@ def sigma_properties_v1996():
     }
     return parameters_dict
 
+
+# Collisional excitation steady-state formula
+def collisional_excitation(particle_density, downward_rate_coefficient,
+                           level_degeneracy_1, level_degeneracy_0,
+                           einstein_coefficient, specific_energy_density,
+                           energy_transition, temperature):
+    """
+    Calculates the ratio between the number of atoms or ions in the upper state
+    and in the lower state due to collisions with electrons or other particles.
+    The formula comes from Draine 2011
+    (https://ui.adsabs.harvard.edu/abs/2011piim.book.....D/abstract).
+
+    Parameters
+    ----------
+    particle_density (``float``):
+        Number density of colliding particles that cause excitation in units of
+        cm ** 3 / s.
+
+    downward_rate_coefficient (``float``):
+        Downward rate coefficient (k_10 in the formulation of Draine 2011).
+
+    level_degeneracy_1 (``float``):
+        Degeneracy of level 1 (g_1 in the formulation of Draine 2011).
+
+    level_degeneracy_0 (``float``):
+        Degeneracy of level 0 (g_0 in the formulation of Draine 2011).
+
+    einstein_coefficient (``float``):
+        Einstein coefficient of the transition in unit of 1 / s.
+
+    specific_energy_density (``float``):
+        Specific energy density (a.k.a. the spectrum) at frequencies near
+        nu = E_10 / h, where E_10 is the energy of the transition and h is
+        Planck's constant. The unit should be erg / s / cm ** 2 / Hz.
+
+    energy_transition (``float``):
+        Energy of the transition in unit of erg.
+
+    temperature (``float``):
+        Temperature of the gas in unit of K.
+
+    Returns
+    -------
+    ratio (``float``):
+        Ratio between the number of atoms in state 1 and state 0.
+    """
+    c_speed = 2.9979246E10  # Speed of light in cm / s
+    planck_h = 6.6260701E-27  # Planck's constant in erg * s
+    boltzmann_k = 1.380649E-16  # Boltzmann's constant in erg / K
+    frequency = energy_transition / planck_h
+    photon_occupation_number = c_speed ** 2 / frequency ** 3 / \
+        (8 * np.pi * planck_h) * specific_energy_density
+    # IMPORTANT: The photon occupation number equation # 17.4 seems to have a
+    # mistake in it, with c ** 3 instead of c ** 2.
+
+    # Some auxiliary definitions
+    n_c = particle_density
+    k_10 = downward_rate_coefficient
+    g_1 = level_degeneracy_1
+    g_0 = level_degeneracy_0
+    a_10 = einstein_coefficient
+    e_10 = energy_transition
+    k_01 = g_1 / g_0 * k_10 * np.exp(-e_10 / boltzmann_k / temperature)
+    n_gamma = photon_occupation_number
+
+    # Calculate equation 17.6
+    term1 = n_c * k_01 + n_gamma * g_1 / g_0 * a_10
+    term2 = n_c * k_10 + (1 + n_gamma) * a_10
+    ratio = term1 / term2
+
+    return ratio
