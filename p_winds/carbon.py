@@ -27,8 +27,8 @@ _SOLAR_SILICON_ABUNDANCE_ = 7.51  # Asplund et al. 2009
 _SOLAR_SILICON_FRACTION_ = 10 ** (_SOLAR_SILICON_ABUNDANCE_ - 12.00)
 
 
-# Photoionization of C I (neutral) into C II (singly-ionized)
-def radiative_processes_ci(spectrum_at_planet):
+# Photoionization of C I (neutral) and C II (singly-ionized)
+def radiative_processes(spectrum_at_planet):
     """
     Calculate the photoionization rate of carbon at null optical depth based
     on the EUV spectrum arriving at the planet.
@@ -45,11 +45,22 @@ def radiative_processes_ci(spectrum_at_planet):
     phi_ci (``float``):
         Ionization rate of C I at null optical depth in unit of 1 / s.
 
+    phi_cii (``float``):
+        Ionization rate of C II at null optical depth in unit of 1 / s.
+
     a_ci (``float``):
         Flux-averaged photoionization cross-section of C I in unit of cm ** 2.
 
-    a_h (``float``):
-        Flux-averaged photoionization cross-section of H I in unit of cm ** 2.
+    a_cii (``float``):
+        Flux-averaged photoionization cross-section of C II in unit of cm ** 2.
+
+    a_h_ci (``float``):
+        Flux-averaged photoionization cross-section of H I in the range absorbed
+        by C I in unit of cm ** 2.
+
+    a_h_cii (``float``):
+        Flux-averaged photoionization cross-section of H I in the range absorbed
+        by C II in unit of cm ** 2.
 
     a_he (``float``):
         Flux-averaged photoionization cross-section of He I in unit of cm ** 2.
@@ -63,31 +74,49 @@ def radiative_processes_ci(spectrum_at_planet):
 
     # Auxiliary definitions
     parameters_dict = microphysics.sigma_properties_v1996()
-    energy_threshold = parameters_dict['C I'][0]  # Ionization threshold in eV
-    wl_break = 12398.42 / energy_threshold  # C ionization threshold in angstrom
+    energy_threshold_ci = parameters_dict['C I'][0]  # Ionization threshold in
+    # eV
+    energy_threshold_cii = parameters_dict['C II'][0]  # Ionization threshold in
+    # eV
+    wl_break_ci = 12398.42 / energy_threshold_ci  # C I ionization threshold in
+    # angstrom
+    wl_break_cii = 12398.42 / energy_threshold_cii  # C II ionization threshold
+    # in angstrom
     wl_break_he = 504  # He ionization threshold in angstrom
     i0 = tools.nearest_index(wavelength, wl_break_he)
-    i1 = tools.nearest_index(wavelength, wl_break)
+    i1 = tools.nearest_index(wavelength, wl_break_ci)
+    i2 = tools.nearest_index(wavelength, wl_break_cii)
     wavelength_cut_0 = wavelength[:i0]
     flux_lambda_cut_0 = flux_lambda[:i0]
     wavelength_cut_1 = wavelength[:i1]
     flux_lambda_cut_1 = flux_lambda[:i1]
     energy_cut_1 = energy_erg[:i1]
+    wavelength_cut_2 = wavelength[:i2]
+    flux_lambda_cut_2 = flux_lambda[:i2]
+    energy_cut_2 = energy_erg[:i2]
 
     # Calculate the photoionization cross-section
-    a_lambda = microphysics.general_cross_section(wavelength_cut_1,
-                                                  species='C I')
+    a_lambda_ci = microphysics.general_cross_section(wavelength_cut_1,
+                                                     species='C I')
+    a_lambda_cii = microphysics.general_cross_section(wavelength_cut_2,
+                                                      species='C II')
 
-    # The flux-averaged photoionization cross-section of C I
-    a_ci = abs(simps(flux_lambda_cut_1 * a_lambda, wavelength_cut_1) /
+    # The flux-averaged photoionization cross-section of C I and C II
+    a_ci = abs(simps(flux_lambda_cut_1 * a_lambda_ci, wavelength_cut_1) /
                simps(flux_lambda_cut_1, wavelength_cut_1))
+    a_cii = abs(simps(flux_lambda_cut_2 * a_lambda_cii, wavelength_cut_2) /
+                simps(flux_lambda_cut_2, wavelength_cut_2))
 
     # The flux-averaged photoionization cross-section of H is also going to be
-    # needed because it adds to the optical depth that the C atoms see.
-    a_lambda_h = microphysics.hydrogen_cross_section(
+    # needed because it adds to the optical depth that C I and C II see.
+    a_lambda_h_ci = microphysics.hydrogen_cross_section(
         wavelength=wavelength_cut_1)
-    a_h = abs(simps(flux_lambda_cut_1 * a_lambda_h, wavelength_cut_1) /
-              simps(flux_lambda_cut_1, wavelength_cut_1))
+    a_h_ci = abs(simps(flux_lambda_cut_1 * a_lambda_h_ci, wavelength_cut_1) /
+                 simps(flux_lambda_cut_1, wavelength_cut_1))
+    a_lambda_h_cii = microphysics.hydrogen_cross_section(
+        wavelength=wavelength_cut_2)
+    a_h_cii = abs(simps(flux_lambda_cut_2 * a_lambda_h_cii, wavelength_cut_2) /
+                  simps(flux_lambda_cut_2, wavelength_cut_2))
 
     # Same for the He atoms, but only up to the He ionization threshold
     a_lambda_he = microphysics.helium_total_cross_section(wavelength_cut_0)
@@ -95,13 +124,15 @@ def radiative_processes_ci(spectrum_at_planet):
                simps(flux_lambda_cut_0, wavelength_cut_0))
 
     # Calculate the photoionization rates
-    phi_ci = abs(simps(flux_lambda_cut_1 * a_lambda / energy_cut_1,
+    phi_ci = abs(simps(flux_lambda_cut_1 * a_lambda_ci / energy_cut_1,
                  wavelength_cut_1))
+    phi_cii = abs(simps(flux_lambda_cut_2 * a_lambda_cii / energy_cut_2,
+                        wavelength_cut_2))
 
-    return phi_ci, a_ci, a_h, a_he
+    return phi_ci, phi_cii, a_ci, a_cii, a_h_ci, a_h_cii, a_he
 
 
-# Ionization rate of neutral C by electron impact
+# Ionization rate of C by electron impact
 def electron_impact_ionization(electron_temperature):
     """
     Calculates the electron impact ionization rate that consumes neutral C and
@@ -116,16 +147,23 @@ def electron_impact_ionization(electron_temperature):
 
     Returns
     -------
-    ionization_rate (``float``):
+    ionization_rate_ci (``float``):
         Ionization rate of neutral C into singly-ionized C in unit of
+        cm ** 3 / s.
+
+    ionization_rate_cii (``float``):
+        Ionization rate of singly-ionized C into doubly-ionized C in unit of
         cm ** 3 / s.
     """
     boltzmann_constant = 8.617333262145179e-05  # eV / K
     electron_energy = boltzmann_constant * electron_temperature
-    energy_ratio = 11.3 / electron_energy
-    ionization_rate = 6.85E-8 * (0.193 + energy_ratio) ** (-1) * \
-        energy_ratio ** 0.25 * np.exp(-energy_ratio)
-    return ionization_rate
+    energy_ratio_ci = 11.3 / electron_energy
+    energy_ratio_cii = 24.4 / electron_energy
+    ionization_rate_ci = 6.85E-8 * (0.193 + energy_ratio_ci) ** (-1) * \
+        energy_ratio_ci ** 0.25 * np.exp(-energy_ratio_ci)
+    ionization_rate_cii = 1.86E-8 * (0.286 + energy_ratio_cii) ** (-1) * \
+        energy_ratio_cii ** 0.24 * np.exp(-energy_ratio_cii)
+    return ionization_rate_ci, ionization_rate_cii
 
 
 # Recombination of singly-ionized C into neutral C
@@ -133,7 +171,10 @@ def recombination(electron_temperature):
     """
     Calculates the rate of recombination of singly-ionized C with an electron to
     produce a neutral C atom. Based on the formulation of Woodall et al. 2007
-    (https://ui.adsabs.harvard.edu/abs/2007A%26A...466.1197W/abstract).
+    (https://ui.adsabs.harvard.edu/abs/2007A%26A...466.1197W/abstract). Also
+    calculates the recombination of doubly-ionized C with an electron to produce
+    a singly-ionized C ion. Based on the formulation of Aldrovandi & Péquignot
+    1973 (https://ui.adsabs.harvard.edu/abs/1973A%26A....25..137A/abstract).
 
     Parameters
     ----------
@@ -143,14 +184,15 @@ def recombination(electron_temperature):
 
     Returns
     -------
-    alpha_rec (``float``):
+    alpha_rec_ci (``float``):
         Recombination rate of C in units of cm ** 3 / s.
     """
-    alpha_rec = 4.67E-12 * (300 / electron_temperature) ** 0.60
-    return alpha_rec
+    alpha_rec_ci = 4.67E-12 * (300 / electron_temperature) ** 0.60
+    alpha_rec_cii = 2.3E-12 * (1000 / electron_temperature) ** 0.645
+    return alpha_rec_ci, alpha_rec_cii
 
 
-# Charge transfer between a singly-ionized C and neutral H
+# Charge transfer between C and H, He and Si
 def charge_transfer(temperature):
     """
     Calculates the charge exchange rates of C with H, He and Si nuclei. Based on
@@ -271,8 +313,9 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
 
     # Recombination rates of C in unit of rs ** 2 * vs
     alpha_rec_unit = ((rs * 7.1492E+09) ** 2 * vs * 1E5)  # cm ** 3 / s
-    alpha_rec = recombination(temperature)
-    alpha_rec = alpha_rec / alpha_rec_unit
+    alpha_rec_ci, alpha_rec_cii = recombination(temperature)
+    alpha_rec_ci = alpha_rec_ci / alpha_rec_unit
+    alpha_rec_cii = alpha_rec_cii / alpha_rec_unit
 
     # Hydrogen mass in unit of rhos * rs ** 3
     m_h_unit = (rhos * (rs * 7.1492E+09) ** 3)  # Converted to g
@@ -282,17 +325,19 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     # from the host star, in unit of vs / rs, and the flux-averaged
     # cross-sections in units of rs ** 2
     phi_unit = vs * 1E5 / rs / 7.1492E+09  # 1 / s
-    phi_ci, a_ci, a_h, a_he = radiative_processes_ci(
+    phi_ci, phi_cii, a_ci, a_cii, a_h_ci, a_h_cii, a_he = radiative_processes(
         spectrum_at_planet)
     phi_ci = phi_ci / phi_unit
     a_ci = a_ci / (rs * 7.1492E+09) ** 2
-    a_h = a_h / (rs * 7.1492E+09) ** 2
+    a_h_ci = a_h_ci / (rs * 7.1492E+09) ** 2
     a_he = a_he / (rs * 7.1492E+09) ** 2
 
     # Electron-impact ionization rate for C I in the same unit as the
     # recombination rates
-    ionization_rate = electron_impact_ionization(temperature)
-    ionization_rate = ionization_rate / alpha_rec_unit
+    ionization_rate_ci, ionization_rate_cii = \
+        electron_impact_ionization(temperature)
+    ionization_rate_ci = ionization_rate_ci / alpha_rec_unit
+    ionization_rate_cii = ionization_rate_cii / alpha_rec_unit
 
     # Charge transfer rates in the same unit as the recombination rates
     ct_rate_hp, ct_rate_h, ct_rate_he, ct_rate_si = charge_transfer(temperature)
@@ -333,7 +378,7 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     k1 = h_fraction / (h_fraction + 4 * he_fraction + 6 * c_fraction) / m_h
     k2 = he_fraction / (h_fraction + 4 * he_fraction + 6 * c_fraction) / m_h
     k3 = c_fraction / (h_fraction + 4 * he_fraction + 6 * c_fraction) / m_h
-    tau_c_h = k1 * a_h * column_density_h_0
+    tau_c_h = k1 * a_h_ci * column_density_h_0
     tau_c_he = k2 * a_he * column_density_he_0
     tau_c_initial = \
         initial_f_c_ion * k3 * a_ci * column_density + tau_c_h + tau_c_he
@@ -360,7 +405,7 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
         # Terms of df_dr
         tau = _tau_c_fun(np.array([_r, ]))[0]
         term1 = (1 - f_c) * phi_ci * np.exp(-tau)  # Photoionization
-        term2 = (1 - f_c) * n_e * ionization_rate  # Electron-impact ionization
+        term2 = (1 - f_c) * n_e * ionization_rate_ci  # Electron-impact ionization
         term3 = (1 - f_c) * n_h_plus * ct_rate_hp  # Charge exchange with H+
         term4 = (1 - f_c) * n_he_plus * ct_rate_he  # Charge exchange with He+
         term5 = f_c * n_e * alpha_rec  # Recombination
