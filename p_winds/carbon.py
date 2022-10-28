@@ -185,7 +185,10 @@ def recombination(electron_temperature):
     Returns
     -------
     alpha_rec_ci (``float``):
-        Recombination rate of C in units of cm ** 3 / s.
+        Recombination rate of C II into C I in units of cm ** 3 / s.
+
+    alpha_rec_cii (``float``):
+        Recombination rate of C III into C II in units of cm ** 3 / s.
     """
     alpha_rec_ci = 4.67E-12 * (300 / electron_temperature) ** 0.60
     alpha_rec_cii = 2.3E-12 * (1000 / electron_temperature) ** 0.645
@@ -199,9 +202,12 @@ def charge_transfer(temperature):
     the formulation of Stancil et al. 1998
     (https://ui.adsabs.harvard.edu/abs/1998ApJ...502.1006S/abstract),
     Woodall et al. 2007
-    (https://ui.adsabs.harvard.edu/abs/2007A%26A...466.1197W/abstract) and
+    (https://ui.adsabs.harvard.edu/abs/2007A%26A...466.1197W/abstract),
     Glover & Jappsen 2007
-    (https://ui.adsabs.harvard.edu/abs/2007ApJ...666....1G/abstract).
+    (https://ui.adsabs.harvard.edu/abs/2007ApJ...666....1G/abstract),
+    Kingdon & Ferland 1996
+    (https://ui.adsabs.harvard.edu/abs/1996ApJS..106..205K/abstract), and
+    Brown 1972 (https://ui.adsabs.harvard.edu/abs/1972ApJ...174..511B/abstract).
 
     Parameters
     ----------
@@ -210,25 +216,41 @@ def charge_transfer(temperature):
 
     Returns
     -------
-    ct_rate_hp (``float``):
+    ct_rate_ci_hp (``float``):
         Charge transfer rate between neutral C and H+ in units of cm ** 3 / s.
 
-    ct_rate_h (``float``):
+    ct_rate_cii_h (``float``):
         Charge transfer rate between C+ and neutral H in units of cm ** 3 / s.
 
-    ct_rate_he (``float``):
-        Charge transfer rate between neutral C and He in units of cm ** 3 / s.
+    ct_rate_ci_hep (``float``):
+        Charge transfer rate between neutral C and He+ in units of cm ** 3 / s.
 
-    ct_rate_si (``float``):
+    ct_rate_cii_sii (``float``):
         Charge transfer rate between C+ and neutral Si in units of cm ** 3 / s.
-    """
-    ct_rate_hp = 1.31E-15 * (300 / temperature) ** (-0.213)
-    ct_rate_h = 6.30E-17 * (300 / temperature) ** (-1.96) * \
-        np.exp(-1.7E5 / temperature)
-    ct_rate_he = 2.5E-15 * (300 / temperature) ** (-1.597)
-    ct_rate_si = 2.1E-9
 
-    return ct_rate_hp, ct_rate_h, ct_rate_he, ct_rate_si
+    ct_rate_ciii_h (``float``)
+        Charge transfer rate between C++ and neutral H in units of cm ** 3 / s.
+
+    ct_rate_ciii_he (``float``)
+        Charge transfer rate between C++ and neutral He in units of cm ** 3 / s.
+    """
+    # Recombination of C II into C I
+    ct_rate_cii_h = 6.30E-17 * (300 / temperature) ** (-1.96) * \
+        np.exp(-1.7E5 / temperature)
+    ct_rate_cii_sii = 2.1E-9
+
+    # Ionization of C I into C II
+    ct_rate_ci_hp = 1.31E-15 * (300 / temperature) ** (-0.213)
+    ct_rate_ci_hep = 2.5E-15 * (300 / temperature) ** (-1.597)
+
+    # Recombination of C III into C II
+    ct_rate_ciii_h = 1.67E-4 * (temperature / 10000) ** 2.79 * \
+        (1 + 304.72 * np.exp(-4.07 * temperature / 10000))
+    ct_rate_ciii_he = 1.23E-9  # Very approximated from Brown 1972, but should
+    # be good enough for temperatures near 10,000 K
+
+    return ct_rate_ci_hp, ct_rate_cii_h, ct_rate_ci_hep, ct_rate_cii_sii, \
+        ct_rate_ciii_h, ct_rate_ciii_he
 
 
 # Excitation of C atoms and ions by electron impact using the formulation of
@@ -340,15 +362,14 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     ionization_rate_cii = ionization_rate_cii / alpha_rec_unit
 
     # Charge transfer rates in the same unit as the recombination rates
-    ct_rate_hp, ct_rate_h, ct_rate_he, ct_rate_si = charge_transfer(temperature)
-    ct_rate_h = ct_rate_h / alpha_rec_unit
-    ct_rate_hp = ct_rate_hp / alpha_rec_unit
-    ct_rate_he = ct_rate_he / alpha_rec_unit
-    ct_rate_si = ct_rate_si / alpha_rec_unit
-    # ct_rate_h is the conversion of neutral C to C+
-    # ct_rate_hp is the conversion of C+ to neutral C
-    # ct_rate_he is the conversion of neutral C to C+
-    # ct_rate_si is the conversion of C+ to neutral C
+    ct_rate_ci_hp, ct_rate_cii_h, ct_rate_ci_hep, ct_rate_cii_sii, \
+        ct_rate_ciii_h, ct_rate_ciii_he = charge_transfer(temperature)
+    ct_rate_cii_h = ct_rate_cii_h / alpha_rec_unit
+    ct_rate_ci_hp = ct_rate_ci_hp / alpha_rec_unit
+    ct_rate_ci_hep = ct_rate_ci_hep / alpha_rec_unit
+    ct_rate_cii_sii = ct_rate_cii_sii / alpha_rec_unit
+    ct_rate_ciii_h = ct_rate_ciii_h / alpha_rec_unit
+    ct_rate_ciii_he = ct_rate_ciii_he / alpha_rec_unit
 
     # We solve the steady-state ionization balance in a similar way that we do
     # for He
@@ -406,10 +427,10 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
         tau = _tau_c_fun(np.array([_r, ]))[0]
         term1 = (1 - f_c) * phi_ci * np.exp(-tau)  # Photoionization
         term2 = (1 - f_c) * n_e * ionization_rate_ci  # Electron-impact ionization
-        term3 = (1 - f_c) * n_h_plus * ct_rate_hp  # Charge exchange with H+
-        term4 = (1 - f_c) * n_he_plus * ct_rate_he  # Charge exchange with He+
-        term5 = f_c * n_e * alpha_rec  # Recombination
-        term6 = f_c * n_h0 * ct_rate_h  # Charge exchange with neutral H
+        term3 = (1 - f_c) * n_h_plus * ct_rate_ci_hp  # Charge exchange with H+
+        term4 = (1 - f_c) * n_he_plus * ct_rate_ci_hep  # Charge exchange with He+
+        term5 = f_c * n_e * alpha_rec_ci  # Recombination
+        term6 = f_c * n_h0 * ct_rate_cii_h  # Charge exchange with neutral H
         df_dr = (term1 + term2 + term3 + term4 - term5 - term6) / _v
 
         return df_dr
