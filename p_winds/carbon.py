@@ -17,7 +17,8 @@ from p_winds import tools, microphysics
 import warnings
 
 
-__all__ = []
+__all__ = ["radiative_processes", "electron_impact_ionization", "recombination",
+           "charge_transfer", "electron_impact_excitation", "ion_fraction"]
 
 
 # Some hard coding based on the astrophysical literature
