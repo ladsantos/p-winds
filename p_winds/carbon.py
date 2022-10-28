@@ -20,8 +20,11 @@ import warnings
 __all__ = []
 
 
+# Some hard coding based on the astrophysical literature
 _SOLAR_CARBON_ABUNDANCE_ = 8.43  # Asplund et al. 2009
 _SOLAR_CARBON_FRACTION_ = 10 ** (_SOLAR_CARBON_ABUNDANCE_ - 12.00)
+_SOLAR_SILICON_ABUNDANCE_ = 7.51  # Asplund et al. 2009
+_SOLAR_SILICON_FRACTION_ = 10 ** (_SOLAR_SILICON_ABUNDANCE_ - 12.00)
 
 
 # Photoionization of C I (neutral) into C II (singly-ionized)
@@ -37,16 +40,10 @@ def radiative_processes_ci(spectrum_at_planet):
         least up to the wavelength corresponding to the energy to ionize
         carbon (11.26 eV, or 1101 Angstrom).
 
-    Returns  phi_ci, phi_h, phi_he, a_ci, a_h, a_he
+    Returns
     -------
     phi_ci (``float``):
         Ionization rate of C I at null optical depth in unit of 1 / s.
-
-    phi_h (``float``):
-        Ionization rate of H I at null optical depth in unit of 1 / s.
-
-    phi_he (``float``):
-        Ionization rate of He I at null optical depth in unit of 1 / s.
 
     a_ci (``float``):
         Flux-averaged photoionization cross-section of C I in unit of cm ** 2.
@@ -73,7 +70,6 @@ def radiative_processes_ci(spectrum_at_planet):
     i1 = tools.nearest_index(wavelength, wl_break)
     wavelength_cut_0 = wavelength[:i0]
     flux_lambda_cut_0 = flux_lambda[:i0]
-    energy_cut_0 = energy_erg[:i0]
     wavelength_cut_1 = wavelength[:i1]
     flux_lambda_cut_1 = flux_lambda[:i1]
     energy_cut_1 = energy_erg[:i1]
@@ -101,12 +97,8 @@ def radiative_processes_ci(spectrum_at_planet):
     # Calculate the photoionization rates
     phi_ci = abs(simps(flux_lambda_cut_1 * a_lambda / energy_cut_1,
                  wavelength_cut_1))
-    phi_h = abs(simps(flux_lambda_cut_1 * a_lambda_h / energy_cut_1,
-                wavelength_cut_1))
-    phi_he = abs(simps(flux_lambda_cut_0 * a_lambda_he / energy_cut_0,
-                 wavelength_cut_0))
 
-    return phi_ci, phi_h, phi_he, a_ci, a_h, a_he
+    return phi_ci, a_ci, a_h, a_he
 
 
 # Ionization rate of neutral C by electron impact
@@ -161,9 +153,9 @@ def recombination(electron_temperature):
 # Charge transfer between a singly-ionized C and neutral H
 def charge_transfer(temperature):
     """
-    Calculates the rate of conversion of ionized C into neutral C by charge
-    exchange with H, He and Si nuclei. Based on the formulation of Stancil et
-    al. 1998 (https://ui.adsabs.harvard.edu/abs/1998ApJ...502.1006S/abstract),
+    Calculates the charge exchange rates of C with H, He and Si nuclei. Based on
+    the formulation of Stancil et al. 1998
+    (https://ui.adsabs.harvard.edu/abs/1998ApJ...502.1006S/abstract),
     Woodall et al. 2007
     (https://ui.adsabs.harvard.edu/abs/2007A%26A...466.1197W/abstract) and
     Glover & Jappsen 2007
@@ -176,25 +168,25 @@ def charge_transfer(temperature):
 
     Returns
     -------
-    ct_rate_h (``float``):
-        Charge transfer rate between neutral C and H in units of cm ** 3 / s.
-
     ct_rate_hp (``float``):
-        Charge transfer rate between ionized C and H in units of cm ** 3 / s.
+        Charge transfer rate between neutral C and H+ in units of cm ** 3 / s.
+
+    ct_rate_h (``float``):
+        Charge transfer rate between C+ and neutral H in units of cm ** 3 / s.
 
     ct_rate_he (``float``):
         Charge transfer rate between neutral C and He in units of cm ** 3 / s.
 
     ct_rate_si (``float``):
-        Charge transfer rate between ionized C and Si in units of cm ** 3 / s.
+        Charge transfer rate between C+ and neutral Si in units of cm ** 3 / s.
     """
-    ct_rate_h = 1.31E-15 * (300 / temperature) ** (-0.213)
-    ct_rate_hp = 6.30E-17 * (300 / temperature) ** (-1.96) * \
+    ct_rate_hp = 1.31E-15 * (300 / temperature) ** (-0.213)
+    ct_rate_h = 6.30E-17 * (300 / temperature) ** (-1.96) * \
         np.exp(-1.7E5 / temperature)
     ct_rate_he = 2.5E-15 * (300 / temperature) ** (-1.597)
     ct_rate_si = 2.1E-9
 
-    return ct_rate_h, ct_rate_hp, ct_rate_he, ct_rate_si
+    return ct_rate_hp, ct_rate_h, ct_rate_he, ct_rate_si
 
 
 # Excitation of C atoms and ions by electron impact using the formulation of
@@ -240,9 +232,34 @@ def electron_impact_excitation(electron_temperature, excitation_energy,
 
 
 def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
-                 planet_radius, temperature, h_fraction, speed_sonic_point,
-                 radius_sonic_point,  density_sonic_point, spectrum_at_planet):
+                 helium_ion_fraction, planet_radius, temperature, h_fraction,
+                 speed_sonic_point, radius_sonic_point, density_sonic_point,
+                 spectrum_at_planet, c_fraction=_SOLAR_CARBON_FRACTION_,
+                 initial_f_c_ion=0.0, relax_solution=False, convergence=0.01,
+                 max_n_relax=10, method='odeint', **options_solve_ivp):
     """
+
+    Parameters
+    ----------
+    radius_profile
+    velocity
+    density
+    hydrogen_ion_fraction
+    helium_ion_fraction
+    planet_radius
+    temperature
+    h_fraction
+    speed_sonic_point
+    radius_sonic_point
+    density_sonic_point
+    spectrum_at_planet
+    c_fraction
+    initial_f_c_ion
+    relax_solution
+    convergence
+    max_n_relax
+    method
+    options_solve_ivp
 
     Returns
     -------
@@ -265,11 +282,9 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     # from the host star, in unit of vs / rs, and the flux-averaged
     # cross-sections in units of rs ** 2
     phi_unit = vs * 1E5 / rs / 7.1492E+09  # 1 / s
-    phi_ci, phi_h, phi_he, a_ci, a_h, a_he = radiative_processes_ci(
+    phi_ci, a_ci, a_h, a_he = radiative_processes_ci(
         spectrum_at_planet)
     phi_ci = phi_ci / phi_unit
-    phi_h = phi_h / phi_unit
-    phi_he = phi_he / phi_unit
     a_ci = a_ci / (rs * 7.1492E+09) ** 2
     a_h = a_h / (rs * 7.1492E+09) ** 2
     a_he = a_he / (rs * 7.1492E+09) ** 2
@@ -277,3 +292,103 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     # Electron-impact ionization rate for C I in the same unit as the
     # recombination rates
     ionization_rate = electron_impact_ionization(temperature)
+    ionization_rate = ionization_rate / alpha_rec_unit
+
+    # Charge transfer rates in the same unit as the recombination rates
+    ct_rate_hp, ct_rate_h, ct_rate_he, ct_rate_si = charge_transfer(temperature)
+    ct_rate_h = ct_rate_h / alpha_rec_unit
+    ct_rate_hp = ct_rate_hp / alpha_rec_unit
+    ct_rate_he = ct_rate_he / alpha_rec_unit
+    ct_rate_si = ct_rate_si / alpha_rec_unit
+    # ct_rate_h is the conversion of neutral C to C+
+    # ct_rate_hp is the conversion of C+ to neutral C
+    # ct_rate_he is the conversion of neutral C to C+
+    # ct_rate_si is the conversion of C+ to neutral C
+
+    # We solve the steady-state ionization balance in a similar way that we do
+    # for He
+
+    # The radius in unit of radius at the sonic point
+    r = radius_profile * planet_radius / rs
+    dr = np.diff(r)
+    dr = np.concatenate((dr, np.array([r[-1], ])))
+    mock_f_h_ion_r = interp1d(r, hydrogen_ion_fraction,
+                              fill_value="extrapolate")
+    mock_f_he_ion_r = interp1d(r, helium_ion_fraction,
+                              fill_value="extrapolate")
+    mock_v_r = interp1d(r, velocity, fill_value="extrapolate")
+    mock_rho_r = interp1d(r, density, fill_value="extrapolate")
+
+    # With all this setup done, now we need to assume something about the
+    # distribution of neutral C in the atmosphere. Let's assume it based on the
+    # initial guess input.
+    column_density = np.flip(np.cumsum(np.flip(dr * density)))  # Total column
+                                                                # density
+    column_density_h_0 = np.flip(  # Column density of atomic H only
+        np.cumsum(np.flip(dr * density * (1 - hydrogen_ion_fraction))))
+    he_fraction = 1 - h_fraction
+    column_density_he_0 = np.flip(  # Column density of atomic He only
+        np.cumsum(np.flip(dr * density * he_fraction *
+                          (1 - helium_ion_fraction))))
+    k1 = h_fraction / (h_fraction + 4 * he_fraction + 6 * c_fraction) / m_h
+    k2 = he_fraction / (h_fraction + 4 * he_fraction + 6 * c_fraction) / m_h
+    k3 = c_fraction / (h_fraction + 4 * he_fraction + 6 * c_fraction) / m_h
+    tau_c_h = k1 * a_h * column_density_h_0
+    tau_c_he = k2 * a_he * column_density_he_0
+    tau_c_initial = \
+        initial_f_c_ion * k3 * a_ci * column_density + tau_c_h + tau_c_he
+    # We do a dirty hack to make tau_initial a callable function so it's easily
+    # parsed inside the differential equation solver
+    _tau_c_fun = interp1d(r, tau_c_initial, fill_value="extrapolate")
+
+    # The differential equation
+    def _fun(_r, y):
+        f_c = y
+
+        _v = mock_v_r(np.array([_r, ]))[0]
+        _rho = mock_rho_r(np.array([_r, ]))[0]
+        f_h_ion = mock_f_h_ion_r(np.array([_r, ]))[0]  # Fraction of H+
+        f_he_ion = mock_f_he_ion_r(np.array([_r, ]))[0]
+
+        # Assume the number density of electrons is equal to the number density
+        # of H ions + He ions
+        n_e = k1 * _rho * f_h_ion + k2 * _rho * f_he_ion  # Number density of electrons
+        n_h_plus = k1 * _rho * f_h_ion    # Number density of ionized H
+        n_h0 = k1 * _rho * (1 - f_h_ion)  # Number density of atomic H
+        n_he_plus = k2 * _rho * (1 - f_he_ion)
+
+        # Terms of df_dr
+        tau = _tau_c_fun(np.array([_r, ]))[0]
+        term1 = (1 - f_c) * phi_ci * np.exp(-tau)  # Photoionization
+        term2 = (1 - f_c) * n_e * ionization_rate  # Electron-impact ionization
+        term3 = (1 - f_c) * n_h_plus * ct_rate_hp  # Charge exchange with H+
+        term4 = (1 - f_c) * n_he_plus * ct_rate_he  # Charge exchange with He+
+        term5 = f_c * n_e * alpha_rec  # Recombination
+        term6 = f_c * n_h0 * ct_rate_h  # Charge exchange with neutral H
+        df_dr = (term1 + term2 + term3 + term4 - term5 - term6) / _v
+
+        return df_dr
+
+    if method == 'odeint':
+        # Since 'odeint' yields only warnings when precision is lost or when
+        # there is a problem, we transform these warnings into an exception
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error")
+            try:
+                sol = odeint(_fun, y0=initial_f_c_ion, t=r, tfirst=True)
+            except Warning:
+                raise RuntimeError('The solver ``odeint`` failed to obtain a '
+                                   'solution.')
+        f_c_r = np.copy(sol).T[0]
+    else:
+        # We solve it using `scipy.solve_ivp`
+        sol = solve_ivp(_fun, (r[0], r[-1],), initial_f_c_ion, t_eval=r,
+                        method=method, **options_solve_ivp)
+        f_c_r = sol['y'][0]
+        # When `solve_ivp` has problems, it may return an array with different
+        # size than `r`. So we raise an exception if this happens
+        if len(f_c_r) != len(r):
+            raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
+                               ' solution.')
+
+    return f_c_r
