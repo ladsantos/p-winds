@@ -15,9 +15,8 @@ from warnings import warn
 
 __all__ = ["hydrogen_cross_section", "helium_total_cross_section",
            "helium_singlet_cross_section", "helium_triplet_cross_section",
-           "he_collisional_strength", "he_3_properties",
-           "general_cross_section", "sigma_properties_v1996",
-           "collisional_excitation"]
+           "he_collisional_strength", "general_cross_section",
+           "sigma_properties_v1996", "collisional_excitation"]
 
 
 # Photoionization cross-section of hydrogen
@@ -215,52 +214,6 @@ def he_collisional_strength():
         [5.75,            3.167E-2,    3.944E-1,    2.677E-1],
     ])
     return array
-
-
-# Line properties of the 1.083 microns He triplet taken from the NIST database
-# https://www.nist.gov/pml/atomic-spectra-database
-def he_3_properties():
-    """
-    Returns the central wavelengths in air, oscillator strengths and the
-    Einstein coefficient of the helium triplet in 1.083 microns. The values
-    were taken from the NIST database:
-    https://www.nist.gov/pml/atomic-spectra-database
-
-    Returns
-    -------
-    lambda_0 (``float``):
-        Central wavelength in air of line 0 in unit of m.
-
-    lambda_1 (``float``):
-        Central wavelength in air of line 1 in unit of m.
-
-    lambda_2 (``float``):
-        Central wavelength in air of line 2 in unit of m.
-
-    f_0 (``float``):
-        Oscillator strength of line 0 (unitless).
-
-    f_1 (``float``):
-        Oscillator strength of line 1 (unitless).
-
-    f_2 (``float``):
-        Oscillator strength of line 2 (unitless).
-
-    a_ij (``float``):
-        Einstein coefficient of the whole triplet in unit of 1 / s.
-    """
-    # Central wavelengths in units of m
-    lambda_0 = 1.082909114 * 1E-6
-    lambda_1 = 1.083025010 * 1E-6
-    lambda_2 = 1.083033977 * 1E-6
-    # Oscillator strengths
-    f_0 = 5.9902e-02
-    f_1 = 1.7974e-01
-    f_2 = 2.9958e-01
-    # Einstein coefficient in units of s ** (-1)
-    a_ij = 1.0216e+07
-
-    return lambda_0, lambda_1, lambda_2, f_0, f_1, f_2, a_ij
 
 
 # Parametrized photoionization cross-section of atoms and ions from Verner+1996
