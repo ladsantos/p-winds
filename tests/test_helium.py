@@ -24,10 +24,7 @@ r = np.logspace(0, np.log10(20), 100)  # Radius in unit of planetary radii
 data_test_url = 'https://raw.githubusercontent.com/ladsantos/p-winds/main/data/solar_spectrum_scaled_lambda.dat'
 
 
-# Let's test if the code is producing reasonable outputs. The ``ion_fraction()``
-# function for HD 209458 b should produce a profile with an ion fraction of
-# approximately one near the planetary surface, and approximately 4E-4 in the
-# outer layers.
+# Let's test if the code is producing reasonable outputs.
 def test_population_fraction_spectrum():
     units = {'wavelength': u.angstrom, 'flux': u.erg / u.s / u.cm ** 2 /
                                                u.angstrom}
