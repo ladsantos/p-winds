@@ -465,6 +465,9 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     r = radius_profile * planet_radius / rs
     dr = np.diff(r)
     dr = np.concatenate((dr, np.array([r[-1], ])))
+
+    # Some mock functions that will allow us to parse the values of ion
+    # fraction, velocity and density in function of radius
     mock_f_h_ion_r = interp1d(r, hydrogen_ion_fraction,
                               fill_value="extrapolate")
     mock_f_he_ion_r = interp1d(r, helium_ion_fraction,
@@ -520,15 +523,23 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
 
         # Terms of dfcii_dr
         tau_ci = _tau_ci_fun(np.array([_r, ]))[0]
-        term11 = (1 - f_cii - f_ciii) * phi_ci * np.exp(-tau_ci)  # Photoionization
-        term12 = (1 - f_cii - f_ciii) * n_e * ionization_rate_ci  # Electron-impact ionization
-        term13 = (1 - f_cii - f_ciii) * n_h_plus * ct_rate_ci_hp  # Charge exchange with H+
-        term14 = (1 - f_cii - f_ciii) * n_he_plus * ct_rate_ci_hep  # Charge exchange with He+
+        term11 = (1 - f_cii - f_ciii) * phi_ci * np.exp(-tau_ci)  # Photo-
+        # ionization
+        term12 = (1 - f_cii - f_ciii) * n_e * ionization_rate_ci  # Electron-
+        # impact ionization
+        term13 = (1 - f_cii - f_ciii) * n_h_plus * ct_rate_ci_hp  # Charge
+        # exchange with H+
+        term14 = (1 - f_cii - f_ciii) * n_he_plus * ct_rate_ci_hep  # Charge
+        # exchange with He+
         term15 = f_cii * n_e * alpha_rec_ci  # Recombination of C II into C I
-        term16 = f_cii * n_h0 * ct_rate_cii_h  # Charge exchange of C II with neutral H
-        term17 = f_ciii * n_e * alpha_rec_cii  # Recombination of C III into C II
-        term18 = f_ciii * n_h0 * ct_rate_ciii_h  # Charge exchange of C III with neutral H
-        term19 = f_ciii * n_he0 * ct_rate_ciii_he  # Charge exchange of C III with neutral He
+        term16 = f_cii * n_h0 * ct_rate_cii_h  # Charge exchange of C II with
+        # neutral H
+        term17 = f_ciii * n_e * alpha_rec_cii  # Recombination of C III into
+        # C II
+        term18 = f_ciii * n_h0 * ct_rate_ciii_h  # Charge exchange of C III with
+        # neutral H
+        term19 = f_ciii * n_he0 * ct_rate_ciii_he  # Charge exchange of C III
+        # with neutral He
         dfcii_dr = (term11 + term12 + term13 + term14 - term15 - term16 +
                     term17 + term18 + term19) / _v
 
@@ -564,59 +575,59 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
             raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
                                ' solution.')
 
-        # For the sake of self-consistency, there is the option of repeating the
-        # calculation of f_r by updating the optical depth with the new ion
-        # fractions.
-        if relax_solution is True:
-            for i in range(max_n_relax):
-                previous_f_cii_r = np.copy(f_cii_r)
-                previous_f_ciii_r = np.copy(f_ciii_r)
+    # For the sake of self-consistency, there is the option of repeating the
+    # calculation of f_r by updating the optical depth with the new ion
+    # fractions.
+    if relax_solution is True:
+        for i in range(max_n_relax):
+            previous_f_cii_r = np.copy(f_cii_r)
+            previous_f_ciii_r = np.copy(f_ciii_r)
 
-                # Re-calculate the column densities
-                tau_ci = \
-                    k3 * a_ci * np.flip(np.cumsum(
-                        np.flip(dr * density * (1 - f_cii_r - f_ciii_r)))) + \
-                    tau_ci_h + tau_c_he
-                tau_cii = k3 * a_cii * np.flip(
-                    np.cumsum(np.flip(dr * density * f_cii_r))) + tau_cii_h + \
-                    tau_c_he
-                _tau_ci_fun = interp1d(r, tau_ci, fill_value="extrapolate")
-                _tau_cii_fun = interp1d(r, tau_cii, fill_value="extrapolate")
+            # Re-calculate the column densities
+            tau_ci = \
+                k3 * a_ci * np.flip(np.cumsum(
+                    np.flip(dr * density * (1 - f_cii_r - f_ciii_r)))) + \
+                tau_ci_h + tau_c_he
+            tau_cii = k3 * a_cii * np.flip(
+                np.cumsum(np.flip(dr * density * f_cii_r))) + tau_cii_h + \
+                tau_c_he
+            _tau_ci_fun = interp1d(r, tau_ci, fill_value="extrapolate")
+            _tau_cii_fun = interp1d(r, tau_cii, fill_value="extrapolate")
 
-                # Solve it again
-                if method == 'odeint':
-                    sol = odeint(_fun, y0=initial_f_c_ion, t=r, tfirst=True)
-                    f_cii_r = np.copy(sol).T[0]
-                    f_ciii_r = np.copy(sol).T[1]
-                else:
-                    sol = solve_ivp(_fun, (r[0], r[-1],), initial_f_c_ion,
-                                    t_eval=r,
-                                    method=method, **options_solve_ivp)
-                    f_cii_r = sol['y'][0]
-                    f_ciii_r = sol['y'][1]
+            # Solve it again
+            if method == 'odeint':
+                sol = odeint(_fun, y0=initial_f_c_ion, t=r, tfirst=True)
+                f_cii_r = np.copy(sol).T[0]
+                f_ciii_r = np.copy(sol).T[1]
+            else:
+                sol = solve_ivp(_fun, (r[0], r[-1],), initial_f_c_ion,
+                                t_eval=r,
+                                method=method, **options_solve_ivp)
+                f_cii_r = sol['y'][0]
+                f_ciii_r = sol['y'][1]
 
-                # Replace negative values with zero and values above 1.0 with
-                # 1.0
-                f_cii_r[f_cii_r < 0] = 1E-15
-                f_ciii_r[f_ciii_r < 0] = 1E-15
-                f_cii_r[f_cii_r > 1.0] = 1.0
-                f_ciii_r[f_ciii_r > 1.0] = 1.0
+            # Replace negative values with zero and values above 1.0 with
+            # 1.0
+            f_cii_r[f_cii_r < 0] = 1E-15
+            f_ciii_r[f_ciii_r < 0] = 1E-15
+            f_cii_r[f_cii_r > 1.0] = 1.0
+            f_ciii_r[f_ciii_r > 1.0] = 1.0
 
-                # Calculate the relative change of f_ion in the outer shell of
-                # the atmosphere (where we expect the most important change)
-                relative_delta_f_cii = abs(np.sum(f_cii_r - previous_f_cii_r)) \
-                    / np.sum(previous_f_cii_r)
-                relative_delta_f_ciii = \
-                    abs(np.sum(f_ciii_r - previous_f_ciii_r)) / \
-                    np.sum(previous_f_ciii_r)
+            # Calculate the relative change of f_ion in the outer shell of
+            # the atmosphere (where we expect the most important change)
+            relative_delta_f_cii = abs(np.sum(f_cii_r - previous_f_cii_r)) \
+                / np.sum(previous_f_cii_r)
+            relative_delta_f_ciii = \
+                abs(np.sum(f_ciii_r - previous_f_ciii_r)) / \
+                np.sum(previous_f_ciii_r)
 
-                # Break the loop if convergence is achieved
-                if relative_delta_f_cii < convergence and \
-                        relative_delta_f_ciii < convergence:
-                    break
-                else:
-                    pass
-        else:
-            pass
+            # Break the loop if convergence is achieved
+            if relative_delta_f_cii < convergence and \
+                    relative_delta_f_ciii < convergence:
+                break
+            else:
+                pass
+    else:
+        pass
 
     return f_cii_r, f_ciii_r
