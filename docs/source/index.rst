@@ -52,3 +52,4 @@ using GitHub.
    quickstart
    tidal_effects
    advanced_tutorial
+   exospheric_metals
