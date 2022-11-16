@@ -4,7 +4,6 @@
 import numpy as np
 import astropy.units as u
 from p_winds import hydrogen, helium, tools, parker, oxygen
-import matplotlib.pyplot as plt
 
 
 # HD 209458 b
