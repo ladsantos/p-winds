@@ -20,8 +20,8 @@ __all__ = ["radiative_processes_exact", "radiative_processes",
 
 
 # Exact calculation of hydrogen photoionization
-def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r,
-                              h_fraction):
+def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_h_r,
+                              h_fraction, f_he_r=None):
     """
     Calculate the photoionization rate of hydrogen as a function of radius based
     on the EUV spectrum arriving at the planet and the neutral H density
@@ -40,11 +40,15 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r,
     density (``numpy.ndarray``):
         Number density profile for the atmosphere, in units of 1 / cm ** 3.
 
-    f_r (``numpy.ndarray`` or ``float``):
-        Ionization fraction profile for the atmosphere.
+    f_h_r (``numpy.ndarray`` or ``float``):
+        H ion fraction profile for the atmosphere.
 
     h_fraction (``float``):
         Hydrogen number fraction of the outflow.
+
+    f_he_r (``numpy.ndarray`` or ``float`` or ``None``):
+        He ion fraction profile for the atmosphere. If ``None``, then assume
+        that the profile is the same as ``f_h_r``.
 
     Returns
     -------
@@ -79,14 +83,18 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r,
     # We assume that the atmosphere is made of only H + He
     he_fraction = 1 - h_fraction
     f_he_to_h = he_fraction / h_fraction
-    mu = (1 + 4 * f_he_to_h) / (1 + f_r + f_he_to_h)
+    mu = (1 + 4 * f_he_to_h) / (1 + f_h_r + f_he_to_h)
 
     n_tot = density / mu / m_h
-    n_htot = 1 / (1 + f_r + f_he_to_h) * n_tot
-    n_h = n_htot * (1 - f_r)
+    n_htot = 1 / (1 + f_h_r + f_he_to_h) * n_tot
+    n_h = n_htot * (1 - f_h_r)
     n_hetot = n_htot * f_he_to_h
-    n_he = n_hetot * (1 - f_r)  # Here we assume that He has the same ion
-    # fraction as H
+
+    if f_he_r is None:
+        n_he = n_hetot * (1 - f_h_r)  # Here we assume that the ion fraction of
+        # He is the same as H, which may not always be correct
+    else:
+        n_he = n_hetot * (1 - f_he_r)  # This is more correct
 
     n_h_temp = n_h[::-1]
     column_h = cumtrapz(n_h_temp, r_grid_temp, initial=0)
