@@ -12,7 +12,6 @@ import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp, odeint
 from scipy.interpolate import interp1d
-from scipy.special import exp1
 from p_winds import tools, microphysics
 import warnings
 
@@ -183,6 +182,275 @@ def charge_transfer(temperature):
     return ct_rate_oi_hp, ct_rate_oii_h
 
 
-# Calculation the number fractions of O I and O II
-def ion_fraction():
-    pass
+# Calculation the number fractions of O II
+def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
+                 helium_ion_fraction, planet_radius, temperature, h_fraction,
+                 speed_sonic_point, radius_sonic_point, density_sonic_point,
+                 spectrum_at_planet, o_fraction=_SOLAR_OXYGEN_FRACTION_,
+                 initial_f_o_ion=0.0, relax_solution=False, convergence=0.01,
+                 max_n_relax=10, method='Radau', **options_solve_ivp):
+    """
+    Calculate the fraction of ionized oxygen in the upper atmosphere in function
+    of the radius in unit of planetary radius.
+
+    Parameters
+    ----------
+    radius_profile (``numpy.ndarray``):
+        Radius in unit of planetary radii.
+
+    velocity (``numpy.ndarray``):
+         Velocities sampled at the values of ``radius_profile`` in units of
+         sound speed. Similar to the output of ``parker.structure()``.
+
+    density (``numpy.ndarray``):
+        Densities sampled at the values of ``radius_profile`` in units of
+        density at the sonic point. Similar to the output of
+        ``parker.structure()``.
+
+    hydrogen_ion_fraction (``numpy.ndarray``):
+        Number fraction of H ion over total H in the upper atmosphere in
+        function of radius. Similar to the output of
+        ``hydrogen.ion_fraction()``.
+
+    helium_ion_fraction (``numpy.ndarray``):
+        Number fraction of He ion over total He in the upper atmosphere in
+        function of radius. Similar to the output of
+        ``helium.population_fraction()``, but should be ``1 - f_1_r - f_3_r``.
+
+    planet_radius (``float``):
+        Planetary radius in unit of Jupiter radius.
+
+    temperature (``float``):
+        Isothermal temperature of the upper atmosphere in unit of Kelvin.
+
+    h_fraction (``float``):
+        Total (ion + neutral) H number fraction of the atmosphere.
+
+    speed_sonic_point (``float``):
+        Speed of sound in the outflow in units of km / s.
+
+    radius_sonic_point (``float``):
+        Radius of the sonic point in unit of Jupiter radius.
+
+    density_sonic_point (``float``):
+        Density at the sonic point in units of g / cm ** 3.
+
+    spectrum_at_planet (``dict``):
+        Spectrum of the host star arriving at the planet covering fluxes at
+        least up to the wavelength corresponding to the energy to ionize
+        carbon (11.26 eV, or 1101 Angstrom). Can be generated using
+        ``tools.make_spectrum_dict``.
+
+    o_fraction (``float``, optional):
+        Fraction of total oxygen in the upper atmosphere. Default value assumes
+        solar abundance.
+
+    initial_f_o_ion (``float``, optional):
+        The initial oxygen ion fraction at the layer near the surface of the
+        planet. Default is 0.0, i.e., 100% neutral.
+
+    relax_solution (``bool``, optional):
+        The first solution is calculating by initially assuming the entire
+        atmosphere is in neutral state. If ``True``, the solution will be
+        re-calculated in a loop until it converges to a delta_f of 1%, or for a
+        maximum of 10 loops (default parameters). Default is ``False``.
+
+    convergence (``float``, optional):
+        Value of delta_f at which to stop the relaxation of the solution for
+        ``f_r``. Default is 0.01.
+
+    max_n_relax (``int``, optional):
+        Maximum number of loops to perform the relaxation of the solution for
+        the ion fractions. Default is 10.
+
+    method (``str``, optional):
+        If method is ``'odeint'``, then ``scipy.integrate.odeint()`` is used
+        instead of ``scipy.integrate.solve_ivp()`` to calculate the steady-state
+        distribution of helium. Any other method will fall back to an option of
+        ``solve_ivp()`` methods. For example, if ``method`` is set to
+        ``'Radau'``, then use ``solve_ivp(method='Radau')``. Default is
+        ``'Radau'``.
+
+    **options_solve_ivp:
+        Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
+        may want to change the options ``atol`` (absolute tolerance; default is
+        1E-6) or ``rtol`` (relative tolerance; default is 1E-3). If you are
+        having numerical issues, you may want to decrease the tolerance by a
+        factor of 10 or 100, or 1000 in extreme cases.
+
+    Returns
+    -------
+    f_cii_r (``numpy.ndarray``):
+        Fraction of singly-ionized carbon in function of radius.
+
+    f_ciii_r (``numpy.ndarray``):
+        Fraction of doubly-ionized carbon in function of radius.
+    """
+    vs = speed_sonic_point  # km / s
+    rs = radius_sonic_point  # jupiterRad
+    rhos = density_sonic_point  # g / cm ** 3
+
+    # Recombination rates of C in unit of rs ** 2 * vs
+    alpha_rec_unit = ((rs * 7.1492E+09) ** 2 * vs * 1E5)  # cm ** 3 / s
+    alpha_rec_oi = recombination(temperature)
+    alpha_rec_oi = alpha_rec_oi / alpha_rec_unit
+
+    # Hydrogen mass in unit of rhos * rs ** 3
+    m_h_unit = (rhos * (rs * 7.1492E+09) ** 3)  # Converted to g
+    m_h = 1.67262192E-24 / m_h_unit
+
+    # Photoionization rates at null optical depth at the distance of the planet
+    # from the host star, in unit of vs / rs, and the flux-averaged
+    # cross-sections in units of rs ** 2
+    phi_unit = vs * 1E5 / rs / 7.1492E+09  # 1 / s
+    phi_oi, a_oi, a_h_oi, a_he = radiative_processes(spectrum_at_planet)
+    phi_oi = phi_oi / phi_unit
+    a_oi = a_oi / (rs * 7.1492E+09) ** 2
+    a_h_oi = a_h_oi / (rs * 7.1492E+09) ** 2
+    a_he = a_he / (rs * 7.1492E+09) ** 2
+
+    # Electron-impact ionization rate for C I in the same unit as the
+    # recombination rates
+    ionization_rate_oi = electron_impact_ionization(temperature)
+    ionization_rate_oi = ionization_rate_oi / alpha_rec_unit
+
+    # Charge transfer rates in the same unit as the recombination rates
+    ct_rate_oi_hp, ct_rate_oii_h = charge_transfer(temperature)
+    ct_rate_oii_h = ct_rate_oii_h / alpha_rec_unit
+    ct_rate_oi_hp = ct_rate_oi_hp / alpha_rec_unit
+
+    # We solve the steady-state ionization balance in a similar way that we do
+    # for He
+
+    # The radius in unit of radius at the sonic point
+    r = radius_profile * planet_radius / rs
+    dr = np.diff(r)
+    dr = np.concatenate((dr, np.array([r[-1], ])))
+
+    # Some mock functions that will allow us to parse the values of ion
+    # fraction, velocity and density in function of radius
+    mock_f_h_ion_r = interp1d(r, hydrogen_ion_fraction,
+                              fill_value="extrapolate")
+    mock_f_he_ion_r = interp1d(r, helium_ion_fraction,
+                               fill_value="extrapolate")
+    mock_v_r = interp1d(r, velocity, fill_value="extrapolate")
+    mock_rho_r = interp1d(r, density, fill_value="extrapolate")
+
+    # With all this setup done, now we need to assume something about the
+    # distribution of neutral O in the atmosphere. Let's assume it based on the
+    # initial guess input.
+    column_density = np.flip(np.cumsum(np.flip(dr * density)))  # Total column
+    # density
+    column_density_h_0 = np.flip(  # Column density of atomic H only
+        np.cumsum(np.flip(dr * density * (1 - hydrogen_ion_fraction))))
+    he_fraction = 1 - h_fraction
+    column_density_he_0 = np.flip(  # Column density of atomic He only
+        np.cumsum(np.flip(dr * density * he_fraction *
+                          (1 - helium_ion_fraction))))
+    k1 = h_fraction / (h_fraction + 4 * he_fraction + 8 * o_fraction) / m_h
+    k2 = he_fraction / (h_fraction + 4 * he_fraction + 8 * o_fraction) / m_h
+    k3 = o_fraction / (h_fraction + 4 * he_fraction + 8 * o_fraction) / m_h
+    tau_oi_h = k1 * a_h_oi * column_density_h_0
+    tau_c_he = k2 * a_he * column_density_he_0
+    tau_oi_initial = (1 - initial_f_o_ion) * k3 * a_oi * column_density + \
+        tau_oi_h + tau_c_he
+
+    # We do a dirty hack to make tau_initial a callable function so it's easily
+    # parsed inside the differential equation solver
+    _tau_oi_fun = interp1d(r, tau_oi_initial, fill_value="extrapolate")
+
+    # The differential equation
+    def _fun(_r, y):
+        f_oii = y
+
+        _v = mock_v_r(np.array([_r, ]))[0]
+        _rho = mock_rho_r(np.array([_r, ]))[0]
+        f_h_ion = mock_f_h_ion_r(np.array([_r, ]))[0]  # Fraction of H+
+        f_he_ion = mock_f_he_ion_r(np.array([_r, ]))[0]  # Fraction of He+
+
+        # Assume the number density of electrons is equal to the number density
+        # of H ions + He ions
+        n_e = k1 * _rho * f_h_ion + k2 * _rho * f_he_ion  # Number density of
+        # electrons
+        n_h_plus = k1 * _rho * f_h_ion    # Number density of ionized H
+        n_h0 = k1 * _rho * (1 - f_h_ion)  # Number density of atomic H
+
+        # Terms of dfoii_dr
+        tau_oi = _tau_oi_fun(np.array([_r, ]))[0]
+        term1 = (1 - f_oii) * phi_oi * np.exp(-tau_oi)  # Photoionization
+        term2 = (1 - f_oii) * n_e * ionization_rate_oi  # Electron-impact
+        # ionization
+        term3 = (1 - f_oii) * n_h_plus * ct_rate_oi_hp  # Charge exchange with
+        # H+
+        term4 = f_oii * n_e * alpha_rec_oi  # Recombination of O II into O I
+        term5 = f_oii * n_h0 * ct_rate_oii_h  # Charge exchange of O II with
+        # neutral H
+        dfoii_dr = (term1 + term2 + term3 - term4 - term5) / _v
+
+        return dfoii_dr
+
+    if method == 'odeint':
+        # Since 'odeint' yields only warnings when precision is lost or when
+        # there is a problem, we transform these warnings into an exception
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error")
+            try:
+                sol = odeint(_fun, y0=initial_f_o_ion, t=r, tfirst=True)
+            except Warning:
+                raise RuntimeError('The solver ``odeint`` failed to obtain a '
+                                   'solution.')
+        f_oii_r = np.copy(sol).T[0]
+    else:
+        # We solve it using `scipy.solve_ivp`
+        sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_o_ion, ]),
+                        t_eval=r, method=method, **options_solve_ivp)
+        f_oii_r = sol['y'][0]
+        # When `solve_ivp` has problems, it may return an array with different
+        # size than `r`. So we raise an exception if this happens
+        if len(f_oii_r) != len(r):
+            raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
+                               ' solution.')
+
+    # For the sake of self-consistency, there is the option of repeating the
+    # calculation of f_r by updating the optical depth with the new ion
+    # fractions.
+    if relax_solution is True:
+        for i in range(max_n_relax):
+            previous_f_oii_r = np.copy(f_oii_r)
+
+            # Re-calculate the column densities
+            tau_oi = \
+                k3 * a_oi * np.flip(np.cumsum(
+                    np.flip(dr * density * (1 - f_oii_r)))) + tau_oi_h + \
+                tau_c_he
+            _tau_oi_fun = interp1d(r, tau_oi, fill_value="extrapolate")
+
+            # Solve it again
+            if method == 'odeint':
+                sol = odeint(_fun, y0=initial_f_o_ion, t=r, tfirst=True)
+                f_oii_r = np.copy(sol).T[0]
+            else:
+                sol = solve_ivp(_fun, (r[0], r[-1],),
+                                np.array([initial_f_o_ion, ]), t_eval=r,
+                                method=method, **options_solve_ivp)
+                f_oii_r = sol['y'][0]
+
+            # Replace negative values with zero and values above 1.0 with
+            # 1.0
+            f_oii_r[f_oii_r < 0] = 1E-15
+            f_oii_r[f_oii_r > 1.0] = 1.0
+
+            # Calculate the relative change of f_ion in the outer shell of
+            # the atmosphere (where we expect the most important change)
+            relative_delta_f_oii = abs(np.sum(f_oii_r - previous_f_oii_r)) \
+                / np.sum(previous_f_oii_r)
+
+            # Break the loop if convergence is achieved
+            if relative_delta_f_oii < convergence:
+                break
+            else:
+                pass
+    else:
+        pass
+
+    return f_oii_r
