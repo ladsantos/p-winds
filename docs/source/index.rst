@@ -33,7 +33,8 @@ In the current version, the code solves the stead-state ionization distribution
 of hydrogen and helium around the planet based on its physical parameters and
 the high-energy irradiation arriving at the planet. It also calculates the
 wavelength-dependent transit depths in the metastable helium triplet at 1.083
-microns.
+microns, and some metal lines in the UV (such as O I and C II). More species will be implemented
+in the future.
 
 If you want to use the code without installing it locally, you can always run it
 on the cloud (see `this Google Colaboratory quickstart notebook

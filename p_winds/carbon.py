@@ -18,7 +18,7 @@ import warnings
 
 
 __all__ = ["radiative_processes", "electron_impact_ionization", "recombination",
-           "charge_transfer", "electron_impact_excitation", "ion_fraction"]
+           "charge_transfer", "ion_fraction"]
 
 
 # Some hard coding based on the astrophysical literature
@@ -252,60 +252,6 @@ def charge_transfer(temperature):
 
     return ct_rate_ci_hp, ct_rate_cii_h, ct_rate_ci_hep, ct_rate_cii_sii, \
         ct_rate_ciii_h, ct_rate_ciii_he
-
-
-# Excitation of C atoms and ions by electron impact using the formulation of
-# Suno & Kato 2006
-def electron_impact_excitation(electron_temperature, excitation_energy,
-                               statistical_weight, coefficients,
-                               forbidden_transition=False):
-    """
-    Calculate th C ion excitation rates by electron impact following the
-    Type 1 formulation of Suno & Kato 2006
-    (https://ui.adsabs.harvard.edu/abs/2006ADNDT..92..407S/abstract).
-
-    Parameters
-    ----------
-    electron_temperature (``float``):
-        Electrons temperature in unit of Kelvin.
-
-    excitation_energy (``float``):
-        Excitation energy of the transition in unit of eV.
-
-    statistical_weight (``float``):
-        Statistical weight of the initial state.
-
-    coefficients (sequence):
-        Sequence of the coefficients A, B, C, D, E as defined in Suno & Kato
-        2006.
-
-    forbidden_transition (``bool``, optional):
-        Boolean that sets whether the transition is forbidden or not. Default is
-        ``False``.
-
-    Returns
-    -------
-    excitation_rate (``float``):
-        Excitation rate in unit of cm ** 3 / s.
-    """
-    # Some auxiliary definitions
-    ka, kb, kc, kd, ke = coefficients
-    if forbidden_transition is True:
-        ke = 0
-    else:
-        pass
-    electron_energy = 1.380649E-16 * electron_temperature  # erg
-    electron_energy_ev = 8.6173333E-5 * electron_temperature  # eV
-    y = excitation_energy / electron_energy
-
-    # We use the Type 1 excitation formula (Eq. 10 in Suno & Kato 2006)
-    term1 = (ka / y + kc) + kd / 2 * (1 - y)
-    term2 = np.exp(y) * exp1(y) * (kb - kc * y + kd / 2 * y ** 2 + ke / y)
-    gamma = y * (term1 + term2)
-    excitation_rate = 8.010E-8 * np.exp(-y) * gamma / statistical_weight / \
-        electron_energy_ev ** 0.5  # cm ** 3 / s
-
-    return excitation_rate
 
 
 # Calculation the number fractions of C II and C III
