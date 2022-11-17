@@ -8,4 +8,3 @@
 .. autofunction:: microphysics.he_collisional_strength
 .. autofunction:: microphysics.general_cross_section
 .. autofunction:: microphysics.sigma_properties_v1996
-.. autofunction:: microphysics.collisional_excitation
