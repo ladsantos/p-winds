@@ -17,19 +17,15 @@ he_h_fraction = he_fraction / h_fraction
 average_f_ion = 0.0
 average_mu = (1 + 4 * he_h_fraction) / (1 + he_h_fraction + average_f_ion)
 
-# In the initial state, the fraction of singlet and triplet helium is 1E-6, and
-# the optical depths are null
-initial_state = np.array([1.0, 0.0])
 r = np.logspace(0, np.log10(20), 100)  # Radius in unit of planetary radii
 data_test_url = 'https://raw.githubusercontent.com/ladsantos/p-winds/main/data/solar_spectrum_scaled_lambda.dat'
 
+units = {'wavelength': u.angstrom, 'flux': u.erg / u.s / u.cm ** 2 / u.angstrom}
+spectrum = tools.make_spectrum_from_file(data_test_url, units)
+
 
 # Let's test if the code is producing reasonable outputs.
-def test_population_fraction_spectrum():
-    units = {'wavelength': u.angstrom, 'flux': u.erg / u.s / u.cm ** 2 /
-                                                   u.angstrom}
-    spectrum = tools.make_spectrum_from_file(data_test_url, units)
-
+def test_ion_fraction():
     # First calculate the hydrogen ion fraction
     f_r, mu_bar = hydrogen.ion_fraction(r, R_pl, T_0, h_fraction, m_dot, M_pl,
                                         average_mu, spectrum_at_planet=spectrum,
@@ -48,11 +44,10 @@ def test_population_fraction_spectrum():
     v_array, rho_array = parker.structure(r_array)
 
     # Now calculate the population of helium
-    f_he_1, f_he_3 = helium.population_fraction(
+    f_he_plus = helium.ion_fraction(
         r, v_array, rho_array, f_r,
         R_pl, T_0, h_fraction, vs, rs, rhos, spectrum_at_planet=spectrum,
-        initial_state=initial_state, relax_solution=False)
-    f_he_plus = 1 - f_he_1 - f_he_3
+        initial_f_he_ion=0.0, relax_solution=False)
 
     f_o_ii = oxygen.ion_fraction(radius_profile=r,
                                  velocity=v_array,

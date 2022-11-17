@@ -16,7 +16,8 @@ from p_winds import tools, microphysics
 import warnings
 
 
-__all__ = ["radiative_processes", "electron_impact_ionization", "recombination"]
+__all__ = ["radiative_processes", "electron_impact_ionization", "recombination",
+           "charge_transfer", "ion_fraction"]
 
 
 # Some hard coding based on the astrophysical literature
@@ -351,9 +352,9 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     k2 = he_fraction / (h_fraction + 4 * he_fraction + 8 * o_fraction) / m_h
     k3 = o_fraction / (h_fraction + 4 * he_fraction + 8 * o_fraction) / m_h
     tau_oi_h = k1 * a_h_oi * column_density_h_0
-    tau_c_he = k2 * a_he * column_density_he_0
+    tau_o_he = k2 * a_he * column_density_he_0
     tau_oi_initial = (1 - initial_f_o_ion) * k3 * a_oi * column_density + \
-        tau_oi_h + tau_c_he
+        tau_oi_h + tau_o_he
 
     # We do a dirty hack to make tau_initial a callable function so it's easily
     # parsed inside the differential equation solver
@@ -422,7 +423,7 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
             tau_oi = \
                 k3 * a_oi * np.flip(np.cumsum(
                     np.flip(dr * density * (1 - f_oii_r)))) + tau_oi_h + \
-                tau_c_he
+                tau_o_he
             _tau_oi_fun = interp1d(r, tau_oi, fill_value="extrapolate")
 
             # Solve it again
