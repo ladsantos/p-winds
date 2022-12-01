@@ -12,7 +12,6 @@ import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp, odeint
 from scipy.interpolate import interp1d
-from scipy.special import exp1
 from p_winds import tools, microphysics
 import warnings
 
@@ -503,7 +502,7 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
         with warnings.catch_warnings():
             warnings.filterwarnings("error")
             try:
-                sol = odeint(_fun, y0=initial_f_c_ion, t=r, tfirst=True)
+                sol = odeint(_fun, y0=initial_f_c_ion, t=r, tfirst=True, )
             except Warning:
                 raise RuntimeError('The solver ``odeint`` failed to obtain a '
                                    'solution.')
@@ -520,6 +519,14 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
         if len(f_cii_r) != len(r) or len(f_ciii_r) != len(r):
             raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
                                ' solution.')
+
+    # High densities can be numerically unstable and produce unphysical values
+    # of `f_r`, so we replace negative values with zero and values above 1.0
+    # with 1.0
+    f_cii_r[f_cii_r < 0] = 1E-15
+    f_ciii_r[f_ciii_r < 0] = 1E-15
+    f_cii_r[f_cii_r > 1.0] = 1.0
+    f_ciii_r[f_ciii_r > 1.0] = 1.0
 
     # For the sake of self-consistency, there is the option of repeating the
     # calculation of f_r by updating the optical depth with the new ion

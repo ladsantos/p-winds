@@ -412,6 +412,12 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
             raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
                                ' solution.')
 
+    # High densities can be numerically unstable and produce unphysical values
+    # of `f_r`, so we replace negative values with zero and values above 1.0
+    # with 1.0
+    f_oii_r[f_oii_r < 0] = 1E-15
+    f_oii_r[f_oii_r > 1.0] = 1.0
+
     # For the sake of self-consistency, there is the option of repeating the
     # calculation of f_r by updating the optical depth with the new ion
     # fractions.
