@@ -544,7 +544,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         final_phi_prime = radiative_processes_exact(
             spectrum_at_planet,
             (radius_profile * planet_radius * u.Rjup).to(u.cm).value,
-            rho_norm * rhos, f_r, h_fraction)
+            rho_norm * rhos, f_r, h_fraction) * (1 - f_r)
         # Final sound speed in km / s
         final_vs = parker.sound_speed(temperature, mu_bar)
         # Final radius at the sonic point in units of Jupiter radii
@@ -555,11 +555,12 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                                                 final_vs)
         # Final velocity and density profiles in units of sonic point
         final_r_norm = (radius_profile * planet_radius / final_rs)
-        v_norm, rho_norm = parker.structure_tidal(final_r_norm, final_vs,
-                                                  final_rs, planet_mass,
-                                                  star_mass, semimajor_axis)
-        final_v = v_norm * final_vs  # Final velocity profile in km / s
-        final_rho = rho_norm * final_rhos  # Final density profile in g/cm**3
+        final_v_norm, final_rho_norm = parker.structure_tidal(
+            final_r_norm, final_vs, final_rs, planet_mass, star_mass,
+            semimajor_axis)
+        # Final density profile in g / cm ** 3
+        final_rho = final_rho_norm * final_rhos
+        # Final recombination rate in 1 / s
         final_alpha_rec = recombination(temperature) * k2_abs * final_rho * \
             f_r ** 2
         rates = {'photoionization': final_phi_prime,

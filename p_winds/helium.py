@@ -412,7 +412,8 @@ def population_fraction(radius_profile, velocity, density,
                         flux_euv=None, flux_fuv=None,
                         initial_state=np.array([0.5, 0.5]),
                         relax_solution=False, convergence=0.01, max_n_relax=10,
-                        method='odeint', **options_solve_ivp):
+                        method='odeint', return_rates=False,
+                        **options_solve_ivp):
     """
     Calculate the fraction of helium in singlet and triplet state in the upper
     atmosphere in function of the radius in unit of planetary radius.
@@ -501,6 +502,11 @@ def population_fraction(radius_profile, velocity, density,
         option of ``solve_ivp()`` methods. For example, if ``method`` is set to
         ``'Radau'``, then use ``solve_ivp(method='Radau')``. Default is
         ``'odeint'``.
+
+    return_rates (``bool``, optional):
+        If ``True``, then this function also returns a ``dict`` object
+        containing the various reaction rates in function of radius and in units
+        of 1 / s. Default is ``False``.
 
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
@@ -607,7 +613,7 @@ def population_fraction(radius_profile, velocity, density,
     _tau_3_fun = interp1d(r, tau_3_initial, fill_value="extrapolate")
 
     # The differential equation
-    def _fun(_r, y):
+    def _fun(_r, y, rates=False):
         f_1 = y[0]  # Fraction of helium in singlet
         f_3 = y[1]  # Fraction of helium in triplet
 
@@ -648,7 +654,11 @@ def population_fraction(radius_profile, velocity, density,
         df3_dr = (term_31 - term_12 - term_33 + term_14 - term_15 - term_16
                   - term_17) / _v
 
-        return np.array([df1_dr, df3_dr])
+        if rates is False:
+            return np.array([df1_dr, df3_dr])
+        else:
+            return term_13, term_33. term_11, term_31, term_12, term_14, \
+                term_15, term_16, term_17. term_18, term_19
 
     if method == 'odeint':
         # Since 'odeint' yields only warnings when precision is lost or when
@@ -731,7 +741,10 @@ def population_fraction(radius_profile, velocity, density,
     else:
         pass
 
-    return f_1_r, f_3_r
+    if return_rates is False:
+        return f_1_r, f_3_r
+    else:
+        pass
 
 
 # Calculate the ion fraction of He
