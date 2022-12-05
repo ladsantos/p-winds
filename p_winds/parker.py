@@ -347,10 +347,11 @@ def structure_tidal(r, sound_speed_0, radius_sonic_point, planet_mass,
 
     # Some useful definitions to make the code cleaner
     k1 = sound_speed_0 ** 2 * (r * radius_sonic_point)
-    k2 = 2 * semi_major_axis ** 3 * sound_speed_0 ** 2
-    density_r = np.exp(grav * planet_mass / k1 - grav * planet_mass / k1 \
-        + 3 * grav * star_mass * (r * radius_sonic_point) ** 2 / k2 \
-        - 3 * grav * star_mass * radius_sonic_point ** 2 / k2 + 0.5 - \
+    k2 = sound_speed_0 ** 2 * radius_sonic_point
+    k3 = 2 * semi_major_axis ** 3 * sound_speed_0 ** 2
+    density_r = np.exp(grav * planet_mass / k1 - grav * planet_mass / k2 \
+        + 3 * grav * star_mass * (r * radius_sonic_point) ** 2 / k3 \
+        - 3 * grav * star_mass * radius_sonic_point ** 2 / k3 + 0.5 - \
         np.array(velocity_r) ** 2 / 2)
 
     return velocity_r, density_r
