@@ -229,7 +229,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                  star_mass = 1.0, semimajor_axis = 1.0,
                  spectrum_at_planet=None, flux_euv=None, initial_f_ion=0.0,
                  relax_solution=False, convergence=0.01, max_n_relax=10,
-                 exact_phi=False, return_mu=False, **options_solve_ivp):
+                 exact_phi=False, return_mu=False, return_rates=False,
+                 **options_solve_ivp):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
     function of the radius in unit of planetary radius.
@@ -305,6 +306,11 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         the atmosphere. Equivalent to the ``mu_bar`` of Eq. A.3 in Lampón et
         al. 2020.
 
+    return_rates (``bool``, optional):
+        If ``True``, then this function also returns a ``dict`` object
+        containing the rates of photoionization and recombination in function of
+        radius and in units of 1 / s. Default is ``False``.
+
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
         may want to change the options ``method`` (integration method; default
@@ -323,6 +329,11 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         averaged across the radial distance using according to the function
         `average_molecular_weight` in the `parker` module. Only returned when
         ``return_mu`` is set to ``True``.
+
+    rates (``dict``):
+        Dictionary containing the rates of photoionization and recombination in
+        function of radius and in units of 1 / s. Only returned when
+        ``return_rates`` is set to ``True``.
     """
     # Hydrogen recombination rate
     alpha_rec = recombination(temperature)
@@ -526,7 +537,41 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     else:
         pass
 
-    if return_mu is False:
-        return f_r
+    # Calculate the final structure and rates of photoionization and
+    # recombination in function of radius
+    if return_rates is True:
+        # Final photoionization rate in unit of 1 / s
+        final_phi_prime = radiative_processes_exact(
+            spectrum_at_planet,
+            (radius_profile * planet_radius * u.Rjup).to(u.cm).value,
+            rho_norm * rhos, f_r, h_fraction)
+        # Final sound speed in km / s
+        final_vs = parker.sound_speed(temperature, mu_bar)
+        # Final radius at the sonic point in units of Jupiter radii
+        final_rs = parker.radius_sonic_point_tidal(planet_mass, final_vs,
+                                                   star_mass, semimajor_axis)
+        # Final density at the sonic point in unit of g / cm ** 3
+        final_rhos = parker.density_sonic_point(mass_loss_rate, final_rs,
+                                                final_vs)
+        # Final velocity and density profiles in units of sonic point
+        final_r_norm = (radius_profile * planet_radius / final_rs)
+        v_norm, rho_norm = parker.structure_tidal(final_r_norm, final_vs,
+                                                  final_rs, planet_mass,
+                                                  star_mass, semimajor_axis)
+        final_v = v_norm * final_vs  # Final velocity profile in km / s
+        final_rho = rho_norm * final_rhos  # Final density profile in g/cm**3
+        final_alpha_rec = recombination(temperature) * k2_abs * final_rho * \
+            f_r ** 2
+        rates = {'photoionization': final_phi_prime,
+                 'recombination': final_alpha_rec}
     else:
+        pass
+
+    if return_mu is True and return_rates is False:
         return f_r, mu_bar
+    elif return_mu is False and return_rates is True:
+        return f_r, rates
+    elif return_mu is True and return_rates is True:
+        return f_r, mu_bar, rates
+    else:
+        return f_r

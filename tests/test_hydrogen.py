@@ -35,8 +35,9 @@ def test_ion_fraction_spectrum(precision_threshold=1E-5):
     assert abs((f_r[-1] - 0.997857) / f_r[-1]) < precision_threshold
 
     # Test the exact photoionization
-    f_r = hydrogen.ion_fraction(r, R_pl, T_0, h_fraction, m_dot, M_pl,
-                                average_f_ion,
-                                spectrum_at_planet=spectrum,
-                                relax_solution=True, exact_phi=True)
+    f_r, rates = hydrogen.ion_fraction(r, R_pl, T_0, h_fraction, m_dot, M_pl,
+                                       average_f_ion,
+                                       spectrum_at_planet=spectrum,
+                                       relax_solution=True, exact_phi=True,
+                                       return_rates=True)
     assert abs((f_r[-1] - 0.997883) / f_r[-1]) < precision_threshold
