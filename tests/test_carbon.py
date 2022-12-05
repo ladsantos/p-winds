@@ -29,8 +29,7 @@ def test_ion_fraction():
     # First calculate the hydrogen ion fraction
     f_r, mu_bar = hydrogen.ion_fraction(r, R_pl, T_0, h_fraction, m_dot, M_pl,
                                         average_mu, spectrum_at_planet=spectrum,
-                                        relax_solution=True, exact_phi=True,
-                                        return_mu=True)
+                                        relax_solution=True, return_mu=True)
 
     # Calculate the structure
     vs = parker.sound_speed(T_0, mu_bar)  # Speed of sound (km/s, assumed to be
@@ -47,7 +46,7 @@ def test_ion_fraction():
     f_he_plus = helium.ion_fraction(
         r, v_array, rho_array, f_r,
         R_pl, T_0, h_fraction, vs, rs, rhos, spectrum_at_planet=spectrum,
-        initial_f_he_ion=0.0, relax_solution=False)
+        initial_f_he_ion=0.0, relax_solution=True)
 
     f_c_ii, f_c_iii = carbon.ion_fraction(radius_profile=r,
                                           velocity=v_array,
@@ -61,7 +60,7 @@ def test_ion_fraction():
                                           radius_sonic_point=rs,
                                           density_sonic_point=rhos,
                                           spectrum_at_planet=spectrum,
-                                          initial_f_c_ion=np.array([0.0, 0.0]),
+                                          initial_f_c_ion=np.array([0.5, 0.0]),
                                           relax_solution=True)
 
     # Assert if all values of the fractions are between 0 and 1
