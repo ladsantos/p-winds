@@ -327,7 +327,7 @@ def structure_tidal(r, sound_speed_0, radius_sonic_point, planet_mass,
         return eq
 
     if isinstance(r, np.ndarray):
-        # One line verison of Leo's initial value hack gives 0.1 below sonic
+        # One line version of Leo's initial value hack gives 0.1 below sonic
         # point and 2 above
         v_init = (np.array(r > 1, dtype=int) * 2 + 0.1)
 

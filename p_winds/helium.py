@@ -522,6 +522,30 @@ def population_fraction(radius_profile, velocity, density,
 
     f_3_r (``numpy.ndarray``):
         Fraction of helium in triplet state in function of radius.
+
+    reaction_rates (``dict``):
+        Dictionary containing the reaction rates in function of radius and in
+        units of 1 / s. Only returned when ``return_rates`` is set to ``True``.
+        Here is a short description of the dict keys:
+
+        * `ionization_1`: Photoionization of He singlet atoms
+        * `ionization_3`: Photoionization of He triplet atoms
+        * `recombination_1`: Recombination of He ions into He singlet
+        * `recombination_3`: Recombination of He ions into He triplet
+        * `radiative_transition`: Radiative transition of He triplet into
+        singlet
+        * `transition_1_to_3`: Transition of He singlet to triplet due to
+        collisions with electrons
+        * `transition_3_to_21s`: Transition of He triplet to 2$^1$S due to
+        collisions with electrons
+        * `transition_3_to_21p`: Transition of He triplet to 2$^1$P due to
+        collisions with electrons
+        * `other_ionization`: Combined rate of associative ionization and
+        Penning ionization
+        * `charge_exchange_1`: Charge exchange between helium singlet and
+        ionized hydrogen
+        * `charge_exchange_he_ion`: Charge exchange between ionized helium and
+        atomic hydrogen
     """
     vs = speed_sonic_point  # km / s
     rs = radius_sonic_point  # jupiterRad
@@ -657,8 +681,9 @@ def population_fraction(radius_profile, velocity, density,
         if rates is False:
             return np.array([df1_dr, df3_dr])
         else:
-            return term_13, term_33. term_11, term_31, term_12, term_14, \
-                term_15, term_16, term_17. term_18, term_19
+            return np.array([term_13, term_33, term_11, term_31, term_12,
+                             term_14, term_15, term_16, term_17, term_18,
+                             term_19]) * phi_unit
 
     if method == 'odeint':
         # Since 'odeint' yields only warnings when precision is lost or when
@@ -744,8 +769,22 @@ def population_fraction(radius_profile, velocity, density,
     if return_rates is False:
         return f_1_r, f_3_r
     else:
-        pass
-
+        ion_rate_1, ion_rate_3, recomb_rate_1, recomb_rate_3, rad_trans_rate, \
+            transition_rate_q13, transition_rate_q31a, transition_rate_q31b, \
+            other_ionz_rate, ch_exchange_he1, ch_exchange_hep = \
+            _fun(r, [f_1_r, f_3_r], rates=True)
+        reaction_rates = {'ionization_1': ion_rate_1,
+                          'ionization_3': ion_rate_3,
+                          'recombination_1': recomb_rate_1,
+                          'recombination_3': recomb_rate_3,
+                          'radiative_transition': rad_trans_rate,
+                          'transition_1_to_3': transition_rate_q13,
+                          'transition_3_to_21s': transition_rate_q31a,
+                          'transition_3_to_21p': transition_rate_q31b,
+                          'other_ionization': other_ionz_rate,
+                          'charge_exchange_1': ch_exchange_he1,
+                          'charge_exchange_he_ion': ch_exchange_hep}
+        return f_1_r, f_3_r, reaction_rates
 
 # Calculate the ion fraction of He
 def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,

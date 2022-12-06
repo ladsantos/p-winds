@@ -50,10 +50,10 @@ def test_population_fraction_spectrum():
     v_array, rho_array = parker.structure(r_array)
 
     # Now calculate the population of helium
-    f_he_1_odeint, f_he_3_odeint = helium.population_fraction(
+    f_he_1_odeint, f_he_3_odeint, rates = helium.population_fraction(
         r, v_array, rho_array, f_r,
         R_pl, T_0, h_fraction, vs, rs, rhos, spectrum_at_planet=spectrum,
-        initial_state=initial_state, relax_solution=True)
+        initial_state=initial_state, relax_solution=True, return_rates=True)
 
     # Assert if all values of the fractions are between 0 and 1
     n_neg = len(np.where(f_he_1_odeint < 0)[0]) + \
