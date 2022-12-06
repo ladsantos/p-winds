@@ -532,20 +532,13 @@ def population_fraction(radius_profile, velocity, density,
         * `ionization_3`: Photoionization of He triplet atoms
         * `recombination_1`: Recombination of He ions into He singlet
         * `recombination_3`: Recombination of He ions into He triplet
-        * `radiative_transition`: Radiative transition of He triplet into
-        singlet
-        * `transition_1_to_3`: Transition of He singlet to triplet due to
-        collisions with electrons
-        * `transition_3_to_21s`: Transition of He triplet to 2$^1$S due to
-        collisions with electrons
-        * `transition_3_to_21p`: Transition of He triplet to 2$^1$P due to
-        collisions with electrons
-        * `other_ionization`: Combined rate of associative ionization and
-        Penning ionization
-        * `charge_exchange_1`: Charge exchange between helium singlet and
-        ionized hydrogen
-        * `charge_exchange_he_ion`: Charge exchange between ionized helium and
-        atomic hydrogen
+        * `radiative_transition`: Radiative transition of He triplet into singlet
+        * `transition_1_to_3`: Transition of He singlet to triplet due to collisions with electrons
+        * `transition_3_to_21s`: Transition of He triplet to 2$^1$S due to collisions with electrons
+        * `transition_3_to_21p`: Transition of He triplet to 2$^1$P due to collisions with electrons
+        * `other_ionization`: Combined rate of associative ionization and Penning ionization
+        * `charge_exchange_1`: Charge exchange between helium singlet and ionized hydrogen
+        * `charge_exchange_he_ion`: Charge exchange between ionized helium and atomic hydrogen
     """
     vs = speed_sonic_point  # km / s
     rs = radius_sonic_point  # jupiterRad
