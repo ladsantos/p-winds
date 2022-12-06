@@ -189,7 +189,8 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
                  speed_sonic_point, radius_sonic_point, density_sonic_point,
                  spectrum_at_planet, o_fraction=_SOLAR_OXYGEN_FRACTION_,
                  initial_f_o_ion=0.0, relax_solution=False, convergence=0.01,
-                 max_n_relax=10, method='Radau', **options_solve_ivp):
+                 max_n_relax=10, method='Radau', return_rates=False,
+                 **options_solve_ivp):
     """
     Calculate the fraction of ionized oxygen in the upper atmosphere in function
     of the radius in unit of planetary radius.
@@ -272,6 +273,11 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
         ``'Radau'``, then use ``solve_ivp(method='Radau')``. Default is
         ``'Radau'``.
 
+    return_rates (``bool``, optional):
+        If ``True``, then this function also returns a ``dict`` object
+        containing the various reaction rates in function of radius and in units
+        of 1 / s. Default is ``False``.
+
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
         may want to change the options ``atol`` (absolute tolerance; default is
@@ -286,6 +292,17 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
 
     f_ciii_r (``numpy.ndarray``):
         Fraction of doubly-ionized carbon in function of radius.
+
+    reaction_rates (``dict``):
+        Dictionary containing the reaction rates in function of radius and in
+        units of 1 / s. Only returned when ``return_rates`` is set to ``True``.
+        Here is a short description of the dict keys:
+
+        * `photoionization`: Photoionization of O I into O II
+        * `recombination`: Recombination of O II into O I
+        * `e_impact_ionization`: Electron impact ionization of O I into O II
+        * `charge_exchange_HII`: Charge exchange between O I and H II
+        * `charge_exchange_HI`: Charge exchange between O II and H I
     """
     vs = speed_sonic_point  # km / s
     rs = radius_sonic_point  # jupiterRad
@@ -361,7 +378,7 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     _tau_oi_fun = interp1d(r, tau_oi_initial, fill_value="extrapolate")
 
     # The differential equation
-    def _fun(_r, y):
+    def _fun(_r, y, rates=False):
         f_oii = y
 
         _v = mock_v_r(np.array([_r, ]))[0]
@@ -388,7 +405,10 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
         # neutral H
         dfoii_dr = (term1 + term2 + term3 - term4 - term5) / _v
 
-        return dfoii_dr
+        if rates is False:
+            return dfoii_dr
+        else:
+            return np.array([term1, term4, term2, term3, term5]) * phi_unit
 
     if method == 'odeint':
         # Since 'odeint' yields only warnings when precision is lost or when
@@ -460,4 +480,14 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     else:
         pass
 
-    return f_oii_r
+    if return_rates is False:
+        return f_oii_r
+    else:
+        ionization_rate, recombination_rate, e_impact_ion, ch_exchange_hii,\
+            ch_exchange_hi = _fun(r, f_oii_r, rates=True)
+        reaction_rates = {'photoionization': ionization_rate,
+                          'recombination': recombination_rate,
+                          'e_impact_ionization': e_impact_ion,
+                          'charge_exchange_HII': ch_exchange_hii,
+                          'charge_exchange_HI': ch_exchange_hi}
+        return f_oii_r, reaction_rates

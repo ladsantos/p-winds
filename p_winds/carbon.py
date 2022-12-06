@@ -260,7 +260,7 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
                  spectrum_at_planet, c_fraction=_SOLAR_CARBON_FRACTION_,
                  initial_f_c_ion=np.array([0.0, 0.0]), relax_solution=False,
                  convergence=0.01, max_n_relax=10, method='odeint',
-                 **options_solve_ivp):
+                 return_rates=False, **options_solve_ivp):
     """
     Calculates the fractions of singly- and doubly-ionized carbon in the upper
     atmosphere in function of the radius in unit of planetary radius.
@@ -347,6 +347,11 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
         ``'Radau'``, then use ``solve_ivp(method='Radau')``. Default is
         ``'odeint'``.
 
+    return_rates (``bool``, optional):
+        If ``True``, then this function also returns a ``dict`` object
+        containing the various reaction rates in function of radius and in units
+        of 1 / s. Default is ``False``.
+
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
         may want to change the options ``atol`` (absolute tolerance; default is
@@ -361,6 +366,23 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
 
     f_ciii_r (``numpy.ndarray``):
         Fraction of doubly-ionized carbon in function of radius.
+
+    reaction_rates (``dict``):
+        Dictionary containing the reaction rates in function of radius and in
+        units of 1 / s. Only returned when ``return_rates`` is set to ``True``.
+        Here is a short description of the dict keys:
+
+        * `ionization_CI`: Photoionization of C I into C II
+        * `ionization_CII`: Photoionization of C II into C III
+        * `recombination_CII`: Recombination of C II into C I
+        * `recombination_CIII`: Recombination of C III into C II
+        * `e_impact_ion_CI`: Electron impact ionization of C I into C II
+        * `e_impact_ion_CII`: Electron impact ionization of C II into C III
+        * `charge_exchange_CI_HII`: Charge exchange between C I and H II
+        * `charge_exchange_CI_HeII`: Charge exchange between C I and He II
+        * `charge_exchange_CII_HI`: Charge exchange between C II and H I
+        * `charge_exchange_CIII_HI`: Charge exchange between C III and H I
+        * `charge_exchange_CIII_HeI`: Charge exchange between C III and He I
     """
     vs = speed_sonic_point  # km / s
     rs = radius_sonic_point  # jupiterRad
@@ -448,7 +470,7 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     _tau_cii_fun = interp1d(r, tau_cii_initial, fill_value="extrapolate")
 
     # The differential equation
-    def _fun(_r, y):
+    def _fun(_r, y, rates=False):
         f_cii = y[0]
         f_ciii = y[1]
 
@@ -494,7 +516,11 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
         term22 = f_cii * n_e * ionization_rate_cii  # Electron-impact ionization
         dfciii_dr = (term21 + term22 - term17 - term18 - term19) / _v
 
-        return np.array([dfcii_dr, dfciii_dr])
+        if rates is False:
+            return np.array([dfcii_dr, dfciii_dr])
+        else:
+            return np.array([term11, term21, term15, term17, term12, term22,
+                             term13, term14, term16, term18, term19]) * phi_unit
 
     if method == 'odeint':
         # Since 'odeint' yields only warnings when precision is lost or when
@@ -583,4 +609,22 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     else:
         pass
 
-    return f_cii_r, f_ciii_r
+    if return_rates is False:
+        return f_cii_r, f_ciii_r
+    else:
+        ion_rate_ci, ion_rate_cii, recomb_rate_cii, recomb_rate_ciii, \
+            e_imp_ion_ci, e_imp_ion_cii, ch_exchange_ci_hii, \
+            ch_exchange_ci_heii, ch_exchange_cii_hi, ch_exchange_ciii_hi, \
+            ch_exchange_ciii_hei = _fun(r, [f_cii_r, f_ciii_r], rates=True)
+        reaction_rates = {'ionization_CI': ion_rate_ci,
+                          'ionization_CII': e_imp_ion_cii,
+                          'recombination_CII': recomb_rate_cii,
+                          'recombination_CIII': recomb_rate_ciii,
+                          'e_impact_ion_CI': e_imp_ion_ci,
+                          'e_impact_ion_CII': e_imp_ion_cii,
+                          'charge_exchange_CI_HII': ch_exchange_ci_hii,
+                          'charge_exchange_CI_HeII': ch_exchange_ci_heii,
+                          'charge_exchange_CII_HI': ch_exchange_cii_hi,
+                          'charge_exchange_CIII_HI': ch_exchange_ciii_hi,
+                          'charge_exchange_CIII_HeI': ch_exchange_ciii_hei}
+        return f_cii_r, f_ciii_r, reaction_rates
