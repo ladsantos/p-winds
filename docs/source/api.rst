@@ -11,6 +11,7 @@ p-winds API
    api/carbon
    api/oxygen
    api/transit
+   api/energetics
    api/microphysics
    api/lines
    api/tools

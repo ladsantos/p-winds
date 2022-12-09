@@ -12,15 +12,15 @@ from scipy.integrate import simpson, cumulative_trapezoid
 from scipy.interpolate import interp1d
 
 __all__ = ["calculate_epsilon_max", "calculate_mdot_max", "spec_av_cross",
-    "compute_column_densities", "compute_transmission_coefficient",
-    "calculate_roche_radius", "calculate_f_xuv", "h_photo_cross",
-    "heplus_photo_cross", "helium_photo_cross"]
+           "compute_column_densities", "compute_transmission_coefficient",
+           "calculate_roche_radius", "calculate_f_xuv", "h_photo_cross",
+           "heplus_photo_cross", "helium_photo_cross"]
 
-threshes = {'hydrogen': 13.6*u.eV, 'helium': 24.58*u.eV, 
-    'helium+': 54.4*u.eV}
+threshes = {'hydrogen': 13.6*u.eV, 'helium': 24.58*u.eV, 'helium+': 54.4*u.eV}
+
 
 def calculate_mdot_max(R_pl, M_pl, M_star, a, r_grid, spectrum, n_h, n_he, 
-    n_he_plus):
+                       n_he_plus):
     """
     Calculates the maximum mass-loss rate of an outflow given the profiles of
     neutral hydrogen, neutral helium, and ionized helium by Equation (20) of
@@ -79,8 +79,9 @@ def calculate_mdot_max(R_pl, M_pl, M_star, a, r_grid, spectrum, n_h, n_he,
     md = 4*eps*np.pi*R_pl.to(u.cm)**3*F_XUV/(K*c.G*M_pl.to(u.g))
     return md.to(u.g/u.s)
 
-def calculate_epsilon_max(r_grid, spectrum, n_h, n_he, n_he_plus,
-    R_pl, R_roche):
+
+def calculate_epsilon_max(r_grid, spectrum, n_h, n_he, n_he_plus, R_pl,
+                          R_roche):
     """
     Calculates the maximum mass-loss efficiency of an outflow given the
     profiles of neutral hydrogen, neutral helium, and ionized helium by
@@ -144,6 +145,7 @@ def calculate_epsilon_max(r_grid, spectrum, n_h, n_he, n_he_plus,
     eps = simpson(integrand[mask], x = r[mask])*u.cm**2/(R_pl.to(u.cm)**2)
     return eps
 
+
 def spec_av_cross(r_grid, spectrum, t_coef, species):
     """
     Calculates the heating cross-section for photoionization using Equation (16)
@@ -202,6 +204,7 @@ def spec_av_cross(r_grid, spectrum, t_coef, species):
     cross = num/F_XUV
     return cross.to(u.cm**2)
 
+
 def compute_column_densities(r_grid, n_h, n_he, n_he_plus):
     """
     Given the density profiles of H, He, and He+, this function calculates the
@@ -253,6 +256,7 @@ def compute_column_densities(r_grid, n_h, n_he, n_he_plus):
     column_he_plus = -column_he_plus[::-1]
 
     return column_h, column_he, column_he_plus
+
 
 def compute_transmission_coefficient(spectrum, r_grid, N_h, N_he, N_he_plus):
     """
@@ -325,6 +329,7 @@ def compute_transmission_coefficient(spectrum, r_grid, N_h, N_he, N_he_plus):
     
     return transmission_coef
 
+
 def calculate_roche_radius(R_pl, M_pl, M_star, a):
     """
     Calculates the Roche radius for the planet.
@@ -350,6 +355,7 @@ def calculate_roche_radius(R_pl, M_pl, M_star, a):
         The Roche radius.
     """
     return (a*(M_pl/(3*M_star))**(1/3)).to(u.Rjup)
+
 
 def calculate_f_xuv(spectrum):
     """
@@ -379,6 +385,7 @@ def calculate_f_xuv(spectrum):
     flux_grid = flux_grid[::-1]
     f_xuv = simpson(flux_grid, x = wavs_hz)*u.erg/u.s/u.cm**2
     return f_xuv
+
 
 def h_photo_cross(nu_init):
     """
@@ -411,6 +418,7 @@ def h_photo_cross(nu_init):
     out =  arg1 / arg2 * arg3
     return out
 
+
 def heplus_photo_cross(nu_init):
     """
     Calculates the photoionization cross-section of ionized helium (Equation 17
@@ -441,6 +449,7 @@ def heplus_photo_cross(nu_init):
     out =  arg1 / arg2 * arg3
     return out
 
+
 def helium_photo_cross(nu_init):
     """
     Calculates the photoionization cross-section of neutral helium. This is 
@@ -460,8 +469,8 @@ def helium_photo_cross(nu_init):
     out (``numpy.ndarray``):
         The cross-section in cm**2. 
     """
-    "nu in Hz -> cross section in units cm^2"
-    "Source: Yan, Sadeghpour, & Dalgarno (1998, ApJ)"
+    # nu in Hz -> cross section in units cm^2
+    # Source: Yan, Sadeghpour, & Dalgarno (1998, ApJ)
     threshold_energy = threshes['helium']
     
     nu = nu_init.to(u.eV, equivalencies = u.spectral())
@@ -479,4 +488,3 @@ def helium_photo_cross(nu_init):
     out = num.to(u.cm * u.cm)/e_term * (1 + sum_term)
 
     return out
-
