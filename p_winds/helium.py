@@ -11,7 +11,6 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp, odeint
-from scipy.interpolate import interp1d
 from p_winds import tools, microphysics
 import warnings
 
@@ -600,16 +599,6 @@ def population_fraction(radius_profile, velocity, density,
     dr = np.diff(r)
     dr = np.concatenate((dr, np.array([r[-1], ])))
 
-    # The way we solve the differential equation requires us to pass the H ion
-    # fraction, densities and velocities at specific values of r, and it can be
-    # cumbersome to parse this inside the callable function _fun(). Instead,
-    # let's create a "mock function" that returns the value of v, rho, and
-    # f_H_ion in function of r (essentially a scipy.interp1d function)
-    mock_f_h_ion_r = interp1d(r, hydrogen_ion_fraction,
-                              fill_value="extrapolate")
-    mock_v_r = interp1d(r, velocity, fill_value="extrapolate")
-    mock_rho_r = interp1d(r, density, fill_value="extrapolate")
-
     # With all this setup done, now we need to assume something about the
     # distribution of singlet and triplet helium in the atmosphere. Let's assume
     # it based on the initial guess input.
@@ -622,21 +611,17 @@ def population_fraction(radius_profile, velocity, density,
     k2 = he_fraction / (h_fraction + 4 * he_fraction) / m_h
     tau_1_h = k1 * a_h_1 * column_density_h_0
     tau_3_h = k1 * a_h_3 * column_density_h_0
-    tau_1_initial = (initial_state[0] * k2 * a_1 * column_density + tau_1_h)
-    tau_3_initial = (initial_state[1] * k2 * a_3 * column_density + tau_3_h)
-    # We do a dirty hack to make tau_initial a callable function so it's easily
-    # parsed inside the differential equation solver
-    _tau_1_fun = interp1d(r, tau_1_initial, fill_value="extrapolate")
-    _tau_3_fun = interp1d(r, tau_3_initial, fill_value="extrapolate")
+    tau_1 = (initial_state[0] * k2 * a_1 * column_density + tau_1_h)
+    tau_3 = (initial_state[1] * k2 * a_3 * column_density + tau_3_h)
 
     # The differential equation
     def _fun(_r, y, rates=False):
         f_1 = y[0]  # Fraction of helium in singlet
         f_3 = y[1]  # Fraction of helium in triplet
 
-        _v = mock_v_r(np.array([_r, ]))[0]
-        _rho = mock_rho_r(np.array([_r, ]))[0]
-        f_h_ion = mock_f_h_ion_r(np.array([_r, ]))[0]  # Fraction of H+
+        _v = np.interp(_r, r, velocity)
+        _rho = np.interp(_r, r, density)
+        f_h_ion = np.interp(_r, r, hydrogen_ion_fraction)  # Fraction of H+
 
         # Assume the number density of electrons is equal to the number density
         # of H ions
@@ -647,8 +632,8 @@ def population_fraction(radius_profile, velocity, density,
         # Terms of df1_dr
         term_11 = (1 - f_1 - f_3) * n_e * alpha_rec_1  # Recombination
         term_12 = f_3 * big_a_31  # Radiative transition rate
-        t_1 = _tau_1_fun(np.array([_r, ]))[0]
-        t_3 = _tau_3_fun(np.array([_r, ]))[0]
+        t_1 = np.interp(_r, r, tau_1)
+        t_3 = np.interp(_r, r, tau_3)
         term_13 = f_1 * phi_1 * np.exp(-t_1)  # Photoionization
         term_14 = f_1 * n_e * q_13  # Transition rate due to collision with e
         term_15 = f_3 * n_e * q_31a  # Transition rate due to collision with e
@@ -723,8 +708,6 @@ def population_fraction(radius_profile, velocity, density,
                 np.cumsum(np.flip(dr * density * f_1_r))) + tau_1_h
             tau_3 = k2 * a_3 * np.flip(
                 np.cumsum(np.flip(dr * density * f_3_r))) + tau_3_h
-            _tau_1_fun = interp1d(r, tau_1, fill_value="extrapolate")
-            _tau_3_fun = interp1d(r, tau_3, fill_value="extrapolate")
 
             # Solve it again
             if method == 'odeint':
@@ -908,13 +891,6 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     dr = np.diff(r)
     dr = np.concatenate((dr, np.array([r[-1], ])))
 
-    # Some mock functions that will allow us to parse the values of ion
-    # fraction, velocity and density in function of radius
-    mock_f_h_ion_r = interp1d(r, hydrogen_ion_fraction,
-                              fill_value="extrapolate")
-    mock_v_r = interp1d(r, velocity, fill_value="extrapolate")
-    mock_rho_r = interp1d(r, density, fill_value="extrapolate")
-
     # With all this setup done, now we need to assume something about the
     # distribution of singlet and triplet helium in the atmosphere. Let's assume
     # it based on the initial guess input.
@@ -926,16 +902,15 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     k1 = h_fraction / (h_fraction + 4 * he_fraction) / m_h
     k2 = he_fraction / (h_fraction + 4 * he_fraction) / m_h
     tau_h = k1 * a_h * column_density_h_0
-    tau_he_initial = (initial_f_he_ion * k2 * a_he * column_density + tau_h)
-    _tau_he_fun = interp1d(r, tau_he_initial, fill_value="extrapolate")
+    tau_he = (initial_f_he_ion * k2 * a_he * column_density + tau_h)
 
     # The differential equation
     def _fun(_r, y):
         f_he_ion = y
 
-        _v = mock_v_r(np.array([_r, ]))[0]
-        _rho = mock_rho_r(np.array([_r, ]))[0]
-        f_h_ion = mock_f_h_ion_r(np.array([_r, ]))[0]  # Fraction of H+
+        _v = np.interp(_r, r, velocity)
+        _rho = np.interp(_r, r, density)
+        f_h_ion = np.interp(_r, r, hydrogen_ion_fraction)  # Fraction of H+
 
         # Assume the number density of electrons is equal to the number density
         # of H ions + He ions
@@ -945,8 +920,8 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
         n_h0 = k1 * _rho * (1 - f_h_ion)  # Number density of atomic H
 
         # Terms of df_dr
-        tau_he = _tau_he_fun(np.array([_r, ]))[0]
-        term1 = (1 - f_he_ion) * phi_he * np.exp(-tau_he)  # Photoionization
+        t_he = np.interp(_r, r, tau_he)
+        term1 = (1 - f_he_ion) * phi_he * np.exp(-t_he)  # Photoionization
         term2 = (1 - f_he_ion) * n_h_plus * ct_rate_he_hp  # Charge exchange
         # with H+
         term3 = f_he_ion * n_e * alpha_rec  # Recombination of He II into He I
@@ -989,7 +964,6 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
             tau_he = \
                 k2 * a_he * np.flip(np.cumsum(
                     np.flip(dr * density * (1 - f_r)))) + tau_h
-            _tau_he_fun = interp1d(r, tau_he, fill_value="extrapolate")
 
             # Solve it again
             if method == 'odeint':

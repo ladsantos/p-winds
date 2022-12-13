@@ -11,7 +11,6 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp, cumtrapz
-from scipy.interpolate import interp1d
 from p_winds import parker, tools, microphysics
 
 
@@ -409,9 +408,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     phi, k1, k2, r, dr, velocity, density = _normalize(
         phi_abs, k1_abs, k2_abs, radius_profile, mean_molecular_weight_0)
 
-    if exact_phi:
-        _phi_prime_fun = interp1d(r, phi, fill_value="extrapolate")
-    else:
+    if exact_phi is False:
         # To start the calculations we need the optical depth, but technically
         # we don't know it yet, because it depends on the ion fraction in the
         # atmosphere, which is what we want to obtain. However, the optical
@@ -419,28 +416,23 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         # fraction, so a good first approximation is to assume the whole
         # atmosphere is neutral at first.
         column_density = np.flip(np.cumsum(np.flip(dr * density)))
-        tau_initial = k1 * column_density
-        # We do a dirty hack to make tau_initial and velocity a callable
-        # function so it's easily parsed inside the differential equation solver
-        _tau_fun = interp1d(r, tau_initial, fill_value="extrapolate")
-    _v_fun = interp1d(r, velocity, fill_value="extrapolate")
-
-    _v_fun = interp1d(r, velocity, fill_value="extrapolate")
-    _rho_fun = interp1d(r, density, fill_value="extrapolate")
+        tau = k1 * column_density
+    else:
+        pass
 
     # Now let's solve the differential eq. 13 of Oklopcic & Hirata 2018
     # The differential equation in function of r
     def _fun(_r, _f, _phi, _k2):
         if exact_phi:
-            _phi_prime = _phi_prime_fun(np.array([_r, ]))[0]
+            _phi_prime = np.interp(_r, r, phi)
         else:
-            _t = _tau_fun(np.array([_r, ]))[0]
-            _phi_prime = np.exp(-_t)*_phi
+            _t = np.interp(_r, r, tau)
+            _phi_prime = np.exp(-_t) * _phi
 
         # The next two lines may need to be substituted by `structure_tidal()`
         # instead of interpolated
-        _v = _v_fun(_r)
-        _rho = _rho_fun(_r)
+        _v = np.interp(_r, r, velocity)
+        _rho = np.interp(_r, r, density)
 
         # In terms 1 and 2 we use the values of k2 and phi from above
         term1 = (1. - _f) / _v * _phi_prime
@@ -494,15 +486,11 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
             phi, k1, k2, r, dr, velocity, density = _normalize(
                 phi_abs, k1_abs, k2_abs, radius_profile, mu_bar)
 
-            if exact_phi:
-                _phi_prime_fun = interp1d(r, phi, fill_value="extrapolate")
-            else:
+            if exact_phi is False:
                 # Re-calculate the column densities
                 column_density = np.flip(np.cumsum(np.flip(dr * density *
                                                            (1 - f_r))))
                 tau = k1 * column_density
-                _tau_fun = interp1d(r, tau, fill_value="extrapolate")
-            _v_fun = interp1d(r, velocity, fill_value="extrapolate")
             
             # And solve it again
             sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
