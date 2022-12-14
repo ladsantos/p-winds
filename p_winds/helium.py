@@ -625,29 +625,45 @@ def population_fraction(radius_profile, velocity, density,
 
         # Assume the number density of electrons is equal to the number density
         # of H ions
-        n_e = k1 * _rho * f_h_ion         # Number density of electrons
-        n_h_plus = k1 * _rho * f_h_ion    # Number density of ionized H
-        n_h0 = k1 * _rho * (1 - f_h_ion)  # Number density of atomic H
+        # Since we may run into loss of numerical precision here (big numbers),
+        # we manipulate the equations to avoid this problem. It looks a bit
+        # messy, but it is necessary
+        alpha_rec_1_n_e = np.exp(
+            np.log(k1) + np.log(_rho) + np.log(alpha_rec_1)) * f_h_ion
+        alpha_rec_3_n_e = np.exp(
+            np.log(k1) + np.log(_rho) + np.log(alpha_rec_3)) * f_h_ion
+        q_13_n_e = np.exp(
+            np.log(k1) + np.log(_rho) + np.log(q_13)) * f_h_ion
+        q_31a_n_e = np.exp(
+            np.log(k1) + np.log(_rho) + np.log(q_31a)) * f_h_ion
+        q_31b_n_e = np.exp(
+            np.log(k1) + np.log(_rho) + np.log(q_31b)) * f_h_ion
+        big_q_31_n_h0 = np.exp(
+            np.log(k1) + np.log(_rho) + np.log(big_q_31)) * (1 - f_h_ion)
+        big_q_he_n_h_plus = np.exp(
+            np.log(k1) + np.log(_rho) + np.log(big_q_he)) * f_h_ion
+        big_q_he_plus_n_h0 = np.exp(
+            np.log(k1) + np.log(_rho) + np.log(big_q_he_plus)) * (1 - f_h_ion)
 
         # Terms of df1_dr
-        term_11 = (1 - f_1 - f_3) * n_e * alpha_rec_1  # Recombination
+        term_11 = (1 - f_1 - f_3) * alpha_rec_1_n_e  # Recombination
         term_12 = f_3 * big_a_31  # Radiative transition rate
         t_1 = np.interp(_r, r, tau_1)
         t_3 = np.interp(_r, r, tau_3)
         term_13 = f_1 * phi_1 * np.exp(-t_1)  # Photoionization
-        term_14 = f_1 * n_e * q_13  # Transition rate due to collision with e
-        term_15 = f_3 * n_e * q_31a  # Transition rate due to collision with e
-        term_16 = f_3 * n_e * q_31b  # Transition rate due to collision with e
-        term_17 = f_3 * n_h0 * big_q_31  # Combined rate of associative
+        term_14 = f_1 * q_13_n_e  # Transition rate due to collision with e
+        term_15 = f_3 * q_31a_n_e  # Transition rate due to collision with e
+        term_16 = f_3 * q_31b_n_e  # Transition rate due to collision with e
+        term_17 = f_3 * big_q_31_n_h0  # Combined rate of associative
                                          # ionization and Penning ionization
-        term_18 = f_1 * n_h_plus * big_q_he  # Charge exchange consuming He
+        term_18 = f_1 * big_q_he_n_h_plus  # Charge exchange consuming He
                                              # singlet
-        term_19 = (1 - f_1 - f_3) * n_h0 * big_q_he_plus  # Charge exchange
+        term_19 = (1 - f_1 - f_3) * big_q_he_plus_n_h0  # Charge exchange
                                                           # producing He
                                                           # singlet
 
         # Terms of df3_dr
-        term_31 = (1 - f_1 - f_3) * n_e * alpha_rec_3  # Recombination
+        term_31 = (1 - f_1 - f_3) * alpha_rec_3_n_e  # Recombination
         term_33 = f_3 * phi_3 * np.exp(-t_3)  # Photoionization
 
         # Finally assemble the equations for df3_dr and df3_dr
@@ -761,6 +777,7 @@ def population_fraction(radius_profile, velocity, density,
                           'charge_exchange_1': ch_exchange_he1,
                           'charge_exchange_he_ion': ch_exchange_hep}
         return f_1_r, f_3_r, reaction_rates
+
 
 # Calculate the ion fraction of He
 def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
