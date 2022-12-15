@@ -11,7 +11,6 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp, cumtrapz
-from scipy.interpolate import interp1d
 from p_winds import parker, tools, microphysics
 
 
@@ -20,8 +19,8 @@ __all__ = ["radiative_processes_exact", "radiative_processes",
 
 
 # Exact calculation of hydrogen photoionization
-def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r,
-                              h_fraction):
+def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_h_r,
+                              h_fraction, f_he_r=None):
     """
     Calculate the photoionization rate of hydrogen as a function of radius based
     on the EUV spectrum arriving at the planet and the neutral H density
@@ -40,11 +39,15 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r,
     density (``numpy.ndarray``):
         Number density profile for the atmosphere, in units of 1 / cm ** 3.
 
-    f_r (``numpy.ndarray`` or ``float``):
-        Ionization fraction profile for the atmosphere.
+    f_h_r (``numpy.ndarray`` or ``float``):
+        H ion fraction profile for the atmosphere.
 
     h_fraction (``float``):
         Hydrogen number fraction of the outflow.
+
+    f_he_r (``numpy.ndarray`` or ``float`` or ``None``):
+        He ion fraction profile for the atmosphere. If ``None``, then assume
+        that the profile is the same as ``f_h_r``.
 
     Returns
     -------
@@ -79,13 +82,18 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_r,
     # We assume that the atmosphere is made of only H + He
     he_fraction = 1 - h_fraction
     f_he_to_h = he_fraction / h_fraction
-    mu = (1 + 4 * f_he_to_h) / (1 + f_r + f_he_to_h)
+    mu = (1 + 4 * f_he_to_h) / (1 + f_h_r + f_he_to_h)
 
     n_tot = density / mu / m_h
-    n_htot = 1 / (1 + f_r + f_he_to_h) * n_tot
-    n_h = n_htot * (1 - f_r)
+    n_htot = 1 / (1 + f_h_r + f_he_to_h) * n_tot
+    n_h = n_htot * (1 - f_h_r)
     n_hetot = n_htot * f_he_to_h
-    n_he = n_hetot * (1 - f_r)
+
+    if f_he_r is None:
+        n_he = n_hetot * (1 - f_h_r)  # Here we assume that the ion fraction of
+        # He is the same as H, which may not always be correct
+    else:
+        n_he = n_hetot * (1 - f_he_r)  # This is more correct
 
     n_h_temp = n_h[::-1]
     column_h = cumtrapz(n_h_temp, r_grid_temp, initial=0)
@@ -220,7 +228,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                  star_mass = 1.0, semimajor_axis = 1.0,
                  spectrum_at_planet=None, flux_euv=None, initial_f_ion=0.0,
                  relax_solution=False, convergence=0.01, max_n_relax=10,
-                 exact_phi=False, return_mu=False, **options_solve_ivp):
+                 exact_phi=False, return_mu=False, return_rates=False,
+                 **options_solve_ivp):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
     function of the radius in unit of planetary radius.
@@ -296,6 +305,11 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         the atmosphere. Equivalent to the ``mu_bar`` of Eq. A.3 in Lampón et
         al. 2020.
 
+    return_rates (``bool``, optional):
+        If ``True``, then this function also returns a ``dict`` object
+        containing the rates of photoionization and recombination in function of
+        radius and in units of 1 / s. Default is ``False``.
+
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
         may want to change the options ``method`` (integration method; default
@@ -314,6 +328,11 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         averaged across the radial distance using according to the function
         `average_molecular_weight` in the `parker` module. Only returned when
         ``return_mu`` is set to ``True``.
+
+    rates (``dict``):
+        Dictionary containing the rates of photoionization and recombination in
+        function of radius and in units of 1 / s. Only returned when
+        ``return_rates`` is set to ``True``.
     """
     # Hydrogen recombination rate
     alpha_rec = recombination(temperature)
@@ -389,9 +408,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     phi, k1, k2, r, dr, velocity, density = _normalize(
         phi_abs, k1_abs, k2_abs, radius_profile, mean_molecular_weight_0)
 
-    if exact_phi:
-        _phi_prime_fun = interp1d(r, phi, fill_value="extrapolate")
-    else:
+    if exact_phi is False:
         # To start the calculations we need the optical depth, but technically
         # we don't know it yet, because it depends on the ion fraction in the
         # atmosphere, which is what we want to obtain. However, the optical
@@ -399,28 +416,23 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         # fraction, so a good first approximation is to assume the whole
         # atmosphere is neutral at first.
         column_density = np.flip(np.cumsum(np.flip(dr * density)))
-        tau_initial = k1 * column_density
-        # We do a dirty hack to make tau_initial and velocity a callable
-        # function so it's easily parsed inside the differential equation solver
-        _tau_fun = interp1d(r, tau_initial, fill_value="extrapolate")
-    _v_fun = interp1d(r, velocity, fill_value="extrapolate")
-
-    _v_fun = interp1d(r, velocity, fill_value="extrapolate")
-    _rho_fun = interp1d(r, density, fill_value="extrapolate")
+        tau = k1 * column_density
+    else:
+        pass
 
     # Now let's solve the differential eq. 13 of Oklopcic & Hirata 2018
     # The differential equation in function of r
     def _fun(_r, _f, _phi, _k2):
         if exact_phi:
-            _phi_prime = _phi_prime_fun(np.array([_r, ]))[0]
+            _phi_prime = np.interp(_r, r, phi)
         else:
-            _t = _tau_fun(np.array([_r, ]))[0]
-            _phi_prime = np.exp(-_t)*_phi
+            _t = np.interp(_r, r, tau)
+            _phi_prime = np.exp(-_t) * _phi
 
         # The next two lines may need to be substituted by `structure_tidal()`
         # instead of interpolated
-        _v = _v_fun(_r)
-        _rho = _rho_fun(_r)
+        _v = np.interp(_r, r, velocity)
+        _rho = np.interp(_r, r, density)
 
         # In terms 1 and 2 we use the values of k2 and phi from above
         term1 = (1. - _f) / _v * _phi_prime
@@ -474,15 +486,11 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
             phi, k1, k2, r, dr, velocity, density = _normalize(
                 phi_abs, k1_abs, k2_abs, radius_profile, mu_bar)
 
-            if exact_phi:
-                _phi_prime_fun = interp1d(r, phi, fill_value="extrapolate")
-            else:
+            if exact_phi is False:
                 # Re-calculate the column densities
                 column_density = np.flip(np.cumsum(np.flip(dr * density *
                                                            (1 - f_r))))
                 tau = k1 * column_density
-                _tau_fun = interp1d(r, tau, fill_value="extrapolate")
-            _v_fun = interp1d(r, velocity, fill_value="extrapolate")
             
             # And solve it again
             sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
@@ -517,7 +525,42 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     else:
         pass
 
-    if return_mu is False:
-        return f_r
+    # Calculate the final structure and rates of photoionization and
+    # recombination in function of radius
+    if return_rates is True:
+        # Final photoionization rate in unit of 1 / s
+        final_phi_prime = radiative_processes_exact(
+            spectrum_at_planet,
+            (radius_profile * planet_radius * u.Rjup).to(u.cm).value,
+            rho_norm * rhos, f_r, h_fraction) * (1 - f_r)
+        # Final sound speed in km / s
+        final_vs = parker.sound_speed(temperature, mu_bar)
+        # Final radius at the sonic point in units of Jupiter radii
+        final_rs = parker.radius_sonic_point_tidal(planet_mass, final_vs,
+                                                   star_mass, semimajor_axis)
+        # Final density at the sonic point in unit of g / cm ** 3
+        final_rhos = parker.density_sonic_point(mass_loss_rate, final_rs,
+                                                final_vs)
+        # Final velocity and density profiles in units of sonic point
+        final_r_norm = (radius_profile * planet_radius / final_rs)
+        final_v_norm, final_rho_norm = parker.structure_tidal(
+            final_r_norm, final_vs, final_rs, planet_mass, star_mass,
+            semimajor_axis)
+        # Final density profile in g / cm ** 3
+        final_rho = final_rho_norm * final_rhos
+        # Final recombination rate in 1 / s
+        final_alpha_rec = recombination(temperature) * k2_abs * final_rho * \
+            f_r ** 2
+        rates = {'photoionization': final_phi_prime,
+                 'recombination': final_alpha_rec}
     else:
+        pass
+
+    if return_mu is True and return_rates is False:
         return f_r, mu_bar
+    elif return_mu is False and return_rates is True:
+        return f_r, rates
+    elif return_mu is True and return_rates is True:
+        return f_r, mu_bar, rates
+    else:
+        return f_r

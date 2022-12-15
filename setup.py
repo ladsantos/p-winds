@@ -15,7 +15,7 @@ if sys.argv[-1] == "publish":
 
 setup(
     name="p_winds",
-    version="1.3.1",
+    version="1.3.2",
     author="Leonardo dos Santos",
     author_email="ldsantos@stsci.edu",
     packages=["p_winds"],

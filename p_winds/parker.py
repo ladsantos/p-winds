@@ -210,10 +210,8 @@ def structure(r, v_guess=None):
         # If r is a ``numpy.ndarray``, we do a dirty little hack to setup an
         # array of first guesses `x0` whose values are 0.1 for r <= 1, and 2 if
         # r > 1.
-        ind = tools.nearest_index(r, 1.0)  # Find the index where r == 1.0
-        x0_array = np.ones_like(r) * 0.1   # Setup the array of first guesses
-        x0_array[ind:] *= 20.0
-        velocity_r = so.newton(_eq_to_solve, x0=x0_array, args=(r,))
+        v_init = (np.array(r > 1, dtype=int) * 2 + 0.1)
+        velocity_r = so.newton(_eq_to_solve, x0=v_init, args=(r,))
     # If r is float, just do a simple if statement
     else:
         if r <= 1.0:
@@ -327,15 +325,14 @@ def structure_tidal(r, sound_speed_0, radius_sonic_point, planet_mass,
         return eq
 
     if isinstance(r, np.ndarray):
-        # One line verison of Leo's initial value hack gives 0.1 below sonic
+        # One line version of Leo's initial value hack gives 0.1 below sonic
         # point and 2 above
         v_init = (np.array(r > 1, dtype=int) * 2 + 0.1)
 
         # Compute velocity profile
-        velocity_r = np.array([so.newton(_eq_to_solve, x0=v_init[k],
-            args=(r[k], sound_speed_0, radius_sonic_point, planet_mass,
-                  star_mass, semi_major_axis),
-            maxiter = 1000) for k in range(len(r))])    
+        velocity_r = so.newton(_eq_to_solve, x0=v_init,
+            args=(r, sound_speed_0, radius_sonic_point, planet_mass,
+                  star_mass, semi_major_axis), maxiter=1000)
     elif r <= 1.0:
         velocity_r = so.newton(_eq_to_solve, x0=1E-1,
                                args=(r, sound_speed_0, radius_sonic_point,

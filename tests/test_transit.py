@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from p_winds import microphysics, transit
+from p_winds import lines, transit
 
 
 data_test_url = 'https://raw.githubusercontent.com/ladsantos/p-winds/main/data/he_3_profile.dat'
@@ -13,7 +13,7 @@ r = np.loadtxt(data_test_url, usecols=(0,))  # Altitudes in m
 v = np.loadtxt(data_test_url, usecols=(1,))  # Velocities in m / s
 n_he_3 = np.loadtxt(data_test_url, usecols=(2, ))  # He fraction
 planet_to_star_ratio = 0.12086
-w0, w1, w2, f0, f1, f2, a_ij = microphysics.he_3_properties()
+w0, w1, w2, f0, f1, f2, a_ij = lines.he_3_properties()
 m_He = 4 * 1.67262192369e-27  # Helium atomic mass in kg
 wl = np.linspace(1.0827, 1.0832, 150) * 1E-6  # Wavelengths in m
 v_wind = -2E3  # Line-of-sight wind velocity in m / s

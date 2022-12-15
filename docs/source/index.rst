@@ -51,3 +51,4 @@ using GitHub.
    api
    quickstart
    advanced_tutorial
+   tidal_effects

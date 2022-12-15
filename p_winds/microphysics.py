@@ -9,11 +9,18 @@ from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 import numpy as np
 import astropy.units as u
-from warnings import warn
+import astropy.constants as c
+from warnings import warn, filterwarnings
+
+# Ignore some annoying warnings that are not a problem when using the MUSCLES
+# spectra
+filterwarnings(action='ignore', category=RuntimeWarning)
 
 
-__all__ = ["hydrogen_cross_section", "helium_singlet_cross_section",
-           "helium_triplet_cross_section", "he_3_properties"]
+__all__ = ["hydrogen_cross_section", "helium_total_cross_section",
+           "helium_singlet_cross_section", "helium_triplet_cross_section",
+           "he_collisional_strength", "general_cross_section",
+           "sigma_properties_v1996", "collisional_excitation"]
 
 
 # Photoionization cross-section of hydrogen
@@ -213,54 +220,8 @@ def he_collisional_strength():
     return array
 
 
-# Line properties of the 1.083 microns He triplet taken from the NIST database
-# https://www.nist.gov/pml/atomic-spectra-database
-def he_3_properties():
-    """
-    Returns the central wavelengths in air, oscillator strengths and the
-    Einstein coefficient of the helium triplet in 1.083 microns. The values
-    were taken from the NIST database:
-    https://www.nist.gov/pml/atomic-spectra-database
-
-    Returns
-    -------
-    lambda_0 (``float``):
-        Central wavelength in air of line 0 in unit of m.
-
-    lambda_1 (``float``):
-        Central wavelength in air of line 1 in unit of m.
-
-    lambda_2 (``float``):
-        Central wavelength in air of line 2 in unit of m.
-
-    f_0 (``float``):
-        Oscillator strength of line 0 (unitless).
-
-    f_1 (``float``):
-        Oscillator strength of line 1 (unitless).
-
-    f_2 (``float``):
-        Oscillator strength of line 2 (unitless).
-
-    a_ij (``float``):
-        Einstein coefficient of the whole triplet in unit of 1 / s.
-    """
-    # Central wavelengths in units of m
-    lambda_0 = 1.082909114 * 1E-6
-    lambda_1 = 1.083025010 * 1E-6
-    lambda_2 = 1.083033977 * 1E-6
-    # Oscillator strengths
-    f_0 = 5.9902e-02
-    f_1 = 1.7974e-01
-    f_2 = 2.9958e-01
-    # Einstein coefficient in units of s ** (-1)
-    a_ij = 1.0216e+07
-
-    return lambda_0, lambda_1, lambda_2, f_0, f_1, f_2, a_ij
-
-
 # Parametrized photoionization cross-section of atoms and ions from Verner+1996
-def general_cross_section(energy, species):
+def general_cross_section(wavelength, species):
     """
     Calculates the photoionization cross-section of an atomic or ion species
     using the parametrization of Verner et al. (1996)
@@ -268,8 +229,8 @@ def general_cross_section(energy, species):
 
     Parameters
     ----------
-    energy (``float`` or ``numpy.ndarray``)
-        Photon energy in eV.
+    wavelength (``float`` or ``numpy.ndarray``)
+        Photon wavelength in angstrom.
 
     species (``str``):
         String containing the species for which you request the cross-section in
@@ -278,8 +239,12 @@ def general_cross_section(energy, species):
 
     Returns
     -------
-
+    cross_section (``float`` or ``numpy.ndarray``):
+        Cross-section in unit of cm ** (-2)
     """
+    # Convert wavelength to energy
+    energy = (c.h * c.c / wavelength / u.angstrom).to(u.eV).value
+
     parameters_dict = sigma_properties_v1996()
     energy_threshold, energy_max, energy_0, sigma_0, y_a, p, y_w, y_0, y_1 = \
         parameters_dict[species]
@@ -311,10 +276,13 @@ def general_cross_section(energy, species):
     function_y = term1 * term2 * term3
 
     cross_section = sigma_0 * function_y * mb  # cm ** (-2)
+    cross_section[energy < energy_threshold] = 0.0
 
     return cross_section
 
 
+# Some hard-coding to calculate the photoionization cross-sections from Verner
+# et al. 1996.
 def sigma_properties_v1996():
     """
     Function that hard-codes the cross-section parameters from Verner et al.
@@ -326,23 +294,41 @@ def sigma_properties_v1996():
         Dictionary containing the parameters.
     """
     parameters_dict = {
-        #         E_thresold, E_max, energy_0, sigma_0, y_a, p, y_w, y_0, y_1
-        'C I':    [1.126E1, 2.910E2, 2.144E0, 5.027E2, 6.126E1, 5.101E0, 9.157E-2, 1.133E0, 1.607E0],
-        'C II':   [2.438E1, 3.076E2, 4.058E-1, 8.709E0, 1.261E2, 8.578E0, 2.093E0, 4.929E1, 3.234E0],
-        'C III':  [4.789E1, 3.289E2, 4.614E0, 1.539E4, 1.737E0, 1.593E1, 5.922E0, 4.378E-3, 2.528E-2],
-        'N I':    [1.453E1, 4.048E2, 4.034E0, 8.235E2, 8.033E1, 3.928E0, 9.097E-2, 8.598E-1, 2.325E0],
-        'O I':    [1.362E1, 5.380E2, 1.240E0, 1.745E3, 3.784E0, 1.764E1, 7.589E-2, 8.698E0, 1.271E-1],
-        'O II':   [3.512E1, 5.581E2, 1.386E0, 5.967E1, 3.175E1, 8.943E0, 1.934E-2, 2.131E1, 1.503E-2],
-        'O III':  [5.494E1, 5.840E2, 1.723E-1, 6.753E2, 3.852E2, 6.822E0, 1.191E-1, 3.839E-3, 4.569E-1],
-        'Mg I':   [7.646E0, 5.490E1, 1.197E1, 1.372E8, 2.228E-1, 1.574E1, 2.805E-1, 0, 0],
-        'Mg II':  [1.504E1, 6.569E1, 8.139E0, 3.278E0, 4.341E7, 3.610E0, 0, 0, 0],
-        'Si I':   [8.152E0, 1.060E2, 2.317E1, 2.506E1, 2.057E1, 3.546E0, 2.837E-1, 1.672E-5, 4.207E-1],
-        'Si II':  [1.635E1, 1.186E2, 2.556E0, 4.140E0, 1.337E1, 1.191E1, 1.570E0, 6.634E0, 1.272E-1],
-        'Si III': [3.349E1, 1.311E2, 1.659E-1, 5.790E-4, 1.474E2, 1.336E1, 8.626E-1, 9.613E1, 6.442E-1],
-        'Si IV':  [4.514E1, 1.466E2, 1.288E1, 6.083E0, 1.356E6, 3.353E0, 0, 0, 0],
-        'Ca I':   [6.113E0, 3.443E1, 1.278E1, 5.370E5, 3.162E-1, 1.242E1, 4.477E-1, 1.012E-3, 1.851E-2],
-        'Ca II':  [1.187E1, 4.090E1, 1.553E1, 1.064E7, 7.790E-1, 2.130E1, 6.453E-1, 2.161E-3, 6.706E-2],
-        'Fe I':   [7.902E0, 6.600E1, 5.461E-2, 3.062E-1, 2.671E7, 7.923E0, 2.069E1, 1.382E2, 2.481E-1],
-        'Fe II':  [1.619E1, 7.617E1, 1.761E-1, 4.365E3, 6.298E3, 5.204E0, 1.141E1, 9.272E1, 1.075E2],
+        #         E_thresold, E_max, energy_0, sigma_0, y_a, p,
+        #         y_w, y_0, y_1
+        'C I':    [1.126E1, 2.910E2, 2.144E0, 5.027E2, 6.126E1, 5.101E0,
+                   9.157E-2, 1.133E0, 1.607E0],
+        'C II':   [2.438E1, 3.076E2, 4.058E-1, 8.709E0, 1.261E2, 8.578E0,
+                   2.093E0, 4.929E1, 3.234E0],
+        'C III':  [4.789E1, 3.289E2, 4.614E0, 1.539E4, 1.737E0, 1.593E1,
+                   5.922E0, 4.378E-3, 2.528E-2],
+        'N I':    [1.453E1, 4.048E2, 4.034E0, 8.235E2, 8.033E1, 3.928E0,
+                   9.097E-2, 8.598E-1, 2.325E0],
+        'O I':    [1.362E1, 5.380E2, 1.240E0, 1.745E3, 3.784E0, 1.764E1,
+                   7.589E-2, 8.698E0, 1.271E-1],
+        'O II':   [3.512E1, 5.581E2, 1.386E0, 5.967E1, 3.175E1, 8.943E0,
+                   1.934E-2, 2.131E1, 1.503E-2],
+        'O III':  [5.494E1, 5.840E2, 1.723E-1, 6.753E2, 3.852E2, 6.822E0,
+                   1.191E-1, 3.839E-3, 4.569E-1],
+        'Mg I':   [7.646E0, 5.490E1, 1.197E1, 1.372E8, 2.228E-1, 1.574E1,
+                   2.805E-1, 0, 0],
+        'Mg II':  [1.504E1, 6.569E1, 8.139E0, 3.278E0, 4.341E7, 3.610E0,
+                   0, 0, 0],
+        'Si I':   [8.152E0, 1.060E2, 2.317E1, 2.506E1, 2.057E1, 3.546E0,
+                   2.837E-1, 1.672E-5, 4.207E-1],
+        'Si II':  [1.635E1, 1.186E2, 2.556E0, 4.140E0, 1.337E1, 1.191E1,
+                   1.570E0, 6.634E0, 1.272E-1],
+        'Si III': [3.349E1, 1.311E2, 1.659E-1, 5.790E-4, 1.474E2, 1.336E1,
+                   8.626E-1, 9.613E1, 6.442E-1],
+        'Si IV':  [4.514E1, 1.466E2, 1.288E1, 6.083E0, 1.356E6, 3.353E0,
+                   0, 0, 0],
+        'Ca I':   [6.113E0, 3.443E1, 1.278E1, 5.370E5, 3.162E-1, 1.242E1,
+                   4.477E-1, 1.012E-3, 1.851E-2],
+        'Ca II':  [1.187E1, 4.090E1, 1.553E1, 1.064E7, 7.790E-1, 2.130E1,
+                   6.453E-1, 2.161E-3, 6.706E-2],
+        'Fe I':   [7.902E0, 6.600E1, 5.461E-2, 3.062E-1, 2.671E7, 7.923E0,
+                   2.069E1, 1.382E2, 2.481E-1],
+        'Fe II':  [1.619E1, 7.617E1, 1.761E-1, 4.365E3, 6.298E3, 5.204E0,
+                   1.141E1, 9.272E1, 1.075E2],
     }
     return parameters_dict
