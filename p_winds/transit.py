@@ -8,7 +8,7 @@ planets and atmospheres.
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.special import voigt_profile
-from scipy.integrate import simps
+from scipy.integrate import trapezoid
 from flatstar import draw, utils
 
 
@@ -122,7 +122,7 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
                           oscillator_strength, einstein_coefficient,
                           wavelength_grid, gas_temperature, particle_mass,
                           bulk_los_velocity=0.0, planet_radial_velocity=0.0,
-                          wind_broadening_method='average',
+                          wind_broadening_method='average', z_grid_size=200,
                           turbulence_broadening=False):
     """
     Calculate the absorbed intensity profile in a wavelength grid.
@@ -192,6 +192,10 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
         Gaussian term of the Voigt profile with an additive factor proportional
         to the square of the density-averaged, line-of-sight velocity (faster).
 
+    z_grid_size (``int``, optional):
+        Grid size for the line of sight direction. This is used only if
+        ``wind_broadening_method`` is set to ``'formal'``. Default is 200.
+
     turbulence_broadening (``bool``, optional):
         If ``True``, adds a turbulence broadening, defined as in Lampón et al.
         2020, to the Gaussian term of the Voigt profile. Default is ``False``.
@@ -206,8 +210,9 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
     optical_depth_profile = optical_depth_2d(
         radius_profile, density_profile, velocity_profile, central_wavelength,
         oscillator_strength, einstein_coefficient, wavelength_grid,
-        gas_temperature, particle_mass, bulk_los_velocity,
-        planet_radial_velocity, wind_broadening_method, turbulence_broadening
+        gas_temperature, particle_mass, z_grid_size, bulk_los_velocity,
+        planet_radial_velocity, wind_broadening_method,
+        turbulence_broadening
     )
 
     # Now we interpolate the optical depths to each radius from the planet
@@ -225,8 +230,7 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
 
 
 # Density and velocity profiles in the line of sight
-def profile_los(radius_profile, density_profile, velocity_profile,
-                z_grid_size=200):
+def profile_los(radius_profile, density_profile, velocity_profile, z_grid_size):
     """
     Calculate the profiles of radius and line-of-sight velocities in function of
     sky-projected radial distance from the planet (axis 0) and the line of sight
@@ -245,6 +249,9 @@ def profile_los(radius_profile, density_profile, velocity_profile,
     velocity_profile (``numpy.ndarray``):
         1-D profile of velocities in function of radius, in whatever unit you
         want to work with.
+
+    z_grid_size (``int``, optional):
+        Grid size for the line of sight direction.
 
     Returns
     -------
@@ -289,7 +296,7 @@ def profile_los(radius_profile, density_profile, velocity_profile,
 def optical_depth_2d(radius_profile, density_profile, velocity_profile,
                      central_wavelength, oscillator_strength,
                      einstein_coefficient, wavelength_grid, gas_temperature,
-                     particle_mass, bulk_los_velocity=0.0,
+                     particle_mass, z_grid_size, bulk_los_velocity=0.0,
                      planet_radial_velocity=0.0,
                      wind_broadening_method='average',
                      turbulence_broadening=False):
@@ -335,6 +342,9 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
     particle_mass (``float``):
         Mass of the particle corresponding to the transition in unit of kg.
 
+    z_grid_size (``int``, optional):
+        Grid size for the line of sight direction.
+
     bulk_los_velocity (``float``, optional):
         Bulk velocity of the gas cell in the line of sight in unit of m / s.
         Default is 0.0.
@@ -365,7 +375,8 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
     """
     # Calculate density and velocity profiles in the line of sight
     density_los, velocity_los, z_los = \
-        profile_los(radius_profile, density_profile, velocity_profile)
+        profile_los(radius_profile, density_profile, velocity_profile,
+                    z_grid_size)
     spatial_shape = np.shape(density_los)
 
     # Spectral line properties
@@ -469,7 +480,7 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
         # Calculate the optical depths divided by the cross section
         density_expanded = np.expand_dims(density_los, axis=-1)
         opt_depth_over_cross_section_r_nu = \
-            simps(profiles * density_expanded, z_los, axis=0)
+            trapezoid(profiles * density_expanded, z_los, axis=0)
 
         return opt_depth_over_cross_section_r_nu
 
