@@ -10,7 +10,11 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 import astropy.units as u
 import astropy.constants as c
-from warnings import warn
+from warnings import warn, filterwarnings
+
+# Ignore some annoying warnings that are not a problem when using the MUSCLES
+# spectra
+filterwarnings(action='ignore', category=RuntimeWarning)
 
 
 __all__ = ["hydrogen_cross_section", "helium_total_cross_section",
