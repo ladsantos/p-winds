@@ -11,7 +11,6 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp, odeint
-from scipy.interpolate import interp1d
 from p_winds import tools, microphysics
 import warnings
 
@@ -345,15 +344,6 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     dr = np.diff(r)
     dr = np.concatenate((dr, np.array([r[-1], ])))
 
-    # Some mock functions that will allow us to parse the values of ion
-    # fraction, velocity and density in function of radius
-    mock_f_h_ion_r = interp1d(r, hydrogen_ion_fraction,
-                              fill_value="extrapolate")
-    mock_f_he_ion_r = interp1d(r, helium_ion_fraction,
-                               fill_value="extrapolate")
-    mock_v_r = interp1d(r, velocity, fill_value="extrapolate")
-    mock_rho_r = interp1d(r, density, fill_value="extrapolate")
-
     # With all this setup done, now we need to assume something about the
     # distribution of neutral O in the atmosphere. Let's assume it based on the
     # initial guess input.
@@ -370,38 +360,50 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     k3 = o_fraction / (h_fraction + 4 * he_fraction + 8 * o_fraction) / m_h
     tau_oi_h = k1 * a_h_oi * column_density_h_0
     tau_o_he = k2 * a_he * column_density_he_0
-    tau_oi_initial = (1 - initial_f_o_ion) * k3 * a_oi * column_density + \
-        tau_oi_h + tau_o_he
-
-    # We do a dirty hack to make tau_initial a callable function so it's easily
-    # parsed inside the differential equation solver
-    _tau_oi_fun = interp1d(r, tau_oi_initial, fill_value="extrapolate")
+    tau_oi = (1 - initial_f_o_ion) * k3 * a_oi * column_density + tau_oi_h + \
+        tau_o_he
 
     # The differential equation
     def _fun(_r, y, rates=False):
         f_oii = y
 
-        _v = mock_v_r(np.array([_r, ]))[0]
-        _rho = mock_rho_r(np.array([_r, ]))[0]
-        f_h_ion = mock_f_h_ion_r(np.array([_r, ]))[0]  # Fraction of H+
-        f_he_ion = mock_f_he_ion_r(np.array([_r, ]))[0]  # Fraction of He+
+        _v = np.interp(_r, r, velocity)
+        _rho = np.interp(_r, r, density)
+        f_h_ion = np.interp(_r, r, hydrogen_ion_fraction)  # Fraction of H+
+        f_he_ion = np.interp(_r, r, helium_ion_fraction)  # Fraction of He+
 
         # Assume the number density of electrons is equal to the number density
         # of H ions + He ions
-        n_e = k1 * _rho * f_h_ion + k2 * _rho * f_he_ion  # Number density of
-        # electrons
-        n_h_plus = k1 * _rho * f_h_ion    # Number density of ionized H
-        n_h0 = k1 * _rho * (1 - f_h_ion)  # Number density of atomic H
+        # Since we may run into loss of numerical precision here (big numbers),
+        # we manipulate the equations to avoid this problem. It looks a bit
+        # messy, but it is necessary
+        log_term_1 = np.log(k1) + np.log(_rho)  # H ions
+        log_term_2 = np.log(k2) + np.log(_rho)  # He ions
+        ionization_rate_oi_n_e = \
+            np.exp(log_term_1 + np.log(ionization_rate_oi)) * f_h_ion + \
+            np.exp(log_term_2 + np.log(ionization_rate_oi)) * f_he_ion
+        ct_rate_oi_hp_n_h_plus = \
+            np.exp(log_term_1 + np.log(ct_rate_oi_hp)) * f_h_ion
+        alpha_rec_oi_n_e = \
+            np.exp(log_term_1 + np.log(alpha_rec_oi)) * f_h_ion + \
+            np.exp(log_term_2 + np.log(alpha_rec_oi)) * f_he_ion
+        ct_rate_oii_h_n_h0 = \
+            np.exp(log_term_1 + np.log(ct_rate_oii_h)) * (1 - f_h_ion)
+
+        # n_e = k1 * _rho * f_h_ion + k2 * _rho * f_he_ion  # Number density of
+        # # electrons
+        # n_h_plus = k1 * _rho * f_h_ion    # Number density of ionized H
+        # n_h0 = k1 * _rho * (1 - f_h_ion)  # Number density of atomic H
 
         # Terms of dfoii_dr
-        tau_oi = _tau_oi_fun(np.array([_r, ]))[0]
-        term1 = (1 - f_oii) * phi_oi * np.exp(-tau_oi)  # Photoionization
-        term2 = (1 - f_oii) * n_e * ionization_rate_oi  # Electron-impact
+        t_oi = np.interp(_r, r, tau_oi)
+        term1 = (1 - f_oii) * phi_oi * np.exp(-t_oi)  # Photoionization
+        term2 = (1 - f_oii) * ionization_rate_oi_n_e  # Electron-impact
         # ionization
-        term3 = (1 - f_oii) * n_h_plus * ct_rate_oi_hp  # Charge exchange with
+        term3 = (1 - f_oii) * ct_rate_oi_hp_n_h_plus  # Charge exchange with
         # H+
-        term4 = f_oii * n_e * alpha_rec_oi  # Recombination of O II into O I
-        term5 = f_oii * n_h0 * ct_rate_oii_h  # Charge exchange of O II with
+        term4 = f_oii * alpha_rec_oi_n_e  # Recombination of O II into O I
+        term5 = f_oii * ct_rate_oii_h_n_h0  # Charge exchange of O II with
         # neutral H
         dfoii_dr = (term1 + term2 + term3 - term4 - term5) / _v
 
@@ -450,7 +452,6 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
                 k3 * a_oi * np.flip(np.cumsum(
                     np.flip(dr * density * (1 - f_oii_r)))) + tau_oi_h + \
                 tau_o_he
-            _tau_oi_fun = interp1d(r, tau_oi, fill_value="extrapolate")
 
             # Solve it again
             if method == 'odeint':
