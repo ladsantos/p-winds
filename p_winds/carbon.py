@@ -11,7 +11,6 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simps, solve_ivp, odeint
-from scipy.interpolate import interp1d
 from p_winds import tools, microphysics
 import warnings
 
@@ -433,15 +432,6 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     dr = np.diff(r)
     dr = np.concatenate((dr, np.array([r[-1], ])))
 
-    # Some mock functions that will allow us to parse the values of ion
-    # fraction, velocity and density in function of radius
-    mock_f_h_ion_r = interp1d(r, hydrogen_ion_fraction,
-                              fill_value="extrapolate")
-    mock_f_he_ion_r = interp1d(r, helium_ion_fraction,
-                              fill_value="extrapolate")
-    mock_v_r = interp1d(r, velocity, fill_value="extrapolate")
-    mock_rho_r = interp1d(r, density, fill_value="extrapolate")
-
     # With all this setup done, now we need to assume something about the
     # distribution of neutral C in the atmosphere. Let's assume it based on the
     # initial guess input.
@@ -459,61 +449,78 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     tau_ci_h = k1 * a_h_ci * column_density_h_0
     tau_cii_h = k1 * a_h_cii * column_density_h_0
     tau_c_he = k2 * a_he * column_density_he_0
-    tau_ci_initial = \
+    tau_ci = \
         (1 - initial_f_c_ion[0] - initial_f_c_ion[1]) * k3 * a_ci * \
         column_density + tau_ci_h + tau_c_he
-    tau_cii_initial = \
+    tau_cii = \
         initial_f_c_ion[0] * k3 * a_cii * column_density + tau_cii_h + tau_c_he
-    # We do a dirty hack to make tau_initial a callable function so it's easily
-    # parsed inside the differential equation solver
-    _tau_ci_fun = interp1d(r, tau_ci_initial, fill_value="extrapolate")
-    _tau_cii_fun = interp1d(r, tau_cii_initial, fill_value="extrapolate")
 
     # The differential equation
     def _fun(_r, y, rates=False):
         f_cii = y[0]
         f_ciii = y[1]
 
-        _v = mock_v_r(np.array([_r, ]))[0]
-        _rho = mock_rho_r(np.array([_r, ]))[0]
-        f_h_ion = mock_f_h_ion_r(np.array([_r, ]))[0]  # Fraction of H+
-        f_he_ion = mock_f_he_ion_r(np.array([_r, ]))[0]  # Fraction of He+
+        _v = np.interp(_r, r, velocity)
+        _rho = np.interp(_r, r, density)
+        f_h_ion = np.interp(_r, r, hydrogen_ion_fraction)  # Fraction of H+
+        f_he_ion = np.interp(_r, r, helium_ion_fraction)  # Fraction of He+
 
         # Assume the number density of electrons is equal to the number density
         # of H ions + He ions
-        n_e = k1 * _rho * f_h_ion + k2 * _rho * f_he_ion  # Number density of
-        # electrons
-        n_h_plus = k1 * _rho * f_h_ion    # Number density of ionized H
-        n_h0 = k1 * _rho * (1 - f_h_ion)  # Number density of atomic H
-        n_he0 = k2 * _rho * (1 - f_he_ion)  # Number density of atomic He
-        n_he_plus = k2 * _rho * f_he_ion  # Number density of ionized He
+        # Since we may run into loss of numerical precision here (big numbers),
+        # we manipulate the equations to avoid this problem. It looks a bit
+        # messy, but it is necessary
+        log_term_1 = np.log(k1) + np.log(_rho)  # H ions
+        log_term_2 = np.log(k2) + np.log(_rho)  # He ions
+        ionization_rate_ci_n_e = \
+            np.exp(log_term_1 + np.log(ionization_rate_ci)) * f_h_ion + \
+            np.exp(log_term_2 + np.log(ionization_rate_ci)) * f_he_ion
+        ct_rate_ci_hp_n_h_plus = \
+            np.exp(log_term_1 + np.log(ct_rate_ci_hp)) * f_h_ion
+        ct_rate_ci_hep_n_he_plus = \
+            np.exp(log_term_2 + np.log(ct_rate_ci_hep)) * f_he_ion
+        alpha_rec_ci_n_e = \
+            np.exp(log_term_1 + np.log(alpha_rec_ci)) * f_h_ion + \
+            np.exp(log_term_2 + np.log(alpha_rec_ci)) * f_he_ion
+        ct_rate_cii_h_n_h0 = \
+            np.exp(log_term_1 + np.log(ct_rate_cii_h)) * (1 - f_h_ion)
+        alpha_rec_cii_n_e = \
+            np.exp(log_term_1 + np.log(alpha_rec_cii)) * f_h_ion + \
+            np.exp(log_term_2 + np.log(alpha_rec_cii)) * f_he_ion
+        ct_rate_ciii_h_n_h0 = \
+            np.exp(log_term_1 + np.log(ct_rate_ciii_h)) * (1 - f_h_ion)
+        ct_rate_ciii_he_n_he0 = \
+            np.exp(log_term_2 + np.log(ct_rate_ciii_he)) * (1 - f_he_ion)
+        ionization_rate_cii_n_e = \
+            np.exp(log_term_1 + np.log(ionization_rate_cii)) * f_h_ion + \
+            np.exp(log_term_2 + np.log(ionization_rate_cii)) * f_he_ion
 
         # Terms of dfcii_dr
-        tau_ci = _tau_ci_fun(np.array([_r, ]))[0]
-        term11 = (1 - f_cii - f_ciii) * phi_ci * np.exp(-tau_ci)  # Photo-
+        t_ci = np.interp(_r, r, tau_ci)
+        term11 = (1 - f_cii - f_ciii) * phi_ci * np.exp(-t_ci)  # Photo-
         # ionization
-        term12 = (1 - f_cii - f_ciii) * n_e * ionization_rate_ci  # Electron-
+        term12 = (1 - f_cii - f_ciii) * ionization_rate_ci_n_e  # Electron-
         # impact ionization
-        term13 = (1 - f_cii - f_ciii) * n_h_plus * ct_rate_ci_hp  # Charge
+        term13 = (1 - f_cii - f_ciii) * ct_rate_ci_hp_n_h_plus  # Charge
         # exchange with H+
-        term14 = (1 - f_cii - f_ciii) * n_he_plus * ct_rate_ci_hep  # Charge
+        term14 = (1 - f_cii - f_ciii) * ct_rate_ci_hep_n_he_plus  # Charge
         # exchange with He+
-        term15 = f_cii * n_e * alpha_rec_ci  # Recombination of C II into C I
-        term16 = f_cii * n_h0 * ct_rate_cii_h  # Charge exchange of C II with
+        term15 = f_cii * alpha_rec_ci_n_e  # Recombination of C II into C I
+        term16 = f_cii * ct_rate_cii_h_n_h0  # Charge exchange of C II with
         # neutral H
-        term17 = f_ciii * n_e * alpha_rec_cii  # Recombination of C III into
+        term17 = f_ciii * alpha_rec_cii_n_e  # Recombination of C III into
         # C II
-        term18 = f_ciii * n_h0 * ct_rate_ciii_h  # Charge exchange of C III with
+        term18 = f_ciii * ct_rate_ciii_h_n_h0  # Charge exchange of C III with
         # neutral H
-        term19 = f_ciii * n_he0 * ct_rate_ciii_he  # Charge exchange of C III
+        term19 = f_ciii * ct_rate_ciii_he_n_he0  # Charge exchange of C III
         # with neutral He
         dfcii_dr = (term11 + term12 + term13 + term14 - term15 - term16 +
                     term17 + term18 + term19) / _v
 
         # Terms of dfciii_dr
-        tau_cii = _tau_cii_fun(np.array([_r, ]))[0]
-        term21 = f_cii * phi_cii * np.exp(-tau_cii)  # Photoionization
-        term22 = f_cii * n_e * ionization_rate_cii  # Electron-impact ionization
+        t_cii = np.interp(_r, r, tau_cii)
+        term21 = f_cii * phi_cii * np.exp(-t_cii)  # Photoionization
+        term22 = f_cii * ionization_rate_cii_n_e  # Electron-impact ionization
         dfciii_dr = (term21 + term22 - term17 - term18 - term19) / _v
 
         if rates is False:
@@ -570,8 +577,6 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
             tau_cii = k3 * a_cii * np.flip(
                 np.cumsum(np.flip(dr * density * f_cii_r))) + tau_cii_h + \
                 tau_c_he
-            _tau_ci_fun = interp1d(r, tau_ci, fill_value="extrapolate")
-            _tau_cii_fun = interp1d(r, tau_cii, fill_value="extrapolate")
 
             # Solve it again
             if method == 'odeint':
