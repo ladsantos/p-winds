@@ -309,12 +309,12 @@ def compute_transmission_coefficient(spectrum, r_grid, N_h, N_he, N_he_plus):
     he_cross = helium_photo_cross(xx) 
     he_plus_cross = heplus_photo_cross(xx)
 
-    h_cross[xx.to(u.eV, equivalencies = u.spectral()) < \
-        threshes['hydrogen']] = 0.*u.cm**2
-    he_cross[xx.to(u.eV, equivalencies = u.spectral()) < \
-        threshes['helium']] = 0.*u.cm**2
-    he_plus_cross[xx.to(u.eV, equivalencies = u.spectral()) < \
-        threshes['helium+']] = 0.*u.cm**2
+    h_cross[xx.to(u.eV, equivalencies = u.spectral()) <
+            threshes['hydrogen']] = 0.*u.cm**2
+    he_cross[xx.to(u.eV, equivalencies = u.spectral()) <
+             threshes['helium']] = 0.*u.cm**2
+    he_plus_cross[xx.to(u.eV, equivalencies = u.spectral()) <
+                  threshes['helium+']] = 0.*u.cm**2
 
     h_column = cd_h(yy.to(u.cm).value)*u.cm**-2
     he_column = cd_he(yy.to(u.cm).value)*u.cm**-2
@@ -322,7 +322,7 @@ def compute_transmission_coefficient(spectrum, r_grid, N_h, N_he, N_he_plus):
 
     tau_h = h_cross * h_column
     tau_he = he_cross * he_column
-    tau_he_plus = he_plus_cross * he_column
+    tau_he_plus = he_plus_cross * he_plus_column
 
     tau_tot = tau_h + tau_he + tau_he_plus
     transmission_coef = np.exp(-tau_tot)

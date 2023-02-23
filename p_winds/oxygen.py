@@ -239,7 +239,7 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     spectrum_at_planet (``dict``):
         Spectrum of the host star arriving at the planet covering fluxes at
         least up to the wavelength corresponding to the energy to ionize
-        carbon (11.26 eV, or 1101 Angstrom). Can be generated using
+        oxygen (13.62 eV, or 910 Angstrom). Can be generated using
         ``tools.make_spectrum_dict``.
 
     o_fraction (``float``, optional):
@@ -286,11 +286,8 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
 
     Returns
     -------
-    f_cii_r (``numpy.ndarray``):
-        Fraction of singly-ionized carbon in function of radius.
-
-    f_ciii_r (``numpy.ndarray``):
-        Fraction of doubly-ionized carbon in function of radius.
+    f_oii_r (``numpy.ndarray``):
+            Fraction of singly-ionized oxygen in function of radius.
 
     reaction_rates (``dict``):
         Dictionary containing the reaction rates in function of radius and in
@@ -342,7 +339,7 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     # The radius in unit of radius at the sonic point
     r = radius_profile * planet_radius / rs
     dr = np.diff(r)
-    dr = np.concatenate((dr, np.array([r[-1], ])))
+    dr = np.concatenate((dr, np.array([dr[-1], ])))
 
     # With all this setup done, now we need to assume something about the
     # distribution of neutral O in the atmosphere. Let's assume it based on the
@@ -355,9 +352,9 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     column_density_he_0 = np.flip(  # Column density of atomic He only
         np.cumsum(np.flip(dr * density * he_fraction *
                           (1 - helium_ion_fraction))))
-    k1 = h_fraction / (h_fraction + 4 * he_fraction + 8 * o_fraction) / m_h
-    k2 = he_fraction / (h_fraction + 4 * he_fraction + 8 * o_fraction) / m_h
-    k3 = o_fraction / (h_fraction + 4 * he_fraction + 8 * o_fraction) / m_h
+    k1 = h_fraction / (h_fraction + 4 * he_fraction + 16 * o_fraction) / m_h
+    k2 = he_fraction / (h_fraction + 4 * he_fraction + 16 * o_fraction) / m_h
+    k3 = o_fraction / (h_fraction + 4 * he_fraction + 16 * o_fraction) / m_h
     tau_oi_h = k1 * a_h_oi * column_density_h_0
     tau_o_he = k2 * a_he * column_density_he_0
     tau_oi = (1 - initial_f_o_ion) * k3 * a_oi * column_density + tau_oi_h + \

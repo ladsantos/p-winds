@@ -9,7 +9,6 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 import scipy.optimize as so
 from scipy.integrate import simps, trapz
-from p_winds import tools
 from astropy import units as u, constants as c
 
 __all__ = ["average_molecular_weight", "sound_speed", "radius_sonic_point",
@@ -208,9 +207,9 @@ def structure(r, v_guess=None):
     # guess is 2.0. This is a hacky solution, but it seems to work well.
     elif isinstance(r, np.ndarray):
         # If r is a ``numpy.ndarray``, we do a dirty little hack to setup an
-        # array of first guesses `x0` whose values are 0.1 for r <= 1, and 2 if
-        # r > 1.
-        v_init = (np.array(r > 1, dtype=int) * 2 + 0.1)
+        # array of first guesses `x0` whose values are 0.1 for r <= 1, and 2.1
+        # if r > 1.
+        v_init = np.array(r > 1, dtype=int) * 2 + 0.1
         velocity_r = so.newton(_eq_to_solve, x0=v_init, args=(r,))
     # If r is float, just do a simple if statement
     else:

@@ -597,7 +597,7 @@ def population_fraction(radius_profile, velocity, density,
     # The radius in unit of radius at the sonic point
     r = radius_profile * planet_radius / rs
     dr = np.diff(r)
-    dr = np.concatenate((dr, np.array([r[-1], ])))
+    dr = np.concatenate((dr, np.array([dr[-1], ])))
 
     # With all this setup done, now we need to assume something about the
     # distribution of singlet and triplet helium in the atmosphere. Let's assume
@@ -906,7 +906,7 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     # The radius in unit of radius at the sonic point
     r = radius_profile * planet_radius / rs
     dr = np.diff(r)
-    dr = np.concatenate((dr, np.array([r[-1], ])))
+    dr = np.concatenate((dr, np.array([dr[-1], ])))
 
     # With all this setup done, now we need to assume something about the
     # distribution of singlet and triplet helium in the atmosphere. Let's assume

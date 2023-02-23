@@ -406,6 +406,9 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     phi_ci = phi_ci / phi_unit
     a_ci = a_ci / (rs * 7.1492E+09) ** 2
     a_h_ci = a_h_ci / (rs * 7.1492E+09) ** 2
+    phi_cii = phi_cii / phi_unit
+    a_cii = a_cii / (rs * 7.1492E+09) ** 2
+    a_h_cii = a_h_cii / (rs * 7.1492E+09) ** 2
     a_he = a_he / (rs * 7.1492E+09) ** 2
 
     # Electron-impact ionization rate for C I in the same unit as the
@@ -430,7 +433,7 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     # The radius in unit of radius at the sonic point
     r = radius_profile * planet_radius / rs
     dr = np.diff(r)
-    dr = np.concatenate((dr, np.array([r[-1], ])))
+    dr = np.concatenate((dr, np.array([dr[-1], ])))
 
     # With all this setup done, now we need to assume something about the
     # distribution of neutral C in the atmosphere. Let's assume it based on the
@@ -443,9 +446,9 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     column_density_he_0 = np.flip(  # Column density of atomic He only
         np.cumsum(np.flip(dr * density * he_fraction *
                           (1 - helium_ion_fraction))))
-    k1 = h_fraction / (h_fraction + 4 * he_fraction + 6 * c_fraction) / m_h
-    k2 = he_fraction / (h_fraction + 4 * he_fraction + 6 * c_fraction) / m_h
-    k3 = c_fraction / (h_fraction + 4 * he_fraction + 6 * c_fraction) / m_h
+    k1 = h_fraction / (h_fraction + 4 * he_fraction + 12 * c_fraction) / m_h
+    k2 = he_fraction / (h_fraction + 4 * he_fraction + 12 * c_fraction) / m_h
+    k3 = c_fraction / (h_fraction + 4 * he_fraction + 12 * c_fraction) / m_h
     tau_ci_h = k1 * a_h_ci * column_density_h_0
     tau_cii_h = k1 * a_h_cii * column_density_h_0
     tau_c_he = k2 * a_he * column_density_he_0
@@ -514,13 +517,14 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
         # neutral H
         term19 = f_ciii * ct_rate_ciii_he_n_he0  # Charge exchange of C III
         # with neutral He
-        dfcii_dr = (term11 + term12 + term13 + term14 - term15 - term16 +
-                    term17 + term18 + term19) / _v
 
         # Terms of dfciii_dr
         t_cii = np.interp(_r, r, tau_cii)
         term21 = f_cii * phi_cii * np.exp(-t_cii)  # Photoionization
         term22 = f_cii * ionization_rate_cii_n_e  # Electron-impact ionization
+
+        dfcii_dr = (term11 + term12 + term13 + term14 - term15 - term16 +
+                    term17 + term18 + term19 - term21 - term22) / _v
         dfciii_dr = (term21 + term22 - term17 - term18 - term19) / _v
 
         if rates is False:
