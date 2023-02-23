@@ -597,7 +597,7 @@ def population_fraction(radius_profile, velocity, density,
     # The radius in unit of radius at the sonic point
     r = radius_profile * planet_radius / rs
     dr = np.diff(r)
-    dr = np.concatenate((dr, np.array([r[-1], ])))
+    dr = np.concatenate((dr, np.array([dr[-1], ])))
 
     # With all this setup done, now we need to assume something about the
     # distribution of singlet and triplet helium in the atmosphere. Let's assume
@@ -906,7 +906,7 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
     # The radius in unit of radius at the sonic point
     r = radius_profile * planet_radius / rs
     dr = np.diff(r)
-    dr = np.concatenate((dr, np.array([r[-1], ])))
+    dr = np.concatenate((dr, np.array([dr[-1], ])))
 
     # With all this setup done, now we need to assume something about the
     # distribution of singlet and triplet helium in the atmosphere. Let's assume
@@ -931,18 +931,31 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
 
         # Assume the number density of electrons is equal to the number density
         # of H ions + He ions
-        n_e = k1 * _rho * f_h_ion + k2 * _rho * f_he_ion  # Number density of
-        # electrons
-        n_h_plus = k1 * _rho * f_h_ion    # Number density of ionized H
-        n_h0 = k1 * _rho * (1 - f_h_ion)  # Number density of atomic H
+        # Since we may run into loss of numerical precision here (big numbers),
+        # we manipulate the equations to avoid this problem. It looks a bit
+        # messy, but it is necessary
+        log_term_1 = np.log(k1) + np.log(_rho)  # H ions
+        log_term_2 = np.log(k2) + np.log(_rho)  # He ions
+        ct_rate_he_hp_n_h_plus = \
+            np.exp(log_term_1 + np.log(ct_rate_he_hp)) * f_h_ion
+        alpha_rec_n_e = \
+            np.exp(log_term_1 + np.log(alpha_rec)) * f_h_ion + \
+            np.exp(log_term_2 + np.log(alpha_rec)) * f_he_ion
+        ct_rate_hep_h_n_h0 = \
+            np.exp(log_term_1 + np.log(ct_rate_hep_h)) * (1 - f_h_ion)
+
+        # n_e = k1 * _rho * f_h_ion + k2 * _rho * f_he_ion  # Number density of
+        # # electrons
+        # n_h_plus = k1 * _rho * f_h_ion    # Number density of ionized H
+        # n_h0 = k1 * _rho * (1 - f_h_ion)  # Number density of atomic H
 
         # Terms of df_dr
         t_he = np.interp(_r, r, tau_he)
         term1 = (1 - f_he_ion) * phi_he * np.exp(-t_he)  # Photoionization
-        term2 = (1 - f_he_ion) * n_h_plus * ct_rate_he_hp  # Charge exchange
+        term2 = (1 - f_he_ion) * ct_rate_he_hp_n_h_plus  # Charge exchange
         # with H+
-        term3 = f_he_ion * n_e * alpha_rec  # Recombination of He II into He I
-        term4 = f_he_ion * n_h0 * ct_rate_hep_h  # Charge exchange of He II with
+        term3 = f_he_ion * alpha_rec_n_e  # Recombination of He II into He I
+        term4 = f_he_ion * ct_rate_hep_h_n_h0  # Charge exchange of He II with
         # neutral H
         df_dr = (term1 + term2 - term3 - term4) / _v
 

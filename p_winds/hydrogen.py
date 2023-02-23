@@ -77,7 +77,7 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_h_r,
     a_lambda = microphysics.hydrogen_cross_section(wavelength=xx)
 
     # Optical depth to hydrogen photoionization
-    m_h = 1.67262192E-24  # Proton mass in unit of kg
+    m_h = 1.67262192E-24  # Proton mass in unit of g
     r_grid_temp = r_grid[::-1]
     # We assume that the atmosphere is made of only H + He
     he_fraction = 1 - h_fraction
@@ -298,6 +298,12 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     max_n_relax (``int``, optional):
         Maximum number of loops to perform the relaxation of the solution for
         ``f_r``. Default is 10.
+
+    exact_phi (``bool``, optional):
+        If set to ``True``, the H photoionization is calculated exactly (using
+        the ``radiative_processes_exact()`` function). If set to ``False``, then
+        calculate it using an approximation with ``radiative_processes()``.
+        Default value is ``False``.
 
     return_mu (``bool``, optional):
         If ``True``, then this function returns a second variable ``mu_bar``,
