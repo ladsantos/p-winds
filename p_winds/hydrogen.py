@@ -37,7 +37,7 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_h_r,
         Radius grid for the calculation, in units of cm.
 
     density (``numpy.ndarray``):
-        Number density profile for the atmosphere, in units of 1 / cm ** 3.
+        Total density profile for the atmosphere, in units of g / cm ** 3.
 
     f_h_r (``numpy.ndarray`` or ``float``):
         H ion fraction profile for the atmosphere.
