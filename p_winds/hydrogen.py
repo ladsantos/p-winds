@@ -348,10 +348,10 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
 
     # Photoionization rate at null optical depth at the distance of the planet
     # from the host star, in unit of 1 / s.
+    vs = parker.sound_speed(temperature, mean_molecular_weight_0)
+    rs = parker.radius_sonic_point_tidal(planet_mass, vs, star_mass,
+                                            semimajor_axis)
     if exact_phi and spectrum_at_planet is not None:
-        vs = parker.sound_speed(temperature, mean_molecular_weight_0)
-        rs = parker.radius_sonic_point_tidal(planet_mass, vs, star_mass,
-                                             semimajor_axis)
         rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
         _, rho_norm = parker.structure_tidal(
             radius_profile * planet_radius / rs, vs, rs, planet_mass,
@@ -461,7 +461,9 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
 
     # Calculate the average mean molecular weight using Eq. A.3 from Lampón et
     # al. 2020
-    mu_bar = parker.average_molecular_weight(f_r, radius_profile, velocity,
+    # This function expects absolute---not relative---velocity units
+    velocity_kmps = velocity * vs
+    mu_bar = parker.average_molecular_weight(f_r, radius_profile, velocity_kmps,
                                              planet_mass, temperature,
                                              he_h_fraction)
 
@@ -511,8 +513,9 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                                    ' solution.')
 
             # Here we update the average mean molecular weight
+            velocity_kmps = velocity * vs
             mu_bar = parker.average_molecular_weight(f_r, radius_profile,
-                                                     velocity,
+                                                     velocity_kmps,
                                                      planet_mass, temperature,
                                                      he_h_fraction)
 
