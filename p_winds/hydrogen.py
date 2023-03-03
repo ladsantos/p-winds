@@ -461,9 +461,10 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
 
     # Calculate the average mean molecular weight using Eq. A.3 from Lampón et
     # al. 2020
-    # This function expects absolute---not relative---velocity units
+    # This function expects absolute---not relative---units
     velocity_kmps = velocity * vs
-    mu_bar = parker.average_molecular_weight(f_r, radius_profile, velocity_kmps,
+    mu_bar = parker.average_molecular_weight(f_r, radius_profile*planet_radius,
+                                             velocity_kmps,
                                              planet_mass, temperature,
                                              he_h_fraction)
 
@@ -514,7 +515,8 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
 
             # Here we update the average mean molecular weight
             velocity_kmps = velocity * vs
-            mu_bar = parker.average_molecular_weight(f_r, radius_profile,
+            mu_bar = parker.average_molecular_weight(f_r,
+                                                     radius_profile*planet_radius,
                                                      velocity_kmps,
                                                      planet_mass, temperature,
                                                      he_h_fraction)
