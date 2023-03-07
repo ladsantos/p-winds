@@ -28,30 +28,30 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_h_r,
 
     Parameters
     ----------
-    spectrum_at_planet (``dict``):
+    spectrum_at_planet : ``dict ``
         Spectrum of the host star arriving at the planet covering fluxes at
         least up to the wavelength corresponding to the energy to ionize
         hydrogen (13.6 eV, or 911.65 Angstrom).
     
-    r_grid (``numpy.ndarray``):
+    r_grid : ``numpy.ndarray ``
         Radius grid for the calculation, in units of cm.
 
-    density (``numpy.ndarray``):
+    density : ``numpy.ndarray ``
         Total density profile for the atmosphere, in units of g / cm ** 3.
 
-    f_h_r (``numpy.ndarray`` or ``float``):
+    f_h_r : ``numpy.ndarray`` or ``float ``
         H ion fraction profile for the atmosphere.
 
-    h_fraction (``float``):
+    h_fraction : ``float ``
         Hydrogen number fraction of the outflow.
 
-    f_he_r (``numpy.ndarray`` or ``float`` or ``None``):
+    f_he_r : ``numpy.ndarray`` or ``float`` or ``None ``
         He ion fraction profile for the atmosphere. If ``None``, then assume
         that the profile is the same as ``f_h_r``.
 
     Returns
     -------
-    phi_prime (``float``):
+    phi_prime : ``float ``
         Ionization rate of hydrogen for each point on r_grid in unit of 1 / s.
     """
     wavelength = (spectrum_at_planet['wavelength'] *
@@ -122,17 +122,17 @@ def radiative_processes(spectrum_at_planet):
 
     Parameters
     ----------
-    spectrum_at_planet (``dict``):
+    spectrum_at_planet : ``dict ``
         Spectrum of the host star arriving at the planet covering fluxes at
         least up to the wavelength corresponding to the energy to ionize
         hydrogen (13.6 eV, or 911.65 Angstrom).
 
     Returns
     -------
-    phi (``float``):
+    phi : ``float ``
         Ionization rate of hydrogen at null optical depth in unit of 1 / s.
 
-    a_0 (``float``):
+    a_0 : ``float ``
         Flux-averaged photoionization cross-section of hydrogen in unit of
         cm ** 2.
     """
@@ -176,20 +176,20 @@ def radiative_processes_mono(flux_euv, average_photon_energy=20.):
 
     Parameters
     ----------
-    flux_euv (``float``):
+    flux_euv : ``float ``
         Monochromatic extreme-ultraviolet (0 - 912 Angstrom) flux arriving at
         the planet in unit of erg / s / cm ** 2.
 
-    average_photon_energy (``float``, optional):
+    average_photon_energy : ``float``, optional
         Average energy of the photons ionizing H in unit of eV. Default is 20 eV
         (as in Murray-Clay et al 2009, Allan & Vidotto 2019).
 
     Returns
     -------
-    phi (``float``):
+    phi : ``float ``
         Ionization rate of hydrogen at null optical depth in unit of 1 / s.
 
-    a_0 (``float``):
+    a_0 : ``float ``
         Flux-averaged photoionization cross-section of hydrogen in unit of
         cm ** 2.
     """
@@ -210,12 +210,12 @@ def recombination(temperature):
 
     Parameters
     ----------
-    temperature (``float``):
+    temperature : ``float ``
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
     Returns
     -------
-    alpha_rec (``float``):
+    alpha_rec : ``float ``
         Recombination rate of hydrogen in units of cm ** 3 / s.
     """
     alpha_rec = 2.59E-13 * (temperature / 1E4) ** (-0.7)
@@ -236,82 +236,82 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
 
     Parameters
     ----------
-    radius_profile (``numpy.ndarray``):
+    radius_profile : ``numpy.ndarray ``
         Radius in unit of planetary radii.
 
-    planet_radius (``float``):
+    planet_radius : ``float ``
         Planetary radius in unit of Jupiter radius.
 
-    temperature (``float``):
+    temperature : ``float ``
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
-    h_fraction (``float``):
+    h_fraction : ``float ``
         Total (ion + neutral) H number fraction of the atmosphere.
 
-    mass_loss_rate (``float``):
+    mass_loss_rate : ``float ``
         Mass loss rate of the planet in units of g / s.
 
-    planet_mass (``float``):
+    planet_mass : ``float ``
         Planetary mass in unit of Jupiter mass.
 
-    mean_molecular_weight_0 (``float``):
+    mean_molecular_weight_0 : ``float ``
         Initial mean molecular weight of the atmosphere in unit of proton mass.
         Default value is 1.0 (100% neutral H). Since its final value depend on
         the H ion fraction itself, the mean molecular weight can be
         self-consistently calculated by setting `relax_solution` to `True`.
 
-    star_mass (``float``, optional):
+    star_mass : ``float``, optional
         Stellar mass in units of M_sun, needed for the tidal gravity
         calculation. Default is 1.
 
-    semimajor_axis (``float``, optional):
+    semimajor_axis : ``float``, optional
         Planetary semimajor axis in units of au, needed for the tidal gravity
         calculation. Default is 1 (so the tidal gravity correction is minimal by
         default).
 
-    spectrum_at_planet (``dict``, optional):
+    spectrum_at_planet : ``dict``, optional
         Spectrum of the host star arriving at the planet covering fluxes at
         least up to the wavelength corresponding to the energy to ionize
         hydrogen (13.6 eV, or 911.65 Angstrom). Can be generated using
         ``tools.make_spectrum_dict``. If ``None``, then ``flux_euv`` must be
         provided instead. Default is ``None``.
 
-    flux_euv (``float``, optional):
+    flux_euv : ``float``, optional
         Extreme-ultraviolet (0-911.65 Angstrom) flux arriving at the planet in
         units of erg / s / cm ** 2. If ``None``, then ``spectrum_at_planet``
         must be provided instead. Default is ``None``.
 
-    initial_f_ion (``float``, optional):
+    initial_f_ion : ``float``, optional
         The initial ionization fraction at the layer near the surface of the
         planet. Default is 0.0, i.e., 100% neutral.
 
-    relax_solution (``bool``, optional):
+    relax_solution : ``bool``, optional
         The first solution is calculating by initially assuming the entire
         atmosphere is in neutral state. If ``True``, the solution will be
         re-calculated in a loop until it converges to a delta_f of 1%, or for a
         maximum of 10 loops (default parameters). Default is ``False``.
 
-    convergence (``float``, optional):
+    convergence : ``float``, optional
         Value of delta_f at which to stop the relaxation of the solution for
         ``f_r``. Default is 0.01.
 
-    max_n_relax (``int``, optional):
+    max_n_relax : ``int``, optional
         Maximum number of loops to perform the relaxation of the solution for
         ``f_r``. Default is 10.
 
-    exact_phi (``bool``, optional):
+    exact_phi : ``bool``, optional
         If set to ``True``, the H photoionization is calculated exactly (using
         the ``radiative_processes_exact()`` function). If set to ``False``, then
         calculate it using an approximation with ``radiative_processes()``.
         Default value is ``False``.
 
-    return_mu (``bool``, optional):
+    return_mu : ``bool``, optional
         If ``True``, then this function returns a second variable ``mu_bar``,
         which is the self-consistent, density-averaged mean molecular weight of
         the atmosphere. Equivalent to the ``mu_bar`` of Eq. A.3 in Lampón et
         al. 2020.
 
-    return_rates (``bool``, optional):
+    return_rates : ``bool``, optional
         If ``True``, then this function also returns a ``dict`` object
         containing the rates of photoionization and recombination in function of
         radius and in units of 1 / s. Default is ``False``.
@@ -326,16 +326,16 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
 
     Returns
     -------
-    f_r (``numpy.ndarray``):
+    f_r : ``numpy.ndarray ``
         Values of the fraction of ionized hydrogen in function of the radius.
 
-    mu_bar (``float``):
+    mu_bar : ``float ``
         Mean molecular weight of the atmosphere, in unit of proton mass,
         averaged across the radial distance using according to the function
         `average_molecular_weight` in the `parker` module. Only returned when
         ``return_mu`` is set to ``True``.
 
-    rates (``dict``):
+    rates : ``dict ``
         Dictionary containing the rates of photoionization and recombination in
         function of radius and in units of 1 / s. Only returned when
         ``return_rates`` is set to ``True``.

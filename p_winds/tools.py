@@ -21,14 +21,14 @@ def nearest_index(array, target_value):
 
     Parameters
     ----------
-    array (``numpy.array``):
+    array : ``numpy.array``
         Target array.
-    target_value (``float``):
+    target_value : ``float``
         Target value.
 
     Returns
     -------
-    index (``int``):
+    index : ``int``
         Index of the value in ``array`` that is closest to ``target_value``.
     """
     index = array.searchsorted(target_value)
@@ -51,39 +51,39 @@ def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
 
     Parameters
     ----------
-    host_star_name (``str``):
+    host_star_name : ``str``
         Name of the MUSCLES stellar spectrum you want to use. Must be one of:
         ['gj176', 'gj436', 'gj551', 'gj581', 'gj667c', 'gj832', 'gj876',
         'gj1214', 'hd40307', 'hd85512', 'hd97658', 'v-eps-eri'].
 
-    muscles_dir (``str``):
+    muscles_dir : ``str``
         Path to the directory with the MUSCLES data.
 
-    semi_major_axis (``float``):
+    semi_major_axis : ``float``
         Semi-major axis of the planet in units of stellar radii. The code first
         converts the MUSCLES spectrum to what it would be at R_star;
         ``semi_major_axis`` is needed to get the spectrum at the planet.
 
-    stellar_radius (``float``, optional):
+    stellar_radius : ``float``, optional
         Stellar radius in unit of solar radii. Setting a value for this
         parameter allows the spectrum to be scaled to an arbitrary stellar
         radius instead of the radius of the MUSCLES star. If ``None``, then the
         scaling is performed using the radius of the MUSCLES star. Default is
         ``None``.
 
-    truncate_wavelength_grid (``bool``, optional):
+    truncate_wavelength_grid : ``bool``, optional
         If ``True``, will only return the spectrum with energy > 13.6 eV. This
         may be useful for computational expediency. If False, returns the whole
         spectrum. Default is ``False``.
 
-    cutoff_thresh (`float`, optional):
+    cutoff_thresh : ``float``, optional
         If ``truncate_wavelength_grid`` is set to ``True``, then the truncation
         happens for energies whose value in eV is above this threshold, also in
         eV. Default is ``13.6``.
 
     Returns
     -------
-    spectrum (``dict``):
+    spectrum : ``dict``
         Spectrum dictionary with entries for the wavelength and flux, and their
         units.
     """
@@ -145,27 +145,27 @@ def make_spectrum_from_file(filename, units, path='', skiprows=0,
 
     Parameters
     ----------
-    filename (``str``):
+    filename : ``str``
         Name of the file containing the spectrum data.
 
-    units (``dict``):
+    units : ``dict``
         Units of the spectrum. This dictionary must have the entries
         ``'wavelength'`` and ``'flux'``, or ``'frequency'`` and ``'flux'``.
         The units must be set in ``astropy.units``.
 
-    path (``str``, optional):
+    path : ``str``, optional
         Path to the spectrum data file.
 
-    skiprows (``int``, optional):
+    skiprows : ``int``, optional
         Number of rows to skip corresponding to the header of the input text
         file.
 
-    scale_flux (``float``, optional):
+    scale_flux : ``float``, optional
         Scaling factor for flux. Default value is 1.0 (no scaling).
 
     Returns
     -------
-    spectrum (``dict``):
+    spectrum : ``dict``
         Spectrum dictionary with entries for the wavelength and flux, and their
         units.
 

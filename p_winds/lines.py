@@ -20,25 +20,25 @@ def he_3_properties():
 
     Returns
     -------
-    lambda_0 (``float``):
+    lambda_0 : ``float``
         Central wavelength in air of line 0 in unit of m.
 
-    lambda_1 (``float``):
+    lambda_1 : ``float``
         Central wavelength in air of line 1 in unit of m.
 
-    lambda_2 (``float``):
+    lambda_2 : ``float``
         Central wavelength in air of line 2 in unit of m.
 
-    f_0 (``float``):
+    f_0 : ``float``
         Oscillator strength of line 0 (unitless).
 
-    f_1 (``float``):
+    f_1 : ``float``
         Oscillator strength of line 1 (unitless).
 
-    f_2 (``float``):
+    f_2 : ``float``
         Oscillator strength of line 2 (unitless).
 
-    a_ij (``float``):
+    a_ij : ``float``
         Einstein coefficient of the whole triplet in unit of 1 / s.
     """
     # Central wavelengths in units of m
@@ -66,31 +66,31 @@ def c_ii_properties():
 
     Returns
     -------
-    lambda_0 (``float``):
+    lambda_0 : ``float``
         Central wavelength in air of line 0 in unit of m.
 
-    lambda_1 (``float``):
+    lambda_1 : ``float``
         Central wavelength in air of line 1 in unit of m.
 
-    lambda_2 (``float``):
+    lambda_2 : ``float``
         Central wavelength in air of line 2 in unit of m.
 
-    f_0 (``float``):
+    f_0 : ``float``
         Oscillator strength of line 0 (unitless).
 
-    f_1 (``float``):
+    f_1 : ``float``
         Oscillator strength of line 1 (unitless).
 
-    f_2 (``float``):
+    f_2 : ``float``
         Oscillator strength of line 2 (unitless).
 
-    a_ij_0 (``float``):
+    a_ij_0 : ``float``
         Einstein coefficient of line 0 in unit of 1 / s.
 
-    a_ij_1 (``float``):
+    a_ij_1 : ``float``
         Einstein coefficient of line 1 in unit of 1 / s.
 
-    a_ij_2 (``float``):
+    a_ij_2 : ``float``
         Einstein coefficient of line 2 in unit of 1 / s.
     """
     # Central wavelengths in units of m
@@ -120,31 +120,31 @@ def o_i_properties():
 
     Returns
     -------
-    lambda_0 (``float``):
+    lambda_0 : ``float``
         Central wavelength in air of line 0 in unit of m.
 
-    lambda_1 (``float``):
+    lambda_1 : ``float``
         Central wavelength in air of line 1 in unit of m.
 
-    lambda_2 (``float``):
+    lambda_2 : ``float``
         Central wavelength in air of line 2 in unit of m.
 
-    f_0 (``float``):
+    f_0 : ``float``
         Oscillator strength of line 0 (unitless).
 
-    f_1 (``float``):
+    f_1 : ``float``
         Oscillator strength of line 1 (unitless).
 
-    f_2 (``float``):
+    f_2 : ``float``
         Oscillator strength of line 2 (unitless).
 
-    a_ij_0 (``float``):
+    a_ij_0 : ``float``
         Einstein coefficient of line 0 in unit of 1 / s.
 
-    a_ij_1 (``float``):
+    a_ij_1 : ``float``
         Einstein coefficient of line 1 in unit of 1 / s.
 
-    a_ij_2 (``float``):
+    a_ij_2 : ``float``
         Einstein coefficient of line 2 in unit of 1 / s.
     """
     # Central wavelengths in units of m

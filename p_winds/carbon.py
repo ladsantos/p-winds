@@ -34,34 +34,34 @@ def radiative_processes(spectrum_at_planet):
 
     Parameters
     ----------
-    spectrum_at_planet (``dict``):
+    spectrum_at_planet : ``dict``
         Spectrum of the host star arriving at the planet covering fluxes at
         least up to the wavelength corresponding to the energy to ionize
         carbon (11.26 eV, or 1101 Angstrom).
 
     Returns
     -------
-    phi_ci (``float``):
+    phi_ci : ``float``
         Ionization rate of C I at null optical depth in unit of 1 / s.
 
-    phi_cii (``float``):
+    phi_cii : ``float``
         Ionization rate of C II at null optical depth in unit of 1 / s.
 
-    a_ci (``float``):
+    a_ci : ``float``
         Flux-averaged photoionization cross-section of C I in unit of cm ** 2.
 
-    a_cii (``float``):
+    a_cii : ``float``
         Flux-averaged photoionization cross-section of C II in unit of cm ** 2.
 
-    a_h_ci (``float``):
+    a_h_ci : ``float``
         Flux-averaged photoionization cross-section of H I in the range absorbed
         by C I in unit of cm ** 2.
 
-    a_h_cii (``float``):
+    a_h_cii : ``float``
         Flux-averaged photoionization cross-section of H I in the range absorbed
         by C II in unit of cm ** 2.
 
-    a_he (``float``):
+    a_he : ``float``
         Flux-averaged photoionization cross-section of He I in unit of cm ** 2.
     """
     wavelength = (spectrum_at_planet['wavelength'] *
@@ -140,17 +140,17 @@ def electron_impact_ionization(electron_temperature):
 
     Parameters
     ----------
-    electron_temperature (``float``):
+    electron_temperature : ``float``
         Temperature of the plasma where the electrons are embedded in unit of
         Kelvin.
 
     Returns
     -------
-    ionization_rate_ci (``float``):
+    ionization_rate_ci : ``float``
         Ionization rate of neutral C into singly-ionized C in unit of
         cm ** 3 / s.
 
-    ionization_rate_cii (``float``):
+    ionization_rate_cii : ``float``
         Ionization rate of singly-ionized C into doubly-ionized C in unit of
         cm ** 3 / s.
     """
@@ -177,16 +177,16 @@ def recombination(electron_temperature):
 
     Parameters
     ----------
-    electron_temperature (``float``):
+    electron_temperature : ``float``
         Temperature of the plasma where the electrons are embedded in unit of
         Kelvin.
 
     Returns
     -------
-    alpha_rec_ci (``float``):
+    alpha_rec_ci : ``float``
         Recombination rate of C II into C I in units of cm ** 3 / s.
 
-    alpha_rec_cii (``float``):
+    alpha_rec_cii : ``float``
         Recombination rate of C III into C II in units of cm ** 3 / s.
     """
     alpha_rec_ci = 4.67E-12 * (300 / electron_temperature) ** 0.60
@@ -210,27 +210,27 @@ def charge_transfer(temperature):
 
     Parameters
     ----------
-    temperature (``float``):
+    temperature : ``float``
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
     Returns
     -------
-    ct_rate_ci_hp (``float``):
+    ct_rate_ci_hp : ``float``
         Charge transfer rate between neutral C and H+ in units of cm ** 3 / s.
 
-    ct_rate_cii_h (``float``):
+    ct_rate_cii_h : ``float``
         Charge transfer rate between C+ and neutral H in units of cm ** 3 / s.
 
-    ct_rate_ci_hep (``float``):
+    ct_rate_ci_hep : ``float``
         Charge transfer rate between neutral C and He+ in units of cm ** 3 / s.
 
-    ct_rate_cii_sii (``float``):
+    ct_rate_cii_sii : ``float``
         Charge transfer rate between C+ and neutral Si in units of cm ** 3 / s.
 
-    ct_rate_ciii_h (``float``)
+    ct_rate_ciii_h : ``float``)
         Charge transfer rate between C++ and neutral H in units of cm ** 3 / s.
 
-    ct_rate_ciii_he (``float``)
+    ct_rate_ciii_he : ``float``)
         Charge transfer rate between C++ and neutral He in units of cm ** 3 / s.
     """
     # Recombination of C II into C I
@@ -266,78 +266,78 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
 
     Parameters
     ----------
-    radius_profile (``numpy.ndarray``):
+    radius_profile : ``numpy.ndarray``
         Radius in unit of planetary radii.
 
-    velocity (``numpy.ndarray``):
+    velocity : ``numpy.ndarray``
          Velocities sampled at the values of ``radius_profile`` in units of
          sound speed. Similar to the output of ``parker.structure()``.
 
-    density (``numpy.ndarray``):
+    density : ``numpy.ndarray``
         Densities sampled at the values of ``radius_profile`` in units of
         density at the sonic point. Similar to the output of
         ``parker.structure()``.
 
-    hydrogen_ion_fraction (``numpy.ndarray``):
+    hydrogen_ion_fraction : ``numpy.ndarray``
         Number fraction of H ion over total H in the upper atmosphere in
         function of radius. Similar to the output of
         ``hydrogen.ion_fraction()``.
 
-    helium_ion_fraction (``numpy.ndarray``):
+    helium_ion_fraction : ``numpy.ndarray``
         Number fraction of He ion over total He in the upper atmosphere in
         function of radius. Similar to the output of
         ``helium.population_fraction()``, but should be ``1 - f_1_r - f_3_r``.
 
-    planet_radius (``float``):
+    planet_radius : ``float``
         Planetary radius in unit of Jupiter radius.
 
-    temperature (``float``):
+    temperature : ``float``
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
-    h_fraction (``float``):
+    h_fraction : ``float``
         Total (ion + neutral) H number fraction of the atmosphere.
 
-    speed_sonic_point (``float``):
+    speed_sonic_point : ``float``
         Speed of sound in the outflow in units of km / s.
 
-    radius_sonic_point (``float``):
+    radius_sonic_point : ``float``
         Radius of the sonic point in unit of Jupiter radius.
 
-    density_sonic_point (``float``):
+    density_sonic_point : ``float``
         Density at the sonic point in units of g / cm ** 3.
 
-    spectrum_at_planet (``dict``):
+    spectrum_at_planet : ``dict``
         Spectrum of the host star arriving at the planet covering fluxes at
         least up to the wavelength corresponding to the energy to ionize
         carbon (11.26 eV, or 1101 Angstrom). Can be generated using
         ``tools.make_spectrum_dict``.
 
-    c_fraction (``float``, optional):
+    c_fraction : ``float``, optional
         Fraction of total carbon in the upper atmosphere. Default value assumes
         solar abundance.
 
-    initial_f_c_ion (``numpy.ndarray``, optional):
+    initial_f_c_ion : ``numpy.ndarray``, optional
         The initial ion fractions are the `y0` of the differential equation to
         be solved. This array has two items: the initial fraction of
         singly-ionized and doubly-ionized carbon in the inner layer of the
         atmosphere. The default value for this parameter is
         ``numpy.array([0.0, 0.0])``, i.e., fully neutral at the inner layer.
 
-    relax_solution (``bool``, optional):
+    relax_solution : ``bool``, optional
         The first solution is calculating by initially assuming the entire
         atmosphere is in neutral state. If ``True``, the solution will be
         re-calculated in a loop until it converges to a delta_f of 1%, or for a
         maximum of 10 loops (default parameters). Default is ``False``.
 
-    convergence (``float``, optional):
+    convergence : ``float``, optional
         Value of delta_f at which to stop the relaxation of the solution for
         ``f_r``. Default is 0.01.
 
-    max_n_relax (``int``, optional):
+    max_n_relax : ``int``, optional
         Maximum number of loops to perform the relaxation of the solution for
         the ion fractions. Default is 10.
 
-    method (``str``, optional):
+    method : ``str``, optional
         If method is ``'odeint'``, then ``scipy.integrate.odeint()`` is used
         instead of ``scipy.integrate.solve_ivp()`` to calculate the steady-state
         distribution of helium. The first seems to be at least twice faster than
@@ -346,7 +346,7 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
         ``'Radau'``, then use ``solve_ivp(method='Radau')``. Default is
         ``'odeint'``.
 
-    return_rates (``bool``, optional):
+    return_rates : ``bool``, optional
         If ``True``, then this function also returns a ``dict`` object
         containing the various reaction rates in function of radius and in units
         of 1 / s. Default is ``False``.
@@ -360,13 +360,13 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
 
     Returns
     -------
-    f_cii_r (``numpy.ndarray``):
+    f_cii_r : ``numpy.ndarray``
         Fraction of singly-ionized carbon in function of radius.
 
-    f_ciii_r (``numpy.ndarray``):
+    f_ciii_r : ``numpy.ndarray``
         Fraction of doubly-ionized carbon in function of radius.
 
-    reaction_rates (``dict``):
+    reaction_rates : ``dict``
         Dictionary containing the reaction rates in function of radius and in
         units of 1 / s. Only returned when ``return_rates`` is set to ``True``.
         Here is a short description of the dict keys:
