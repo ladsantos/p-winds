@@ -9,7 +9,7 @@ from p_winds import hydrogen, helium, tools, parker, carbon
 # HD 209458 b
 R_pl = (1.39 * u.jupiterRad).value
 M_pl = (0.73 * u.jupiterMass).value
-m_dot = (5E11 * u.g / u.s).value
+m_dot = (8E10 * u.g / u.s).value
 T_0 = (9E3 * u.K).value
 h_fraction = 0.90
 he_fraction = 1 - h_fraction
@@ -60,7 +60,8 @@ def test_ion_fraction():
                                           radius_sonic_point=rs,
                                           density_sonic_point=rhos,
                                           spectrum_at_planet=spectrum,
-                                          initial_f_c_ion=np.array([0.5, 0.0]),
+                                          initial_f_c_ion=np.array([0.0, 0.0]),
+                                          method='odeint',
                                           relax_solution=True)
 
     # Assert if all values of the fractions are between 0 and 1
