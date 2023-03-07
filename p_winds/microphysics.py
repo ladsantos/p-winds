@@ -31,21 +31,21 @@ def hydrogen_cross_section(wavelength=None, energy=None):
 
     Parameters
     ----------
-    wavelength (``float`` or ``numpy.ndarray``, optional):
+    wavelength : ``float`` or ``numpy.ndarray``, optional
         Wavelength in unit of angstrom. Default is ``None``. If ``None``,
         ``energy`` cannot be ``None``.
 
-    energy (``float`` or ``numpy.ndarray``, optional):
+    energy : ``float`` or ``numpy.ndarray``, optional
         Energy in unit of electron-volt. Default is ``None``. If ``None``,
         ``wavelength`` cannot be ``None``.
 
     Returns
     -------
-    a_lambda (``float`` or ``numpy.ndarray``):
+    a_lambda : ``float`` or ``numpy.ndarray``
         Cross-section in function of wavelength and in unit of cm ** 2. Only
         returned if wavelength was input.
 
-    a_nu (``float`` or ``numpy.ndarray``):
+    a_nu : ``float`` or ``numpy.ndarray``
         Cross-section in function of energy and in unit of cm ** 2. Only
         returned if energy was input.
     """
@@ -84,12 +84,12 @@ def helium_total_cross_section(wavelength):
 
     Parameters
     ----------
-    wavelength (``numpy.ndarray``):
+    wavelength : ``numpy.ndarray``
         Wavelength in unit of angstrom.
 
     Returns
     -------
-    a_lambda_1 (``numpy.ndarray``):
+    a_lambda_1 : ``numpy.ndarray``
         Cross-section in function of wavelength and in unit of cm ** 2.
     """
     nu_init = (wavelength * u.AA).to(u.Hz, equivalencies=u.spectral())
@@ -118,12 +118,12 @@ def helium_singlet_cross_section(wavelength):
 
     Parameters
     ----------
-    wavelength (``float`` or ``numpy.ndarray``):
+    wavelength : ``float`` or ``numpy.ndarray``
         Wavelength in unit of angstrom.
 
     Returns
     -------
-    a_lambda_1 (``float`` or ``numpy.ndarray``):
+    a_lambda_1 : ``float`` or ``numpy.ndarray``
         Cross-section in function of wavelength and in unit of cm ** 2.
     """
     energy = 12398.41984332 / wavelength  # Energy in unit of eV
@@ -151,10 +151,10 @@ def helium_triplet_cross_section():
 
     Returns
     -------
-    wavelength (``numpy.ndarray``):
+    wavelength : ``numpy.ndarray``
         Wavelength in which the cross-section was sampled in Norcross (1971).
 
-    a_lambda_3 (``numpy.ndarray``):
+    a_lambda_3 : ``numpy.ndarray``
         Cross-section in function of wavelength and in unit of cm ** 2.
     """
     # The photoionization cross-section of He triplet is hard-coded with the
@@ -201,7 +201,7 @@ def he_collisional_strength():
 
     Returns
     -------
-    array (``numpy.ndarray``):
+    array : ``numpy.ndarray``
         Collisional strengths array. Columns: 0 = temperature, 1 = gamma_13,
         2 = gamma_31a, 3 = gamma_31b.
     """
@@ -229,17 +229,17 @@ def general_cross_section(wavelength, species):
 
     Parameters
     ----------
-    wavelength (``float`` or ``numpy.ndarray``)
+    wavelength : ``float`` or ``numpy.ndarray``
         Photon wavelength in angstrom.
 
-    species (``str``):
+    species : ``str``
         String containing the species for which you request the cross-section in
         the format ``'X N'`` where ``X`` is the element and ``N`` is the
         ionization number. Example: ``'C II'``.
 
     Returns
     -------
-    cross_section (``float`` or ``numpy.ndarray``):
+    cross_section : ``float`` or ``numpy.ndarray``
         Cross-section in unit of cm ** (-2)
     """
     # Convert wavelength to energy
@@ -290,7 +290,7 @@ def sigma_properties_v1996():
 
     Returns
     -------
-    parameters_dict (``dict``):
+    parameters_dict : ``dict``
         Dictionary containing the parameters.
     """
     parameters_dict = {

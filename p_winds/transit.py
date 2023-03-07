@@ -27,60 +27,60 @@ def draw_transit(planet_to_star_ratio, planet_physical_radius,
 
     Parameters
     ----------
-    planet_to_star_ratio (``float``):
+    planet_to_star_ratio : ``float``
         Ratio between the radii of the planet and the star.
 
-    planet_physical_radius (``float``):
+    planet_physical_radius : ``float``
         Physical radius of the planet in whatever unit you want to work with.
 
-    impact_parameter (``float``, optional):
+    impact_parameter : ``float``, optional
         Transit impact parameter of the planet (not the atmosphere). Default is
         0.0.
 
-    phase (``float``, optional):
+    phase : ``float``, optional
         Phase of the transit. -0.5, 0.0, and +0.5 correspond to the center of
         planet being located at, respectively, the left limb of the star, the
         center, and the right limb. Default is 0.0.
 
-    grid_size (``int``, optional):
+    grid_size : ``int``, optional
         Size of the transit grid. Default is 100.
 
-    supersampling (``float`` or ``None``, optional):
+    supersampling : ``float`` or ``None``, optional
         In order to avoid pixels with hard edges, it is useful to first compute
         the transit grid at a high resolution and then downscale it to a
         manageable grid size. Supersampling is the factor by which to increase
         the grid size at first and then downscale to the requested grid size. If
         ``None``, no supersampling is applied. Default is ``None``.
 
-    resample_method (``str`` or ``None``, optional):
+    resample_method : ``str`` or ``None``, optional
         Method by which to resample the image if supersampling is used. If
         ``None``, then fallback to a "box" method. Available methods are
         ``"nearest"``, ``"box"``, ``"bilinear"``, ``"hamming"`` and
         ``"lanczos"`` (the last two are not recommended for research-grade
         results. Default is ``None``.
 
-    limb_darkening_law (``None`` or ``str``, optional):
+    limb_darkening_law : ``None`` or ``str``, optional
         String with the name of the limb-darkening law. The options are the same
         currently implemented in the code ``flatstar``: ``'linear'``,
         ``'quadratic'``, ``'square-root'``, ``'log'``, ``'exp'``, ``'s3'``,
         ``'c4'``, or ``None`` (no limb-darkening). Default is ``None``.
 
-    ld_coefficient (``float`` or ``array-like``):
+    ld_coefficient : ``float`` or ``array-like``
         In case of a linear limb-darkening law, the value of the coefficient
         should be a float. In all other options it should be array-like. Default
         is ``None``.
 
     Returns
     -------
-    normalized_intensity_map (``numpy.ndarray``):
+    normalized_intensity_map : ``numpy.ndarray``
         2-D map of intensity normalized in such a way that the sum of the array
         will be 1.0 if the planet is not transiting.
 
-    transit_depth (``float``):
+    transit_depth : ``float``
         Absorption caused by the opaque disk of the planet in the specified
         transit configuration.
 
-    r_from_planet (``numpy.ndarray``):
+    r_from_planet : ``numpy.ndarray``
         2-D map of radial distances of each pixel from the center of the planet
         in the same unit as ``planet_physical_radius``.
     """
@@ -129,62 +129,62 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
 
     Parameters
     ----------
-    intensity_0 (``float`` or ``numpy.ndarray``):
+    intensity_0 : ``float`` or ``numpy.ndarray``
         Original flux intensity originating from a background illuminating
         source. If ``numpy.ndarray``, must have the same shape as
         ``r_from_planet``.
 
-    r_from_planet (``numpy.ndarray``):
+    r_from_planet : ``numpy.ndarray``
         2-D map of radial distances of each pixel from the center of the planet.
         The unit has to be consistent with the other input parameters. E.g., if
         you use unit of meters, all other input parameters with length in the
         unit also have to be in meters.
 
-    radius_profile (``numpy.ndarray``):
+    radius_profile : ``numpy.ndarray``
         1-D profile of radii in which the densities are sampled. Unit has to be
         the same as ``r_from_planet``.
 
-    density_profile (``numpy.ndarray``):
+    density_profile : ``numpy.ndarray``
         1-D profile of volumetric number densities in function of radius. Unit
         has to be 1 / length ** 3, where length is the same unit as
         ``r_from_planet``.
 
-    velocity_profile (``numpy.ndarray``):
+    velocity_profile : ``numpy.ndarray``
         1-D profile of velocities in function of radius. Unit has to be
         m / s.
 
-    central_wavelength (``float`` or ``array_like``):
+    central_wavelength : ``float`` or ``array_like``
         Central wavelength of the transition in unit of m. If more than one line
         is to be calculated, then input this parameter as an array-like object.
 
-    oscillator_strength (``float``):
+    oscillator_strength : ``float``
         Oscillator strength of the transition. The format or shape of this input
         parameter needs to be consistent with that of ``central_wavelength``.
 
-    einstein_coefficient (``float``):
+    einstein_coefficient : ``float``
         Einstein coefficient of the transition in 1 / s. The format or shape of
         this input parameter needs to be consistent with that of
         ``central_wavelength``.
 
-    wavelength_grid (``numpy.ndarray``):
+    wavelength_grid : ``numpy.ndarray``
         Wavelengths to calculate the profile in unit of m.
 
-    gas_temperature (``float``):
+    gas_temperature : ``float``
         Gas temperature in K.
 
-    particle_mass (``float``):
+    particle_mass : ``float``
         Mass of the particle corresponding to the transition in unit of kg.
 
-    bulk_los_velocity (``float``, optional):
+    bulk_los_velocity : ``float``, optional
         Bulk velocity of the gas cell in the line of sight in unit of m / s.
         Default is 0.0.
 
-    planet_radial_velocity (``float``, optional):
+    planet_radial_velocity : ``float``, optional
         Radial velocity (i.e., the component in the line of sight) of the planet
         in relation to the rest frame of the host star and in unit of m / s.
         Default is 0.0.
 
-    wind_broadening_method (``str``, optional):
+    wind_broadening_method : ``str``, optional
         Method of calculation for the wind broadening. There are two options:
         1) ``'formal'``: the formal definition of radiative transfer taking into
         account the full dimensionality of the wind (slower);
@@ -192,17 +192,17 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
         Gaussian term of the Voigt profile with an additive factor proportional
         to the square of the density-averaged, line-of-sight velocity (faster).
 
-    z_grid_size (``int``, optional):
+    z_grid_size : ``int``, optional
         Grid size for the line of sight direction. This is used only if
         ``wind_broadening_method`` is set to ``'formal'``. Default is 200.
 
-    turbulence_broadening (``bool``, optional):
+    turbulence_broadening : ``bool``, optional
         If ``True``, adds a turbulence broadening, defined as in Lampón et al.
         2020, to the Gaussian term of the Voigt profile. Default is ``False``.
 
     Returns
     -------
-    intensity (``numpy.ndarray``):
+    intensity : ``numpy.ndarray``
         Absorbed intensity profile in function of ``wavelength_grid``.
     """
     # First, calculate the optical depth in function of radial distance from the
@@ -238,28 +238,28 @@ def profile_los(radius_profile, density_profile, velocity_profile, z_grid_size):
 
     Parameters
     ----------
-    radius_profile (``numpy.ndarray``):
+    radius_profile : ``numpy.ndarray``
         1-D profile of radii in which the densities are sampled, in whatever
         unit you want to work with.
 
-    density_profile (``numpy.ndarray``):
+    density_profile : ``numpy.ndarray``
         1-D profile of volumetric number densities in function of radius, in
         whatever unit you want to work with.
 
-    velocity_profile (``numpy.ndarray``):
+    velocity_profile : ``numpy.ndarray``
         1-D profile of velocities in function of radius, in whatever unit you
         want to work with.
 
-    z_grid_size (``int``, optional):
+    z_grid_size : ``int``, optional
         Grid size for the line of sight direction.
 
     Returns
     -------
-    los_density_r_z (``numpy.ndarray``):
+    los_density_r_z : ``numpy.ndarray``
         2-D map of densities in the x- and z-axis distances from the center of
         the planet.
 
-    los_velocity_r_z (``numpy.ndarray``):
+    los_velocity_r_z : ``numpy.ndarray``
         2-D map of line-of-sight velocities in the x- and z-axis distances from
         the center of the planet.
     """
@@ -306,55 +306,55 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
 
     Parameters
     ----------
-    radius_profile (``numpy.ndarray``):
+    radius_profile : ``numpy.ndarray``
         1-D profile of radii in which the densities are sampled. Unit has to be
         consistent with the other input parameters involving lenghts and
         densities.
 
-    density_profile (``numpy.ndarray``):
+    density_profile : ``numpy.ndarray``
         1-D profile of volumetric number densities in function of radius. Unit
         has to be 1 / length ** 3, where length is the same unit as
         ``radius_profile``.
 
-    velocity_profile (``numpy.ndarray``):
+    velocity_profile : ``numpy.ndarray``
         1-D profile of velocities in function of radius. Unit has to be
         m / s.
 
-    central_wavelength (``float`` or ``array_like``):
+    central_wavelength : ``float`` or ``array_like``
         Central wavelength of the transition in unit of m. If more than one line
         is to be calculated, then input this parameter as an array-like object.
 
-    oscillator_strength (``float``):
+    oscillator_strength : ``float``
         Oscillator strength of the transition. The format or shape of this input
         parameter needs to be consistent with that of ``central_wavelength``.
 
-    einstein_coefficient (``float``):
+    einstein_coefficient : ``float``
         Einstein coefficient of the transition in 1 / s. The format or shape of
         this input parameter needs to be consistent with that of
         ``central_wavelength``.
 
-    wavelength_grid (``numpy.ndarray``):
+    wavelength_grid : ``numpy.ndarray``
         Wavelengths to calculate the profile in unit of m.
 
-    gas_temperature (``float``):
+    gas_temperature : ``float``
         Gas temperature in K.
 
-    particle_mass (``float``):
+    particle_mass : ``float``
         Mass of the particle corresponding to the transition in unit of kg.
 
-    z_grid_size (``int``, optional):
+    z_grid_size : ``int``, optional
         Grid size for the line of sight direction.
 
-    bulk_los_velocity (``float``, optional):
+    bulk_los_velocity : ``float``, optional
         Bulk velocity of the gas cell in the line of sight in unit of m / s.
         Default is 0.0.
 
-    planet_radial_velocity (``float``, optional):
+    planet_radial_velocity : ``float``, optional
         Radial velocity (i.e., the component in the line of sight) of the planet
         in relation to the rest frame of the host star and in unit of m / s.
         Default is 0.0.
 
-    wind_broadening_method (``str``, optional):
+    wind_broadening_method : ``str``, optional
         Method of calculation for the wind broadening. There are two options:
         1) ``'formal'``: the formal definition of radiative transfer taking into
         account the full dimensionality of the wind (slower);
@@ -362,14 +362,14 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
         Gaussian term of the Voigt profile with an additive factor proportional
         to the square of the density-averaged, line-of-sight velocity (faster).
 
-    turbulence_broadening (``bool``, optional):
+    turbulence_broadening : ``bool``, optional
         If ``True``, adds a turbulence broadening, defined as in Lampón et al.
         2020, to the Gaussian term of the Voigt profile. Only used if
         ``wind_broadening_method`` is set to ``'average'``. Default is ``False``.
 
     Returns
     -------
-    optical_depth_array (``numpy.ndarray``):
+    optical_depth_array : ``numpy.ndarray``
         Optical depth in function of radial distance from the center of the
         planet (axis 0) and in function of wavelength (axis 1).
     """

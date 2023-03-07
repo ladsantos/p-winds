@@ -25,29 +25,29 @@ def average_molecular_weight(ion_fraction_profile, r_profile, v_profile,
 
     Parameters
     ----------
-    ion_fraction_profile (``numpy.ndarray``):
+    ion_fraction_profile : ``numpy.ndarray``
         Hydrogen ion fraction in function of radial distance.
 
-    r_profile (``numpy.ndarray``):
+    r_profile : ``numpy.ndarray``
         Radial distance profile in unit of Jupiter radii. This is the
         independent variable over which the profiles are described.
 
-    v_profile (``numpy.ndarray``):
+    v_profile : ``numpy.ndarray``
         Velocity profile in units of km / s in function of radial distance.
 
-    planet_mass (``float``):
+    planet_mass : ``float``
         Planetary mass in unit of Jupiter mass.
 
-    temperature (``float``):
+    temperature : ``float``
         Isothermal temperature of the outflow in unit of K.
 
-    he_h_fraction (``float``, optional):
+    he_h_fraction : ``float``, optional
         Number fraction of He particles in relation to H particles. Default is
         0.1 / 0.9.
 
     Returns
     -------
-    mu_bar (``float``):
+    mu_bar : ``float``
         "Average" mean molecular weight as defined by Eq. A.3 of Lampón et al.
         2020, in unit of proton mass.
     """
@@ -86,18 +86,18 @@ def sound_speed(temperature, mean_molecular_weight=1.0):
 
     Parameters
     ----------
-    temperature (``float``):
+    temperature : ``float``
         Constant temperature of the gas in Kelvin. Assumed to be close to the
         maximum thermospheric temperature (see Oklopčić & Hirata 2018 and
         Lampón et al. 2020 for more details).
 
-    mean_molecular_weight (``float``):
+    mean_molecular_weight : ``float``
         Mean molecular weight of the atmosphere in unit of proton mass. Default
         value is 1.0 (100% neutral H).
 
     Returns
     -------
-    cs (``float``):
+    cs : ``float``
         Sound speed in the gas in unit of km / s.
     """
     m_h = 1.67262192369e-27  # Hydrogen mass in kg
@@ -114,15 +114,15 @@ def radius_sonic_point(planet_mass, sound_speed_0):
 
     Parameters
     ----------
-    planet_mass (``float``):
+    planet_mass : ``float``
         Planetary mass in unit of Jupiter mass.
 
-    sound_speed_0 (``float``):
+    sound_speed_0 : ``float``
         Constant speed of sound in unit of km / s.
 
     Returns
     -------
-    radius_sonic_point (``float``):
+    radius_sonic_point : ``float``
         Radius of the sonic point in unit of Jupiter radius.
     """
     grav = 1772.0378503888546  # Gravitational constant in unit of
@@ -139,18 +139,18 @@ def density_sonic_point(mass_loss_rate, radius_sp, sound_speed_0):
 
     Parameters
     ----------
-    mass_loss_rate (``float``):
+    mass_loss_rate : ``float``
         Total mass loss rate of the planet in units of g / s.
 
-    radius_sp (``float``):
+    radius_sp : ``float``
         Radius at the sonic point in unit of Jupiter radius.
 
-    sound_speed_0 (``float``):
+    sound_speed_0 : ``float``
         Speed of sound, assumed to be constant, in units of km / s.
 
     Returns
     -------
-    rho_sp (``float``):
+    rho_sp : ``float``
         Density at the sonic point in units of g / cm ** 3.
     """
     vs = sound_speed_0 * 1E5  # Convert sound speed to cm / s
@@ -168,11 +168,11 @@ def structure(r, v_guess=None):
 
     Parameters
     ----------
-    r (``numpy.ndarray`` or ``float``):
+    r : ``numpy.ndarray`` or ``float``
         Radius at which to sample the velocity in unit of radius at the sonic
         point.
         
-    v_guess (``numpy.ndarray`` or ``float``, optional):
+    v_guess : ``numpy.ndarray`` or ``float``, optional
         Guessed value(s) of velocity, in unit of sound speed, corresponding to 
         the radius(ii) ``r``. If ``None``, then the code assumes a standard 
         guess for the velocity. If not ``None``, ``v_guess`` must have the same
@@ -180,11 +180,11 @@ def structure(r, v_guess=None):
 
     Returns
     -------
-    velocity_r (``numpy.ndarray`` or ``float``):
+    velocity_r : ``numpy.ndarray`` or ``float``
         `numpy` array or a single value of velocity at the given radius or radii
         in unit of sound speed.
 
-    density_r (``numpy.ndarray`` or ``float``):
+    density_r : ``numpy.ndarray`` or ``float``
         Density sampled at the radius or radii `r` and in unit of density at the
         sonic point.
     """
@@ -230,21 +230,21 @@ def radius_sonic_point_tidal(planet_mass, sound_speed_0, star_mass,
 
     Parameters
     ----------
-    planet_mass (``float``):
+    planet_mass : ``float``
         Planetary mass in unit of Jupiter mass.
 
-    sound_speed_0 (``float``):
+    sound_speed_0 : ``float``
         Constant speed of sound in unit of km / s.
 
-    star_mass (``float``):
+    star_mass : ``float``
         Stellar mass in unit of solar mass.
 
-    semi_major_axis (``float``):
+    semi_major_axis : ``float``
         Planetary semimajor axis in unit of AU.
 
     Returns
     -------
-    radius_sonic_point (``float``):
+    radius_sonic_point : ``float``
         Radius of the sonic point in units of Jupiter radius.
     """
     grav = 1772.0378503888546  # Gravitational constant in unit of
@@ -275,33 +275,33 @@ def structure_tidal(r, sound_speed_0, radius_sonic_point, planet_mass,
 
     Parameters
     ----------
-    r (``numpy.ndarray`` or ``float``):
+    r : ``numpy.ndarray`` or ``float``
         Radius at which to sample the velocity in unit of radius at the sonic
         point.
 
-    sound_speed_0 (``float``):
+    sound_speed_0 : ``float``
         Constant speed of sound in unit of km / s.
 
-    radius_sonic_point (``float``):
+    radius_sonic_point : ``float``
         Sonic radius in unit of Jupiter radius. Note: ensure that this is
         computed with ``radius_sonic_point_tidal``.
 
-    planet_mass (``float``):
+    planet_mass : ``float``
         Planetary mass in unit of Jupiter mass.
 
-    star_mass (``float``):
+    star_mass : ``float``
         Stellar mass in unit of solar mass.
 
-    semi_major_axis (``float``):
+    semi_major_axis : ``float``
         Planetary semimajor axis in unit of AU.
 
     Returns
     -------
-    velocity_r (``numpy.ndarray`` or ``float``):
+    velocity_r : ``numpy.ndarray`` or ``float``
         `numpy` array or a single value of velocity at the given radius or radii
         in unit of sound speed.
 
-    density_r (``numpy.ndarray`` or ``float``):
+    density_r : ``numpy.ndarray`` or ``float``
         Density sampled at the radius or radii `r` and in unit of density at the
         sonic point.
     """

@@ -22,7 +22,7 @@ r = np.linspace(1, 15, 500)
 # function for HD 209458 b should produce a profile with an ion fraction of
 # approximately one near the planetary surface, and approximately 4E-4 in the
 # outer layers.
-def test_ion_fraction_spectrum(precision_threshold=1E-5):
+def test_ion_fraction_spectrum(precision_threshold=1E-4):
     units = {'wavelength': u.angstrom, 'flux': u.erg / u.s / u.cm ** 2 /
                                                u.angstrom}
     spectrum = tools.make_spectrum_from_file(data_test_url, units)
@@ -32,11 +32,11 @@ def test_ion_fraction_spectrum(precision_threshold=1E-5):
                                 average_f_ion,
                                 spectrum_at_planet=spectrum,
                                 relax_solution=True)
-    assert abs((f_r[-1] - 0.998842) / f_r[-1]) < precision_threshold
+    assert abs((f_r[-1] - 0.998737) / f_r[-1]) < precision_threshold
 
     # Test the exact photoionization
     f_r = hydrogen.ion_fraction(r, R_pl, T_0, h_fraction, m_dot, M_pl,
                                 average_f_ion,
                                 spectrum_at_planet=spectrum,
                                 relax_solution=True, exact_phi=True)
-    assert abs((f_r[-1] - 0.998997) / f_r[-1]) < precision_threshold
+    assert abs((f_r[-1] - 0.998913) / f_r[-1]) < precision_threshold

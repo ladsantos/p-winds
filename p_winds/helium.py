@@ -28,51 +28,51 @@ def radiative_processes(spectrum_at_planet, combined_ionization=False):
 
     Parameters
     ----------
-    spectrum_at_planet (``dict``):
+    spectrum_at_planet : ``dict``
         Spectrum of the host star arriving at the planet covering fluxes at
         least up to the wavelength corresponding to the energy to ionize
         helium (4.8 eV, or 2593 Angstrom).
 
     Returns
     -------
-    phi_1 (``float``):
+    phi_1 : ``float``
         Ionization rate of helium singlet at null optical depth in unit of
         1 / s. This is returned if ``combined_ionization`` is set to ``False``.
 
-    phi_3 (``float``):
+    phi_3 : ``float``
         Ionization rate of helium triplet at null optical depth in unit of
         1 / s. This is returned if ``combined_ionization`` is set to ``False``.
 
-    a_1 (``float``):
+    a_1 : ``float``
         Flux-averaged photoionization cross-section of helium singlet in unit of
         cm ** 2. This is returned if ``combined_ionization`` is set to
         ``False``.
 
-    a_3 (``float``):
+    a_3 : ``float``
         Flux-averaged photoionization cross-section of helium triplet in unit of
         cm ** 2. This is returned if ``combined_ionization`` is set to
         ``False``.
 
-    a_h_1 (``float``):
+    a_h_1 : ``float``
         Flux-averaged photoionization cross-section of hydrogen in the range
         absorbed by helium singlet in unit of cm ** 2. This is returned if
         ``combined_ionization`` is set to ``False``.
 
-    a_h_3 (``float``):
+    a_h_3 : ``float``
         Flux-averaged photoionization cross-section of hydrogen in the range
         absorbed by helium triplet in unit of cm ** 2. This is returned if
         ``combined_ionization`` is set to ``False``.
 
-    phi (``float``):
+    phi : ``float``
         Ionization rate of helium at null optical depth in unit of 1 / s. This
         is returned if ``combined_ionization`` is set to ``True``.
 
-    a_he (``float``):
+    a_he : ``float``
         Flux-averaged photoionization cross-section of helium in unit of
         cm ** 2. This is returned if ``combined_ionization`` is set to
         ``True``.
 
-    a_h (``float``):
+    a_h : ``float``
         Flux-averaged photoionization cross-section of hydrogen in the range
         absorbed by helium atoms in unit of cm ** 2. This is returned if
         ``combined_ionization`` is set to ``True``.
@@ -182,23 +182,23 @@ def radiative_processes_mono(flux_euv, flux_fuv,
 
     Parameters
     ----------
-    flux_euv (``float``):
+    flux_euv : ``float``
         Monochromatic extreme-ultraviolet (0 - 504 Angstrom) flux arriving at
         the planet in units of erg / s / cm ** 2. Attention: notice that this
         ``flux_euv`` is different from the one used for hydrogen, since helium
         ionization happens at a shorter wavelength.
 
-    flux_fuv (``float``):
+    flux_fuv : ``float``
         Monochromatic far- to middle-ultraviolet (911 - 2593 Angstrom) flux
         arriving at the planet in units of erg / s / cm ** 2.
 
-    average_euv_photon_wavelength (``float``):
+    average_euv_photon_wavelength : ``float``
         Average wavelength of EUV photons ionizing the He singlet state, in unit
         of Angstrom. Default value is 242 Angstrom. The default value is based
         on a flux-weighted average of the solar spectrum between 0 and 504
         Angstrom.
 
-    average_fuv_photon_wavelength (``float``):
+    average_fuv_photon_wavelength : ``float``
         Average wavelength of FUV-NUV photons ionizing the He triplet state, in
         unit of Angstrom. Default value is 2348 Angstrom. The default value is
         based on a flux-weighted average of the solar spectrum between 911 and
@@ -206,27 +206,27 @@ def radiative_processes_mono(flux_euv, flux_fuv,
 
     Returns
     -------
-    phi_1 (``float``):
+    phi_1 : ``float``
         Ionization rate of helium singlet at null optical depth in unit of
         1 / s.
 
-    phi_3 (``float``):
+    phi_3 : ``float``
         Ionization rate of helium triplet at null optical depth in unit of
         1 / s.
 
-    a_1 (``float``):
+    a_1 : ``float``
         Flux-averaged photoionization cross-section of helium singlet in unit of
         cm ** 2.
 
-    a_3 (``float``):
+    a_3 : ``float``
         Flux-averaged photoionization cross-section of helium triplet in unit of
         cm ** 2.
 
-    a_h_1 (``float``):
+    a_h_1 : ``float``
         Flux-averaged photoionization cross-section of hydrogen in the range
         absorbed by helium singlet in unit of cm ** 2.
 
-    a_h_3 (``float``):
+    a_h_3 : ``float``
         Flux-averaged photoionization cross-section of hydrogen in the range
         absorbed by helium triplet in unit of cm ** 2.
     """
@@ -268,15 +268,15 @@ def recombination(temperature):
 
     Parameters
     ----------
-    temperature (``float``):
+    temperature : ``float``
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
     Returns
     -------
-    alpha_rec_1 (``float``):
+    alpha_rec_1 : ``float``
         Recombination rate of helium singlet in units of cm ** 3 / s.
 
-    alpha_rec_3 (``float``):
+    alpha_rec_3 : ``float``
         Recombination rate of helium triplet in units of cm ** 3 / s.
     """
     # The recombination rates come from Benjamin et al. (1999,
@@ -294,12 +294,12 @@ def recombination_all(temperature):
 
     Parameters
     ----------
-    temperature (``float``):
+    temperature : ``float``
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
     Returns
     -------
-    alpha_rec (``float``):
+    alpha_rec : ``float``
         Recombination rate of helium in units of cm ** 3 / s.
     """
     # The recombination rates come from Storey & Hummer 1995
@@ -315,28 +315,28 @@ def collision(temperature):
 
     Parameters
     ----------
-    temperature (``float``):
+    temperature : ``float``
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
     Returns
     -------
-    q_13 (``float``):
+    q_13 : ``float``
         Rate of helium transition from singlet (1^1S) to triplet (2^3S) due to
         collisions with free electrons in units of cm ** 3 / s.
 
-    q_31a (``float``):
+    q_31a : ``float``
         Rate of helium transition from triplet (2^3S) to 2^1S due to collisions
         with free electrons in units of cm ** 3 / s.
 
-    q_31b (``float``):
+    q_31b : ``float``
         Rate of helium transition from triplet (2^3S) to 2^1P due to collisions
         with free electrons in units of cm ** 3 / s.
 
-    big_q_he (``float``):
+    big_q_he : ``float``
         Rate of charge exchange between helium singlet and ionized hydrogen in
         units of cm ** 3 / s.
 
-    big_q_he_plus (``float``):
+    big_q_he_plus : ``float``
         Rate of charge exchange between ionized helium and atomic hydrogen in
         units of cm ** 3 / s.
     """
@@ -382,15 +382,15 @@ def charge_transfer(temperature):
 
     Parameters
     ----------
-    temperature (``float``):
+    temperature : ``float``
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
     Returns
     -------
-    ct_rate_he_hp (``float``):
+    ct_rate_he_hp : ``float``
         Charge transfer rate between neutral He and H+ in units of cm ** 3 / s.
 
-    ct_rate_hep_h (``float``):
+    ct_rate_hep_h : ``float``
         Charge transfer rate between He+ and neutral H in units of cm ** 3 / s.
     """
     # Recombination of He II into He I
@@ -419,59 +419,59 @@ def population_fraction(radius_profile, velocity, density,
 
     Parameters
     ----------
-    radius_profile (``numpy.ndarray``):
+    radius_profile : ``numpy.ndarray``
         Radius in unit of planetary radii.
 
-    velocity (``numpy.ndarray``):
+    velocity : ``numpy.ndarray``
          Velocities sampled at the values of ``radius_profile`` in units of
          sound speed. Similar to the output of ``parker.structure()``.
 
-    density (``numpy.ndarray``):
+    density : ``numpy.ndarray``
         Densities sampled at the values of ``radius_profile`` in units of
         density at the sonic point. Similar to the output of
         ``parker.structure()``.
 
-    hydrogen_ion_fraction (``numpy.ndarray``):
+    hydrogen_ion_fraction : ``numpy.ndarray``
         Number fraction of H ion over total H in the upper atmosphere in
         function of radius. Similar to the output of
         ``hydrogen.ion_fraction()``.
 
-    planet_radius (``float``):
+    planet_radius : ``float``
         Planetary radius in unit of Jupiter radius.
 
-    temperature (``float``):
+    temperature : ``float``
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
-    h_fraction (``float``):
+    h_fraction : ``float``
         Total (ion + neutral) H number fraction of the atmosphere.
 
-    speed_sonic_point (``float``):
+    speed_sonic_point : ``float``
         Speed of sound in the outflow in units of km / s.
 
-    radius_sonic_point (``float``):
+    radius_sonic_point : ``float``
         Radius of the sonic point in unit of Jupiter radius.
 
-    density_sonic_point (``float``):
+    density_sonic_point : ``float``
         Density at the sonic point in units of g / cm ** 3.
 
-    spectrum_at_planet (``dict``, optional):
+    spectrum_at_planet : ``dict``, optional
         Spectrum of the host star arriving at the planet covering fluxes at
         least up to the wavelength corresponding to the energy to populate the
         helium states (4.8 eV, or 2593 Angstrom). Can be generated using
         ``tools.make_spectrum_dict``. If ``None``, then ``flux_euv`` and
         ``flux_fuv`` must be provided instead. Default is ``None``.
 
-    flux_euv (``float``, optional):
+    flux_euv : ``float``, optional
         Monochromatic extreme-ultraviolet (0 - 1200 Angstrom) flux arriving at
         the planet in units of erg / s / cm ** 2. If ``None``, then
         ``spectrum_at_planet`` must be provided instead. Default is ``None``.
 
-    flux_fuv (``float``, optional):
+    flux_fuv : ``float``, optional
         Monochromatic far- to middle-ultraviolet (1200 - 2600 Angstrom) flux
         arriving at the planet in units of erg / s / cm ** 2. If ``None``, then
         ``spectrum_at_planet`` must be provided instead. Default is ``None``.
 
-    initial_state (``numpy.ndarray``, optional):
+    initial_state : ``numpy.ndarray``, optional
         The initial state is the `y0` of the differential equation to be solved.
         This array has two items: the initial value of the fractions of singlet
         and triplet state in the inner layer of the atmosphere. The default
@@ -479,21 +479,21 @@ def population_fraction(radius_profile, velocity, density,
         neutral at the inner layer with 50% in singlet and 50% in triplet
         states.
 
-    relax_solution (``bool``, optional):
+    relax_solution : ``bool``, optional
         The first solution is calculating by initially assuming the entire
         atmosphere is in neutral state. If ``True``, the solution will be
         re-calculated in a loop until it converges to a delta_f of 1%, or for a
         maximum of 10 loops (default parameters). Default is ``False``.
 
-    convergence (``float``, optional):
+    convergence : ``float``, optional
         Value of delta_f at which to stop the relaxation of the solution for
         ``f_r``. Default is 0.01.
 
-    max_n_relax (``int``, optional):
+    max_n_relax : ``int``, optional
         Maximum number of loops to perform the relaxation of the solution for
         ``f_r``. Default is 10.
 
-    method (``str``, optional):
+    method : ``str``, optional
         If method is ``'odeint'``, then ``scipy.integrate.odeint()`` is used
         instead of ``scipy.integrate.solve_ivp()`` to calculate the steady-state
         distribution of helium. The first seems to be at least twice faster than
@@ -502,7 +502,7 @@ def population_fraction(radius_profile, velocity, density,
         ``'Radau'``, then use ``solve_ivp(method='Radau')``. Default is
         ``'odeint'``.
 
-    return_rates (``bool``, optional):
+    return_rates : ``bool``, optional
         If ``True``, then this function also returns a ``dict`` object
         containing the various reaction rates in function of radius and in units
         of 1 / s. Default is ``False``.
@@ -516,13 +516,13 @@ def population_fraction(radius_profile, velocity, density,
 
     Returns
     -------
-    f_1_r (``numpy.ndarray``):
+    f_1_r : ``numpy.ndarray``
         Fraction of helium in singlet state in function of radius.
 
-    f_3_r (``numpy.ndarray``):
+    f_3_r : ``numpy.ndarray``
         Fraction of helium in triplet state in function of radius.
 
-    reaction_rates (``dict``):
+    reaction_rates : ``dict``
         Dictionary containing the reaction rates in function of radius and in
         units of 1 / s. Only returned when ``return_rates`` is set to ``True``.
         Here is a short description of the dict keys:
@@ -793,66 +793,66 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
 
     Parameters
     ----------
-    radius_profile (``numpy.ndarray``):
+    radius_profile : ``numpy.ndarray``
         Radius in unit of planetary radii.
 
-    velocity (``numpy.ndarray``):
+    velocity : ``numpy.ndarray``
          Velocities sampled at the values of ``radius_profile`` in units of
          sound speed. Similar to the output of ``parker.structure()``.
 
-    density (``numpy.ndarray``):
+    density : ``numpy.ndarray``
         Densities sampled at the values of ``radius_profile`` in units of
         density at the sonic point. Similar to the output of
         ``parker.structure()``.
 
-    hydrogen_ion_fraction (``numpy.ndarray``):
+    hydrogen_ion_fraction : ``numpy.ndarray``
         Number fraction of H ion over total H in the upper atmosphere in
         function of radius. Similar to the output of
         ``hydrogen.ion_fraction()``.
 
-    planet_radius (``float``):
+    planet_radius : ``float``
         Planetary radius in unit of Jupiter radius.
 
-    temperature (``float``):
+    temperature : ``float``
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
-    h_fraction (``float``):
+    h_fraction : ``float``
         Total (ion + neutral) H number fraction of the atmosphere.
 
-    speed_sonic_point (``float``):
+    speed_sonic_point : ``float``
         Speed of sound in the outflow in units of km / s.
 
-    radius_sonic_point (``float``):
+    radius_sonic_point : ``float``
         Radius of the sonic point in unit of Jupiter radius.
 
-    density_sonic_point (``float``):
+    density_sonic_point : ``float``
         Density at the sonic point in units of g / cm ** 3.
 
-    spectrum_at_planet (``dict``):
+    spectrum_at_planet : ``dict``
         Spectrum of the host star arriving at the planet covering fluxes at
         least up to the wavelength corresponding to the energy to ionize helium
         (4.8 eV, or 2593 Angstrom). Can be generated using
         ``tools.make_spectrum_dict``.
 
-    initial_f_he_ion (``numpy.ndarray``, optional):
+    initial_f_he_ion : ``numpy.ndarray``, optional
         The initial helium ion fraction at the layer near the surface of the
         planet. Default is 0.0, i.e., 100% neutral.
 
-    relax_solution (``bool``, optional):
+    relax_solution : ``bool``, optional
         The first solution is calculating by initially assuming the entire
         atmosphere is in neutral state. If ``True``, the solution will be
         re-calculated in a loop until it converges to a delta_f of 1%, or for a
         maximum of 10 loops (default parameters). Default is ``False``.
 
-    convergence (``float``, optional):
+    convergence : ``float``, optional
         Value of delta_f at which to stop the relaxation of the solution for
         ``f_r``. Default is 0.01.
 
-    max_n_relax (``int``, optional):
+    max_n_relax : ``int``, optional
         Maximum number of loops to perform the relaxation of the solution for
         ``f_r``. Default is 10.
 
-    method (``str``, optional):
+    method : ``str``, optional
         If method is ``'odeint'``, then ``scipy.integrate.odeint()`` is used
         instead of ``scipy.integrate.solve_ivp()`` to calculate the steady-state
         distribution of helium. The first seems to be at least twice faster than
@@ -870,7 +870,7 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
 
     Returns
     -------
-    f_r (``numpy.ndarray``):
+    f_r : ``numpy.ndarray``
         Fraction of ionized helium in function of radius.
     """
     vs = speed_sonic_point  # km / s
