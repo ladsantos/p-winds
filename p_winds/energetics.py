@@ -10,7 +10,7 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 import astropy.units as u
 import astropy.constants as c
-from scipy.integrate import simpson, cumulative_trapezoid
+from scipy.integrate import simps, cumulative_trapezoid
 from scipy.interpolate import interp1d
 
 
@@ -145,7 +145,7 @@ def calculate_epsilon_max(r_grid, spectrum, n_h, n_he, n_he_plus, R_pl,
     r = r_grid.to(u.cm)
     integrand = total_heating_coef * r**2
     mask = (r >= R_pl) & (r <= R_roche)
-    eps = simpson(integrand[mask], x = r[mask])*u.cm**2/(R_pl.to(u.cm)**2)
+    eps = simps(integrand[mask], x = r[mask])*u.cm**2/(R_pl.to(u.cm)**2)
     return eps
 
 
@@ -201,7 +201,7 @@ def spec_av_cross(r_grid, spectrum, t_coef, species):
 
     numgrid = eta_grid*spec_grid*crossgrid*t_coef
     numgrid = numgrid.to(u.erg/u.s/u.Hz)    
-    num = simpson(numgrid, x = wavs_hz, axis = -1)*u.erg/u.s
+    num = simps(numgrid, x = wavs_hz, axis = -1)*u.erg/u.s
 
     F_XUV = calculate_f_xuv(spectrum)
     cross = num/F_XUV
@@ -386,7 +386,7 @@ def calculate_f_xuv(spectrum):
         equivalencies=u.spectral_density(wav_grid))
     wavs_hz = wav_grid.to(u.Hz, equivalencies = u.spectral())[::-1]
     flux_grid = flux_grid[::-1]
-    f_xuv = simpson(flux_grid, x = wavs_hz)*u.erg/u.s/u.cm**2
+    f_xuv = simps(flux_grid, x = wavs_hz)*u.erg/u.s/u.cm**2
     return f_xuv
 
 
