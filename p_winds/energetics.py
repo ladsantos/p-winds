@@ -5,13 +5,16 @@ This module is used to compute the wind energetics using the method
 outlined in Vissapragada et al. (2022).
 """
 
+from __future__ import (division, print_function, absolute_import,
+                        unicode_literals)
 import numpy as np
 import astropy.units as u
 import astropy.constants as c
 from scipy.integrate import simpson, cumulative_trapezoid
 from scipy.interpolate import interp1d
 
-__all__ = ["calculate_epsilon_max", "calculate_mdot_max", "spec_av_cross",
+
+__all__ = ["calculate_mdot_max", "calculate_epsilon_max", "spec_av_cross",
            "compute_column_densities", "compute_transmission_coefficient",
            "calculate_roche_radius", "calculate_f_xuv", "h_photo_cross",
            "heplus_photo_cross", "helium_photo_cross"]
@@ -28,46 +31,46 @@ def calculate_mdot_max(R_pl, M_pl, M_star, a, r_grid, spectrum, n_h, n_he,
 
     Parameters
     ----------
-    R_pl : ``astropy.Quantity ``
+    R_pl : ``astropy.Quantity``
         The planetary radius. An astropy unit (like u.Rjup) must be specified.
 
-    M_pl : ``astropy.Quantity ``
+    M_pl : ``astropy.Quantity``
         The planetary mass. An astropy unit (like u.Mjup) must be specified.
 
-    M_star : ``astropy.Quantity ``
+    M_star : ``astropy.Quantity``
         The stellar mass. An astropy unit (like u.Msun) must be specified.
 
-    a : ``astropy.Quantity ``
+    a : ``astropy.Quantity``
         The semimajor axis of the planetary orbit. An astropy unit (like u.au)
         must be specified.
 
-    r_grid : ``numpy.ndarray ``
+    r_grid : ``numpy.ndarray``
         The radius grid for the calculation. An astropy unit (like u.Rjup) must
         be specified for each value on the grid.
   
-    spectrum : ``dict ``
+    spectrum : ``dict``
         Spectrum of the host star arriving at the planet covering fluxes up to
         the wavelength corresponding to the energy to ionize hydrogen (13.6 eV,
         or 911.65 Angstrom). Can be generated using ``tools.make_spectrum_dict``
         or ``tools.generate_muscles_spectrum``. Currently we assume that the
         spectrum does not include lower energies than 13.6 eV.
 
-    n_h : ``numpy.ndarray ``
+    n_h : ``numpy.ndarray``
         The neutral hydrogen number density profile for the wind. An astropy
         unit (like u.cm**-3) must be specified for each value on the grid.
  
-    n_he : ``numpy.ndarray ``
+    n_he : ``numpy.ndarray``
         The neutral helium number density profile for the wind. An astropy
         unit (like u.cm**-3) must be specified for each value on the grid.
 
-    n_he_plus : ``numpy.ndarray ``
+    n_he_plus : ``numpy.ndarray``
         The (singly-)ionized helium number density profile for the wind. An
         astropy unit (like u.cm**-3) must be specified for each value on the
         grid.
 
     Returns
     -------
-    md : ``astropy.Quantity ``
+    md : ``astropy.Quantity``
         Maximum mass-loss rate (in g/s) of the wind assuming it is driven only
         by photoionization.
     """
@@ -89,39 +92,39 @@ def calculate_epsilon_max(r_grid, spectrum, n_h, n_he, n_he_plus, R_pl,
 
     Parameters
     ----------
-    r_grid : ``numpy.ndarray ``
+    r_grid : ``numpy.ndarray``
         The radius grid for the calculation. An astropy unit (like u.Rjup) must
         be specified for each value on the grid.
   
-    spectrum : ``dict ``
+    spectrum : ``dict``
         Spectrum of the host star arriving at the planet covering fluxes up to
         the wavelength corresponding to the energy to ionize hydrogen (13.6 eV,
         or 911.65 Angstrom). Can be generated using ``tools.make_spectrum_dict``
         or ``tools.generate_muscles_spectrum``. Currently we assume that the
         spectrum does not include lower energies than 13.6 eV.
 
-    n_h : ``numpy.ndarray ``
+    n_h : ``numpy.ndarray``
         The neutral hydrogen number density profile for the wind. An astropy
         unit (like u.cm**-3) must be specified for each value on the grid.
  
-    n_he : ``numpy.ndarray ``
+    n_he : ``numpy.ndarray``
         The neutral helium number density profile for the wind. An astropy
         unit (like u.cm**-3) must be specified for each value on the grid.
 
-    n_he_plus : ``numpy.ndarray ``
+    n_he_plus : ``numpy.ndarray``
         The (singly-)ionized helium number density profile for the wind. An
         astropy unit (like u.cm**-3) must be specified for each value on the
         grid.
 
-    R_pl : ``astropy.Quantity ``
+    R_pl : ``astropy.Quantity``
         The planetary radius. An astropy unit (like u.Rjup) must be specified.
 
-    R_roche : ``astropy.Quantity ``
+    R_roche : ``astropy.Quantity``
         The Roche radius. An astropy unit (like u.Rjup) must be specified.
 
     Returns
     -------
-    eps : ``float ``
+    eps : ``float``
         Maximum mass-loss efficiency of the wind assuming it is driven only
         by photoionization.
     """
@@ -153,28 +156,28 @@ def spec_av_cross(r_grid, spectrum, t_coef, species):
 
     Parameters
     ----------
-    r_grid : ``numpy.ndarray ``
+    r_grid : ``numpy.ndarray``
         The radius grid for the calculation. An astropy unit (like u.Rjup) must
         be specified for each value on the grid.
   
-    spectrum : ``dict ``
+    spectrum : ``dict``
         Spectrum of the host star arriving at the planet covering fluxes up to
         the wavelength corresponding to the energy to ionize hydrogen (13.6 eV,
         or 911.65 Angstrom). Can be generated using ``tools.make_spectrum_dict``
         or ``tools.generate_muscles_spectrum``. Currently we assume that the
         spectrum does not include lower energies than 13.6 eV.
 
-    t_coef : ``numpy.ndarray ``
+    t_coef : ``numpy.ndarray``
         The transmission coefficient profile for the wind as a function of 
         frequency and altitude. In the optically-thin part of the outflow this
         should be very close to 1.
  
-    species : ``str ``
+    species : ``str``
         The photoionzation target for which we are calculating the heating
         cross-section. Must be one of 'hydrogen', 'helium', or 'helium+'.
     Returns
     -------
-    cross : ``astropy.Quantity ``
+    cross : ``astropy.Quantity``
         Heating cross-section in cm**2 for the selected species.
     """
     wav_grid = spectrum['wavelength']*spectrum['wavelength_unit']
@@ -212,31 +215,31 @@ def compute_column_densities(r_grid, n_h, n_he, n_he_plus):
 
     Parameters
     ----------
-    r_grid : ``numpy.ndarray ``
+    r_grid : ``numpy.ndarray``
         The radius grid for the calculation. An astropy unit (like u.Rjup) must
         be specified for each value on the grid.
 
-    n_h : ``numpy.ndarray ``
+    n_h : ``numpy.ndarray``
         The neutral hydrogen number density profile for the wind. An astropy
         unit (like u.cm**-3) must be specified for each value on the grid.
  
-    n_he : ``numpy.ndarray ``
+    n_he : ``numpy.ndarray``
         The neutral helium number density profile for the wind. An astropy
         unit (like u.cm**-3) must be specified for each value on the grid.
 
-    n_he_plus : ``numpy.ndarray ``
+    n_he_plus : ``numpy.ndarray``
         The (singly-)ionized helium number density profile for the wind. An
         astropy unit (like u.cm**-3) must be specified for each value on the
         grid.
     Returns
     -------
-    column_h : ``numpy.ndarray ``
+    column_h : ``numpy.ndarray``
         The neutral hydrogen column density profile in u.cm**-2.
 
-    column_he : ``numpy.ndarray ``
+    column_he : ``numpy.ndarray``
         The neutral helium column density profile in u.cm**-2.
 
-    column_he_plus : ``numpy.ndarray ``
+    column_he_plus : ``numpy.ndarray``
         The ionized helium column density profile in u.cm**-2.
     """
     #flip grid to integrate from infty to r
@@ -266,31 +269,31 @@ def compute_transmission_coefficient(spectrum, r_grid, N_h, N_he, N_he_plus):
 
     Parameters
     ----------
-    r_grid : ``numpy.ndarray ``
+    r_grid : ``numpy.ndarray``
         The radius grid for the calculation. An astropy unit (like u.Rjup) must
         be specified for each value on the grid.
 
-    spectrum : ``dict ``
+    spectrum : ``dict``
         Spectrum of the host star arriving at the planet covering fluxes up to
         the wavelength corresponding to the energy to ionize hydrogen (13.6 eV,
         or 911.65 Angstrom). Can be generated using ``tools.make_spectrum_dict``
         or ``tools.generate_muscles_spectrum``. Currently we assume that the
         spectrum does not include lower energies than 13.6 eV.
 
-    N_h : ``numpy.ndarray ``
+    N_h : ``numpy.ndarray``
         The neutral hydrogen column density profile. An astropy unit (like
         u.cm**-2) must be specified for each value on the grid.
 
-    N_he : ``numpy.ndarray ``
+    N_he : ``numpy.ndarray``
         The neutral helium column density profile. An astropy unit (like
         u.cm**-2) must be specified for each value on the grid.
 
-    N_he_plus : ``numpy.ndarray ``
+    N_he_plus : ``numpy.ndarray``
         The ionized helium column density profile. An astropy unit (like
         u.cm**-2) must be specified for each value on the grid.
     Returns
     -------
-    t_coef : ``numpy.ndarray ``
+    t_coef : ``numpy.ndarray``
         The transmission coefficient profile for the wind as a function of 
         frequency and altitude.
     """
@@ -336,22 +339,22 @@ def calculate_roche_radius(R_pl, M_pl, M_star, a):
 
     Parameters
     ----------
-    R_pl : ``astropy.Quantity ``
+    R_pl : ``astropy.Quantity``
         The planetary radius. An astropy unit (like u.Rjup) must be specified.
 
-    M_pl : ``astropy.Quantity ``
+    M_pl : ``astropy.Quantity``
         The planetary mass. An astropy unit (like u.Mjup) must be specified.
 
-    M_star : ``astropy.Quantity ``
+    M_star : ``astropy.Quantity``
         The stellar mass. An astropy unit (like u.Msun) must be specified.
 
-    a : ``astropy.Quantity ``
+    a : ``astropy.Quantity``
         The semimajor axis of the planetary orbit. An astropy unit (like u.au)
         must be specified.
  
     Returns
     -------
-    R_roche : ``astropy.Quantity ``
+    R_roche : ``astropy.Quantity``
         The Roche radius.
     """
     return (a*(M_pl/(3*M_star))**(1/3)).to(u.Rjup)
@@ -366,7 +369,7 @@ def calculate_f_xuv(spectrum):
 
     Parameters
     ----------
-    spectrum : ``dict ``
+    spectrum : ``dict``
         Spectrum of the host star arriving at the planet covering fluxes up to
         the wavelength corresponding to the energy to ionize hydrogen (13.6 eV,
         or 911.65 Angstrom). Can be generated using ``tools.make_spectrum_dict``
@@ -374,7 +377,7 @@ def calculate_f_xuv(spectrum):
         spectrum does not include lower energies than 13.6 eV.
     Returns
     -------
-    f_xuv : ``astropy.Quantity ``
+    f_xuv : ``astropy.Quantity``
         The integrated XUV flux.
     """
     wav_grid = spectrum['wavelength']*spectrum['wavelength_unit']
@@ -395,13 +398,13 @@ def h_photo_cross(nu_init):
 
     Parameters
     ----------
-    nu_init : ``numpy.ndarray ``
+    nu_init : ``numpy.ndarray``
         Frequencies at which to compute the cross-section. An astropy unit
         (like u.Hz) must be specified for each value in the array.
 
     Returns
     -------
-    out : ``numpy.ndarray ``
+    out : ``numpy.ndarray``
         The cross-section in cm ** 2.
     """
     "nu in Hz -> cross section in units cm^2"
@@ -426,13 +429,13 @@ def heplus_photo_cross(nu_init):
 
     Parameters
     ----------
-    nu_init : ``numpy.ndarray ``
+    nu_init : ``numpy.ndarray``
         Frequencies at which to compute the cross-section. An astropy unit
         (like u.Hz) must be specified for each value in the array.
 
     Returns
     -------
-    out : ``numpy.ndarray ``
+    out : ``numpy.ndarray``
         The cross-section in cm**2. 
     """
     "nu in Hz -> cross section in units cm^2"
@@ -460,13 +463,13 @@ def helium_photo_cross(nu_init):
 
     Parameters
     ----------
-    nu_init : ``numpy.ndarray ``
+    nu_init : ``numpy.ndarray``
         Frequencies at which to compute the cross-section. An astropy unit
         (like u.Hz) must be specified for each value in the array.
 
     Returns
     -------
-    out : ``numpy.ndarray ``
+    out : ``numpy.ndarray``
         The cross-section in cm**2. 
     """
     # nu in Hz -> cross section in units cm^2

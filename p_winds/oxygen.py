@@ -32,24 +32,24 @@ def radiative_processes(spectrum_at_planet):
 
     Parameters
     ----------
-    spectrum_at_planet : ``dict ``
+    spectrum_at_planet : ``dict``
         Spectrum of the host star arriving at the planet covering fluxes at
         least up to the wavelength corresponding to the energy to ionize
         oxygen (13.62 eV, or 910 Angstrom).
 
     Returns
     -------
-    phi_oi : ``float ``
+    phi_oi : ``float``
         Ionization rate of O I at null optical depth in unit of 1 / s.
 
-    a_oi : ``float ``
+    a_oi : ``float``
         Flux-averaged photoionization cross-section of O I in unit of cm ** 2.
 
-    a_h_oi : ``float ``
+    a_h_oi : ``float``
         Flux-averaged photoionization cross-section of H I in the range absorbed
         by O I in unit of cm ** 2.
 
-    a_he : ``float ``
+    a_he : ``float``
         Flux-averaged photoionization cross-section of He I in unit of cm ** 2.
     """
     wavelength = (spectrum_at_planet['wavelength'] *
@@ -111,13 +111,13 @@ def electron_impact_ionization(electron_temperature):
 
     Parameters
     ----------
-    electron_temperature : ``float ``
+    electron_temperature : ``float``
         Temperature of the plasma where the electrons are embedded in unit of
         Kelvin.
 
     Returns
     -------
-    ionization_rate_oi : ``float ``
+    ionization_rate_oi : ``float``
         Ionization rate of neutral O into singly-ionized O in unit of
         cm ** 3 / s.
     """
@@ -138,13 +138,13 @@ def recombination(electron_temperature):
 
     Parameters
     ----------
-    electron_temperature : ``float ``
+    electron_temperature : ``float``
         Temperature of the plasma where the electrons are embedded in unit of
         Kelvin.
 
     Returns
     -------
-    alpha_rec_oi  : ``float ``
+    alpha_rec_oi  : ``float``
         Recombination rate of O II into O I in units of cm ** 3 / s.
     """
     alpha_rec_oi = 3.25E-12 * (300 / electron_temperature) ** 0.66
@@ -160,15 +160,15 @@ def charge_transfer(temperature):
 
     Parameters
     ----------
-    temperature : ``float ``
+    temperature : ``float``
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
     Returns
     -------
-    ct_rate_oi_hp : ``float ``
+    ct_rate_oi_hp : ``float``
         Charge transfer rate between neutral O and H+ in units of cm ** 3 / s.
 
-    ct_rate_oii_h : ``float ``
+    ct_rate_oii_h : ``float``
         Charge transfer rate between O+ and neutral H in units of cm ** 3 / s.
     """
     # Recombination of O II into O I
@@ -196,47 +196,47 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
 
     Parameters
     ----------
-    radius_profile : ``numpy.ndarray ``
+    radius_profile : ``numpy.ndarray``
         Radius in unit of planetary radii.
 
-    velocity : ``numpy.ndarray ``
+    velocity : ``numpy.ndarray``
          Velocities sampled at the values of ``radius_profile`` in units of
          sound speed. Similar to the output of ``parker.structure()``.
 
-    density : ``numpy.ndarray ``
+    density : ``numpy.ndarray``
         Densities sampled at the values of ``radius_profile`` in units of
         density at the sonic point. Similar to the output of
         ``parker.structure()``.
 
-    hydrogen_ion_fraction : ``numpy.ndarray ``
+    hydrogen_ion_fraction : ``numpy.ndarray``
         Number fraction of H ion over total H in the upper atmosphere in
         function of radius. Similar to the output of
         ``hydrogen.ion_fraction()``.
 
-    helium_ion_fraction : ``numpy.ndarray ``
+    helium_ion_fraction : ``numpy.ndarray``
         Number fraction of He ion over total He in the upper atmosphere in
         function of radius. Similar to the output of
         ``helium.population_fraction()``, but should be ``1 - f_1_r - f_3_r``.
 
-    planet_radius : ``float ``
+    planet_radius : ``float``
         Planetary radius in unit of Jupiter radius.
 
-    temperature : ``float ``
+    temperature : ``float``
         Isothermal temperature of the upper atmosphere in unit of Kelvin.
 
-    h_fraction : ``float ``
+    h_fraction : ``float``
         Total (ion + neutral) H number fraction of the atmosphere.
 
-    speed_sonic_point : ``float ``
+    speed_sonic_point : ``float``
         Speed of sound in the outflow in units of km / s.
 
-    radius_sonic_point : ``float ``
+    radius_sonic_point : ``float``
         Radius of the sonic point in unit of Jupiter radius.
 
-    density_sonic_point : ``float ``
+    density_sonic_point : ``float``
         Density at the sonic point in units of g / cm ** 3.
 
-    spectrum_at_planet : ``dict ``
+    spectrum_at_planet : ``dict``
         Spectrum of the host star arriving at the planet covering fluxes at
         least up to the wavelength corresponding to the energy to ionize
         oxygen (13.62 eV, or 910 Angstrom). Can be generated using
@@ -286,10 +286,10 @@ def ion_fraction(radius_profile, velocity, density, hydrogen_ion_fraction,
 
     Returns
     -------
-    f_oii_r : ``numpy.ndarray ``
+    f_oii_r : ``numpy.ndarray``
             Fraction of singly-ionized oxygen in function of radius.
 
-    reaction_rates : ``dict ``
+    reaction_rates : ``dict``
         Dictionary containing the reaction rates in function of radius and in
         units of 1 / s. Only returned when ``return_rates`` is set to ``True``.
         Here is a short description of the dict keys:

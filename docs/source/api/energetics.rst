@@ -1,6 +1,6 @@
 
 `energetics`
-========
+============
 
 .. autofunction:: energetics.calculate_epsilon_max
 .. autofunction:: energetics.calculate_mdot_max
