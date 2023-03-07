@@ -10,7 +10,7 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 import astropy.units as u
 import astropy.constants as c
-from scipy.integrate import simps, cumulative_trapezoid
+from scipy.integrate import simps, cumtrapz
 from scipy.interpolate import interp1d
 
 
@@ -248,9 +248,9 @@ def compute_column_densities(r_grid, n_h, n_he, n_he_plus):
     n_he_temp = n_he[::-1]
     n_he_plus_temp = n_he_plus[::-1]
     
-    column_h = cumulative_trapezoid(n_h_temp, r_grid_temp,initial=0)*u.cm**-2
-    column_he = cumulative_trapezoid(n_he_temp, r_grid_temp,initial=0)*u.cm**-2
-    column_he_plus = cumulative_trapezoid(n_he_plus_temp,
+    column_h = cumtrapz(n_h_temp, r_grid_temp,initial=0)*u.cm**-2
+    column_he = cumtrapz(n_he_temp, r_grid_temp,initial=0)*u.cm**-2
+    column_he_plus = cumtrapz(n_he_plus_temp,
         r_grid_temp,initial=0)*u.cm**-2
     
     #flip back
