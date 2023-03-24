@@ -19,7 +19,8 @@ __all__ = ["calculate_mdot_max", "calculate_epsilon_max", "spec_av_cross",
            "calculate_roche_radius", "calculate_f_xuv", "h_photo_cross",
            "heplus_photo_cross", "helium_photo_cross"]
 
-threshes = {'hydrogen': 13.6*u.eV, 'helium': 24.58*u.eV, 'helium+': 54.4*u.eV}
+threshes = {'hydrogen': 13.6 * u.eV, 'helium': 24.58 * u.eV,
+            'helium+': 54.4 * u.eV}
 
 
 def calculate_mdot_max(R_pl, M_pl, M_star, a, r_grid, spectrum, n_h, n_he, 
@@ -77,9 +78,9 @@ def calculate_mdot_max(R_pl, M_pl, M_star, a, r_grid, spectrum, n_h, n_he,
     R_roche = calculate_roche_radius(R_pl, M_pl, M_star, a)
     eps = calculate_epsilon_max(r_grid, spectrum, n_h, n_he, n_he_plus, 
         R_pl, R_roche)
-    K = 1 - 1.5*(R_pl/R_roche) + 0.5*(R_pl/R_roche)**3
+    K = 1 - 1.5 * (R_pl / R_roche) + 0.5 * (R_pl / R_roche) ** 3
     F_XUV = calculate_f_xuv(spectrum)
-    md = 4*eps*np.pi*R_pl.to(u.cm)**3*F_XUV/(K*c.G*M_pl.to(u.g))
+    md = 4 * eps * np.pi * R_pl.to(u.cm) ** 3 * F_XUV / (K * c.G * M_pl.to(u.g))
     return md.to(u.g/u.s)
 
 
@@ -143,9 +144,9 @@ def calculate_epsilon_max(r_grid, spectrum, n_h, n_he, n_he_plus, R_pl,
     total_heating_coef = h_heating_coef + he_heating_coef + he_plus_heating_coef
     
     r = r_grid.to(u.cm)
-    integrand = total_heating_coef * r**2
+    integrand = total_heating_coef * r ** 2
     mask = (r >= R_pl) & (r <= R_roche)
-    eps = simps(integrand[mask], x = r[mask])*u.cm**2/(R_pl.to(u.cm)**2)
+    eps = simps(integrand[mask], x=r[mask]) * u.cm ** 2 / (R_pl.to(u.cm) ** 2)
     return eps
 
 
@@ -175,36 +176,37 @@ def spec_av_cross(r_grid, spectrum, t_coef, species):
     species : ``str``
         The photoionzation target for which we are calculating the heating
         cross-section. Must be one of 'hydrogen', 'helium', or 'helium+'.
+
     Returns
     -------
     cross : ``astropy.Quantity``
-        Heating cross-section in cm**2 for the selected species.
+        Heating cross-section in cm ** 2 for the selected species.
     """
-    wav_grid = spectrum['wavelength']*spectrum['wavelength_unit']
-    flux_grid = spectrum['flux_lambda']*spectrum['flux_unit']
-    flux_grid = flux_grid.to(u.erg/u.s/u.cm/u.cm/u.Hz, 
-        equivalencies=u.spectral_density(wav_grid))
-    wavs_hz = wav_grid.to(u.Hz, equivalencies = u.spectral())[::-1]
+    wav_grid = spectrum['wavelength'] * spectrum['wavelength_unit']
+    flux_grid = spectrum['flux_lambda'] * spectrum['flux_unit']
+    flux_grid = flux_grid.to(u.erg / u.s / u.cm / u.cm / u.Hz,
+                             equivalencies=u.spectral_density(wav_grid))
+    wavs_hz = wav_grid.to(u.Hz, equivalencies=u.spectral())[::-1]
     flux_grid = flux_grid[::-1]
     xx, yy = np.meshgrid(wavs_hz, r_grid)
     
     threshold = threshes[species]
     crosses = {'hydrogen': h_photo_cross, 'helium': helium_photo_cross,
-        'helium+': heplus_photo_cross}
+               'helium+': heplus_photo_cross}
     cross = crosses[species]
-    evgrid = xx.to(u.eV, equivalencies = u.spectral())
+    evgrid = xx.to(u.eV, equivalencies=u.spectral())
     eta_grid = 1 - threshold/evgrid
     spec_grid, __ = np.meshgrid(flux_grid, r_grid)
     crossgrid = cross(xx)
-    crossgrid[xx.to(u.eV, equivalencies = u.spectral()) < \
-        threshold] = 0.*u.cm**2
+    crossgrid[xx.to(u.eV, equivalencies=u.spectral()) < threshold] = \
+        0. * u.cm ** 2
 
-    numgrid = eta_grid*spec_grid*crossgrid*t_coef
-    numgrid = numgrid.to(u.erg/u.s/u.Hz)    
-    num = simps(numgrid, x = wavs_hz, axis = -1)*u.erg/u.s
+    numgrid = eta_grid * spec_grid * crossgrid * t_coef
+    numgrid = numgrid.to(u.erg / u.s / u.Hz)
+    num = simps(numgrid, x=wavs_hz, axis=-1) * u.erg/u.s
 
     F_XUV = calculate_f_xuv(spectrum)
-    cross = num/F_XUV
+    cross = num / F_XUV
     return cross.to(u.cm**2)
 
 
@@ -221,39 +223,40 @@ def compute_column_densities(r_grid, n_h, n_he, n_he_plus):
 
     n_h : ``numpy.ndarray``
         The neutral hydrogen number density profile for the wind. An astropy
-        unit (like u.cm**-3) must be specified for each value on the grid.
+        unit (like u.cm ** -3) must be specified for each value on the grid.
  
     n_he : ``numpy.ndarray``
         The neutral helium number density profile for the wind. An astropy
-        unit (like u.cm**-3) must be specified for each value on the grid.
+        unit (like u.cm ** -3) must be specified for each value on the grid.
 
     n_he_plus : ``numpy.ndarray``
         The (singly-)ionized helium number density profile for the wind. An
-        astropy unit (like u.cm**-3) must be specified for each value on the
+        astropy unit (like u.cm ** -3) must be specified for each value on the
         grid.
+
     Returns
     -------
     column_h : ``numpy.ndarray``
-        The neutral hydrogen column density profile in u.cm**-2.
+        The neutral hydrogen column density profile in u.cm ** -2.
 
     column_he : ``numpy.ndarray``
-        The neutral helium column density profile in u.cm**-2.
+        The neutral helium column density profile in u.cm ** -2.
 
     column_he_plus : ``numpy.ndarray``
-        The ionized helium column density profile in u.cm**-2.
+        The ionized helium column density profile in u.cm ** -2.
     """
-    #flip grid to integrate from infty to r
+    # Flip grid to integrate from infty to r
     r_grid_temp = r_grid.to(u.cm).value[::-1]
     n_h_temp = n_h[::-1]
     n_he_temp = n_he[::-1]
     n_he_plus_temp = n_he_plus[::-1]
     
-    column_h = cumtrapz(n_h_temp, r_grid_temp,initial=0)*u.cm**-2
-    column_he = cumtrapz(n_he_temp, r_grid_temp,initial=0)*u.cm**-2
-    column_he_plus = cumtrapz(n_he_plus_temp,
-        r_grid_temp,initial=0)*u.cm**-2
+    column_h = cumtrapz(n_h_temp, r_grid_temp, initial=0) * u.cm ** -2
+    column_he = cumtrapz(n_he_temp, r_grid_temp, initial=0) * u.cm ** -2
+    column_he_plus = cumtrapz(n_he_plus_temp, r_grid_temp,
+                              initial=0) * u.cm ** -2
     
-    #flip back
+    # Flip back
     column_h = -column_h[::-1]
     column_he = -column_he[::-1]
     column_he_plus = -column_he_plus[::-1]
@@ -282,46 +285,47 @@ def compute_transmission_coefficient(spectrum, r_grid, N_h, N_he, N_he_plus):
 
     N_h : ``numpy.ndarray``
         The neutral hydrogen column density profile. An astropy unit (like
-        u.cm**-2) must be specified for each value on the grid.
+        u.cm ** -2) must be specified for each value on the grid.
 
     N_he : ``numpy.ndarray``
         The neutral helium column density profile. An astropy unit (like
-        u.cm**-2) must be specified for each value on the grid.
+        u.cm ** -2) must be specified for each value on the grid.
 
     N_he_plus : ``numpy.ndarray``
         The ionized helium column density profile. An astropy unit (like
-        u.cm**-2) must be specified for each value on the grid.
+        u.cm ** -2) must be specified for each value on the grid.
+
     Returns
     -------
     t_coef : ``numpy.ndarray``
         The transmission coefficient profile for the wind as a function of 
         frequency and altitude.
     """
-    wavs = spectrum['wavelength']*spectrum['wavelength_unit']
-    wavs_hz = wavs.to(u.Hz, equivalencies = u.spectral())[::-1]
+    wavs = spectrum['wavelength'] * spectrum['wavelength_unit']
+    wavs_hz = wavs.to(u.Hz, equivalencies=u.spectral())[::-1]
 
-    cd_h = interp1d(r_grid.to(u.cm).value, N_h.to(u.cm**-2).value,
-        kind = 'cubic')
-    cd_he = interp1d(r_grid.to(u.cm).value, N_he.to(u.cm**-2).value,
-        kind = 'cubic')
-    cd_he_plus = interp1d(r_grid.to(u.cm).value, N_he_plus.to(u.cm**-2).value, 
-        kind = 'cubic')
+    cd_h = interp1d(r_grid.to(u.cm).value, N_h.to(u.cm ** -2).value,
+                    kind='cubic')
+    cd_he = interp1d(r_grid.to(u.cm).value, N_he.to(u.cm ** -2).value,
+                     kind='cubic')
+    cd_he_plus = interp1d(r_grid.to(u.cm).value, N_he_plus.to(u.cm**-2).value,
+                          kind='cubic')
 
     xx, yy = np.meshgrid(wavs_hz, r_grid)    
     h_cross = h_photo_cross(xx)
     he_cross = helium_photo_cross(xx) 
     he_plus_cross = heplus_photo_cross(xx)
 
-    h_cross[xx.to(u.eV, equivalencies = u.spectral()) <
-            threshes['hydrogen']] = 0.*u.cm**2
-    he_cross[xx.to(u.eV, equivalencies = u.spectral()) <
-             threshes['helium']] = 0.*u.cm**2
-    he_plus_cross[xx.to(u.eV, equivalencies = u.spectral()) <
-                  threshes['helium+']] = 0.*u.cm**2
+    h_cross[xx.to(u.eV, equivalencies=u.spectral()) < threshes['hydrogen']] = \
+        0. * u.cm ** 2
+    he_cross[xx.to(u.eV, equivalencies=u.spectral()) < threshes['helium']] = \
+        0. * u.cm ** 2
+    he_plus_cross[xx.to(u.eV, equivalencies=u.spectral()) <
+                  threshes['helium+']] = 0. * u.cm ** 2
 
-    h_column = cd_h(yy.to(u.cm).value)*u.cm**-2
-    he_column = cd_he(yy.to(u.cm).value)*u.cm**-2
-    he_plus_column = cd_he_plus(yy.to(u.cm).value)*u.cm**-2
+    h_column = cd_h(yy.to(u.cm).value) * u.cm ** -2
+    he_column = cd_he(yy.to(u.cm).value) * u.cm ** -2
+    he_plus_column = cd_he_plus(yy.to(u.cm).value) * u.cm ** -2
 
     tau_h = h_cross * h_column
     tau_he = he_cross * he_column
@@ -357,7 +361,7 @@ def calculate_roche_radius(R_pl, M_pl, M_star, a):
     R_roche : ``astropy.Quantity``
         The Roche radius.
     """
-    return (a*(M_pl/(3*M_star))**(1/3)).to(u.Rjup)
+    return (a * (M_pl / (3 * M_star)) ** (1 / 3)).to(u.Rjup)
 
 
 def calculate_f_xuv(spectrum):
@@ -375,18 +379,19 @@ def calculate_f_xuv(spectrum):
         or 911.65 Angstrom). Can be generated using ``tools.make_spectrum_dict``
         or ``tools.generate_muscles_spectrum``. Currently we assume that the
         spectrum does not include lower energies than 13.6 eV.
+
     Returns
     -------
     f_xuv : ``astropy.Quantity``
         The integrated XUV flux.
     """
-    wav_grid = spectrum['wavelength']*spectrum['wavelength_unit']
-    flux_grid = spectrum['flux_lambda']*spectrum['flux_unit']
-    flux_grid = flux_grid.to(u.erg/u.s/u.cm/u.cm/u.Hz, 
-        equivalencies=u.spectral_density(wav_grid))
-    wavs_hz = wav_grid.to(u.Hz, equivalencies = u.spectral())[::-1]
+    wav_grid = spectrum['wavelength'] * spectrum['wavelength_unit']
+    flux_grid = spectrum['flux_lambda'] * spectrum['flux_unit']
+    flux_grid = flux_grid.to(u.erg / u.s / u.cm / u.cm / u.Hz,
+                             equivalencies=u.spectral_density(wav_grid))
+    wavs_hz = wav_grid.to(u.Hz, equivalencies=u.spectral())[::-1]
     flux_grid = flux_grid[::-1]
-    f_xuv = simps(flux_grid, x = wavs_hz)*u.erg/u.s/u.cm**2
+    f_xuv = simps(flux_grid, x=wavs_hz) * u.erg / u.s / u.cm ** 2
     return f_xuv
 
 
@@ -411,14 +416,14 @@ def h_photo_cross(nu_init):
     threshold_energy = threshes['hydrogen']
     threshold_cross = 6.3e-18 * u.cm * u.cm
     
-    nu = nu_init.to(u.eV, equivalencies = u.spectral())
+    nu = nu_init.to(u.eV, equivalencies=u.spectral())
     
-    eps = np.sqrt(nu/threshold_energy - 1)
-    arg1 = threshold_cross*np.exp(4 - 4*np.arctan(eps)/eps/u.rad)
-    arg2 = (1 - np.exp(-2*np.pi/eps))
-    arg3 = (threshold_energy/nu)**4
+    eps = np.sqrt(nu / threshold_energy - 1)
+    arg1 = threshold_cross*np.exp(4 - 4 * np.arctan(eps) / eps / u.rad)
+    arg2 = (1 - np.exp(-2 * np.pi / eps))
+    arg3 = (threshold_energy / nu) **4
     
-    out =  arg1 / arg2 * arg3
+    out = arg1 / arg2 * arg3
     return out
 
 
@@ -440,16 +445,16 @@ def heplus_photo_cross(nu_init):
     """
     "nu in Hz -> cross section in units cm^2"
     threshold_energy = threshes['helium+']
-    threshold_cross = 6.3e-18/4 * u.cm * u.cm
+    threshold_cross = 6.3e-18 / 4 * u.cm * u.cm
     
-    nu = nu_init.to(u.eV, equivalencies = u.spectral())
+    nu = nu_init.to(u.eV, equivalencies=u.spectral())
     
     eps = np.sqrt(nu/threshold_energy - 1)
-    arg1 = threshold_cross*np.exp(4 - 4*np.arctan(eps)/eps/u.rad)
-    arg2 = (1 - np.exp(-2*np.pi/eps))
-    arg3 = (threshold_energy/nu)**4
+    arg1 = threshold_cross * np.exp(4 - 4 * np.arctan(eps) / eps / u.rad)
+    arg2 = (1 - np.exp(-2 * np.pi / eps))
+    arg3 = (threshold_energy / nu) **4
     
-    out =  arg1 / arg2 * arg3
+    out = arg1 / arg2 * arg3
     return out
 
 
@@ -476,16 +481,16 @@ def helium_photo_cross(nu_init):
     # Source: Yan, Sadeghpour, & Dalgarno (1998, ApJ)
     threshold_energy = threshes['helium']
     
-    nu = nu_init.to(u.eV, equivalencies = u.spectral())
+    nu = nu_init.to(u.eV, equivalencies=u.spectral())
     
     nu_masked = nu
     x = nu_masked / threshold_energy
-    e_term = (nu_masked / u.eV / 1000.)**(7/2)
+    e_term = (nu_masked / u.eV / 1000.)**(7 / 2)
     
     coefs = [-4.7416, 14.8200, -30.8678, 37.3584, -23.4585, 5.9133]
     sum_term = 0.
     for i, coef in enumerate(coefs):
-        sum_term += coef / x**((i+1)/2)
+        sum_term += coef / x ** ((i + 1) / 2)
     
     num = 733 * u.barn
     out = num.to(u.cm * u.cm)/e_term * (1 + sum_term)
