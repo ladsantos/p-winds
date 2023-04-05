@@ -134,7 +134,8 @@ def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
 
 
 def make_spectrum_from_file(filename, units, path='', skiprows=0,
-                            scale_flux=1.0):
+                            scale_flux=1.0, star_distance=None,
+                            semi_major_axis=None):
     """
     Construct a dictionary containing an input spectrum from a text file. The
     input file must have two or more columns, in which the first is the
@@ -163,6 +164,19 @@ def make_spectrum_from_file(filename, units, path='', skiprows=0,
     scale_flux : ``float``, optional
         Scaling factor for flux. Default value is 1.0 (no scaling).
 
+    star_distance : ``float`` or ``None``, optional
+        Distance to star in unit of parsec. This is used to scale the flux as
+        observed from Earth to the semi-major axis of the planet. If ``None``,
+        no scaling is applied. Default is ``None``.
+
+    semi_major_axis : ``float`` or ``None``, optional
+        Semi-major axis of the planet in unit of au. This is used to scale the
+        flux as observed from Earth to the semi-major axis of the planet. Notice
+        that this parameter is different from the
+        ``generate_muscles_spectrum()``  function, which uses the semi-major
+        axis in unit of stellar radii. If ``None``, no scaling is applied.
+        Default is ``None``.
+
     Returns
     -------
     spectrum : ``dict``
@@ -183,8 +197,11 @@ def make_spectrum_from_file(filename, units, path='', skiprows=0,
         y_axis = 'flux_nu'
     y_axis_unit = units.pop('flux')
 
+    conv_pc_to_au = 206264.8062471  # Conversion from pc to au
+    scale_to_planet = (star_distance * conv_pc_to_au / semi_major_axis) ** (-2)
+
     spectrum = {x_axis: spectrum_table[:, 0],
-                y_axis: spectrum_table[:, 1] * scale_flux,
+                y_axis: spectrum_table[:, 1] * scale_flux * scale_to_planet,
                 '{}_unit'.format(x_axis): x_axis_unit,
                 'flux_unit': y_axis_unit}
     return spectrum
