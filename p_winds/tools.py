@@ -167,14 +167,16 @@ def make_spectrum_from_file(filename, units, path='', skiprows=0,
     star_distance : ``float`` or ``None``, optional
         Distance to star in unit of parsec. This is used to scale the flux as
         observed from Earth to the semi-major axis of the planet. If ``None``,
-        no scaling is applied. Default is ``None``.
+        no scaling is applied. If not ``None``, then a value``semi_major_axis``
+        must be provided as well. Default is ``None``.
 
     semi_major_axis : ``float`` or ``None``, optional
         Semi-major axis of the planet in unit of au. This is used to scale the
         flux as observed from Earth to the semi-major axis of the planet. Notice
         that this parameter is different from the
         ``generate_muscles_spectrum()``  function, which uses the semi-major
-        axis in unit of stellar radii. If ``None``, no scaling is applied.
+        axis in unit of stellar radii. If ``None``, no scaling is applied. If
+        not ``None``, then a value``star_distance`` must be provided as well.
         Default is ``None``.
 
     Returns
@@ -198,7 +200,11 @@ def make_spectrum_from_file(filename, units, path='', skiprows=0,
     y_axis_unit = units.pop('flux')
 
     conv_pc_to_au = 206264.8062471  # Conversion from pc to au
-    scale_to_planet = (star_distance * conv_pc_to_au / semi_major_axis) ** (-2)
+    if star_distance is not None and semi_major_axis is not None:
+        scale_to_planet = \
+            (star_distance * conv_pc_to_au / semi_major_axis) ** (-2)
+    else:
+        scale_to_planet = 1.0
 
     spectrum = {x_axis: spectrum_table[:, 0],
                 y_axis: spectrum_table[:, 1] * scale_flux * scale_to_planet,
