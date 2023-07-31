@@ -557,8 +557,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         # Final density profile in g / cm ** 3
         final_rho = final_rho_norm * final_rhos
         # Final recombination rate in 1 / s
-        final_alpha_rec = recombination(temperature) * k2_abs * final_rho * \
-            f_r ** 2
+        final_alpha_rec = k2_abs * final_rho * f_r ** 2
         rates = {'photoionization': final_phi_prime,
                  'recombination': final_alpha_rec}
     else:

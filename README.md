@@ -11,7 +11,7 @@ A [paper describing `p-winds`](https://ui.adsabs.harvard.edu/abs/2022A%26A...659
 
 Background
 ----------
-`p-winds` is largely based on the theoretical framework of [Oklopčić & Hirata (2018)](https://ui.adsabs.harvard.edu/abs/2018ApJ...855L..11O/abstract) and [Lampón et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020A%26A...636A..13L/abstract), which themselves based their work on the stellar wind model of [Parker (1958)](https://ui.adsabs.harvard.edu/abs/1958ApJ...128..664P/abstract). A description about the implementation of tidal effects is discussed in [Vissapragada et al. 2022](https://ui.adsabs.harvard.edu/abs/2022AJ....164..234V/abstract).
+`p-winds` is largely based on the theoretical framework of [Oklopčić & Hirata (2018)](https://ui.adsabs.harvard.edu/abs/2018ApJ...855L..11O/abstract) and [Lampón et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020A%26A...636A..13L/abstract), which themselves based their work on the stellar wind model of [Parker (1958)](https://ui.adsabs.harvard.edu/abs/1958ApJ...128..664P/abstract). A description about the implementation of tidal effects is discussed in [Vissapragada et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022AJ....164..234V/abstract).
 
 Installation
 ------------
