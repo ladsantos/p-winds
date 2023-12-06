@@ -8,11 +8,20 @@ from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 import numpy as np
 import astropy.units as u
+import os
+from warnings import warn
 from astropy.io import fits
 
 
 __all__ = ["nearest_index", "generate_muscles_spectrum",
            "make_spectrum_from_file"]
+
+# Find $MUSCLES_DIR environment variable
+try:
+    _MUSCLES_DIR = os.environ["MUSCLES_DIR"]
+except KeyError:
+    _MUSCLES_DIR = None
+    warn("Environment variable $MUSCLES_DIR is not set.")
 
 
 def nearest_index(array, target_value):
@@ -39,8 +48,8 @@ def nearest_index(array, target_value):
     return index
 
 
-def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
-                              stellar_radius=None,
+def generate_muscles_spectrum(host_star_name, semi_major_axis,
+                              muscles_dir=_MUSCLES_DIR, stellar_radius=None,
                               truncate_wavelength_grid=False,
                               cutoff_thresh=13.6):
     """
@@ -54,15 +63,19 @@ def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
     host_star_name : ``str``
         Name of the MUSCLES stellar spectrum you want to use. Must be one of:
         ['gj176', 'gj436', 'gj551', 'gj581', 'gj667c', 'gj832', 'gj876',
-        'gj1214', 'hd40307', 'hd85512', 'hd97658', 'v-eps-eri'].
-
-    muscles_dir : ``str``
-        Path to the directory with the MUSCLES data.
+        'gj1214', 'hd40307', 'hd85512', 'hd97658', 'v-eps-eri', 'gj1132',
+        'hat-p-12', 'hat-p-26', 'hd-149026', 'l-98-59', 'l-678-39', 'l-980-5',
+        'lhs-2686', 'lp-791-18', 'toi-193', 'trappist-1', 'wasp-17', 'wasp-43',
+        'wasp-77a', 'wasp-127'].
 
     semi_major_axis : ``float``
         Semi-major axis of the planet in units of stellar radii. The code first
         converts the MUSCLES spectrum to what it would be at R_star;
         ``semi_major_axis`` is needed to get the spectrum at the planet.
+
+    muscles_dir : ``str``, optional
+        Path to the directory with the MUSCLES data. Default value is defined by
+        the environment variable ``$MUSCLES_DIR``.
 
     stellar_radius : ``float``, optional
         Stellar radius in unit of solar radii. Setting a value for this
@@ -91,16 +104,52 @@ def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
     # The stellar radii and distances are taken from NASA Exoplanet Archive.
 
     thresh = cutoff_thresh * u.eV
-    stars = ['gj176', 'gj436', 'gj551', 'gj581', 'gj667c', 'gj832', 'gj876',
-             'gj1214', 'hd40307', 'hd85512', 'hd97658', 'v-eps-eri']
-    st_rads = np.array([0.46, 0.449, 0.154, 0.3297020, 0.42, 0.45, 0.35, 0.22,
-                        0.71, 0.69, 0.74, 0.77]) * u.solRad
-    dists = np.array([9.470450, 9.75321, 1.30119, 6.298100, 7.24396, 4.964350,
-                      4.67517, 14.6427, 12.9363, 11.2810, 21.5618,
-                      3.20260]) * u.pc
+    stars = [
+        # Old ones
+        'gj176', 'gj436', 'gj551', 'gj581', 'gj667c', 'gj832', 'gj876',
+        'gj1214', 'hd40307', 'hd85512', 'hd97658', 'v-eps-eri',
+        # New ones
+        #'gj15a', 'gj163', 'gj649', 'gj674', 'gj676a', 'gj699', 'gj729', 'gj849',
+        'gj1132', 'hat-p-12', 'hat-p-26', 'hd-149026', 'l-98-59', 'l-678-39',
+        'l-980-5', 'lhs-2686', 'lp-791-18', 'toi-193', 'trappist-1', 'wasp-17',
+        'wasp-43', 'wasp-77a', 'wasp-127'
+        ]
+    versions = np.array([
+        # Old ones
+        'v22', 'v22', 'v22', 'v22', 'v22', 'v22', 'v22',
+        'v22', 'v22', 'v22', 'v22', 'v22',
+        # New ones
+        #'v23', 'v23', 'v23', 'v23', 'v23', 'v23', 'v23', 'v23',
+        'v23', 'v24', 'v24', 'v24', 'v24', 'v24',
+        'v23', 'v23', 'v24', 'v24', 'v23', 'v24',
+        'v24', 'v24', 'v24'
+    ])
+    st_rads = np.array([
+        # Old ones
+        0.46, 0.449, 0.154, 0.3297020, 0.42, 0.45, 0.35, 0.22,
+        0.71, 0.69, 0.74, 0.77,
+        # New ones
+        #
+        0.21, 0.7, 0.87, 1.41, 0.3, 0.34,
+        0.22,  # L 980-5 radius assumed to be the same as GJ 1214
+        0.449,  # LHS 2686 radius assumed to be the same as GJ 436
+        0.18, 0.95, 0.12, 1.49, 0.6, 0.910, 1.33
+    ]) * u.solRad
+    dists = np.array([
+        # Old ones
+        9.470450, 9.75321, 1.30119, 6.298100, 7.24396, 4.964350,
+        4.67517, 14.6427, 12.9363, 11.2810, 21.5618,
+        3.20260,
+        # New ones
+        #3.56244, 15.1353,
+        12.613, 142.751, 141.837, 75.8643, 10.6194, 9.44181, 13.3731, 12.1893,
+        26.4927, 80.4373, 12.4298888, 405.908, 86.7467, 105.6758, 159.507
+    ]) * u.pc
     muscles_dists = {starname: dist for starname, dist in zip(stars, dists)}
     muscles_rstars = {starname: st_rad for starname, st_rad in zip(stars,
                                                                    st_rads)}
+    muscles_versions = {starname: versions for starname, versions in zip(stars,
+                                                                   versions)}
 
     # MUSCLES records spectra as observed at earth, so we need to convert it to
     # spectrum at R_star. The user has the option of setting an arbitary stellar
@@ -108,16 +157,25 @@ def generate_muscles_spectrum(host_star_name, muscles_dir, semi_major_axis,
     # This can be especially useful for slightly evolved stars, whose radius
     # are larger than the MUSCLES stars.
     dist = muscles_dists[host_star_name]
+    vnumber = muscles_versions[host_star_name]
     if stellar_radius is None:
         rstar = muscles_rstars[host_star_name]
     else:
         rstar = stellar_radius * u.solRad
     conv = float((dist / rstar) ** 2)  # conversion to spectrum at R_star
 
+    # First check if MUSCLES_DIR has a trailing forward slash
+    if muscles_dir[-1] == '/':
+        pass
+    # If not, add it
+    else:
+        muscles_dir += '/'
+
     # Read the MUSCLES spectrum
     spec = fits.getdata(muscles_dir +
                         f'hlsp_muscles_multi_multi_{host_star_name}_broadband_'
-                        f'v22_adapt-const-res-sed.fits', 1)
+                        f'{vnumber}_adapt-const-res-sed.fits',
+                        1)
 
     if truncate_wavelength_grid:
         mask = spec['WAVELENGTH'] * u.AA < thresh.to(u.AA,

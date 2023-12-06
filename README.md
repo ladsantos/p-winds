@@ -9,6 +9,10 @@ The scalable implementation of 1D models allows for atmospheric retrievals to ca
 
 A [paper describing `p-winds`](https://ui.adsabs.harvard.edu/abs/2022A%26A...659A..62D/abstract) (Dos Santos et al. 2022) and its usage for research-grade astronomical applications was published in the journal Astronomy & Astrophysics. If you use this code in your research, please consider citing it.
 
+`p-winds` contains and distributes data products from the [MUSCLES and Mega-MUSCLES treasury surveys](https://archive.stsci.edu/prepds/muscles/). If you use the `tools.generate_muscles_spectrum()` function in your study, we highly encourage you to cite [France et al. 2016](http://adsabs.harvard.edu/abs/2016ApJ...820...89F), [Youngblood et al. 2016](http://adsabs.harvard.edu/abs/2016arXiv160401032Y), [Loyd et al. 2016](http://adsabs.harvard.edu/abs/2016arXiv160404776P), [Wilson et al. 2021](https://ui.adsabs.harvard.edu/abs/2021ApJ...911...18W/abstract) and [Behr et al. 2023](https://ui.adsabs.harvard.edu/abs/2023AJ....166...35B/abstract). 
+
+> **Notice**: As of version 1.4.5, `p-winds` does not include the MUSCLES data anymore to make the package leaner. You will need to download this data separately and set an environment variable containing the path to the data. Follow the installation instructions below.
+
 Background
 ----------
 `p-winds` is largely based on the theoretical framework of [Oklopčić & Hirata (2018)](https://ui.adsabs.harvard.edu/abs/2018ApJ...855L..11O/abstract) and [Lampón et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020A%26A...636A..13L/abstract), which themselves based their work on the stellar wind model of [Parker (1958)](https://ui.adsabs.harvard.edu/abs/1958ApJ...128..664P/abstract). A description about the implementation of tidal effects is discussed in [Vissapragada et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022AJ....164..234V/abstract).
@@ -43,6 +47,18 @@ install ``pytest`` first):
 ```angular2html
 pytest tests
 ```
+
+### Download MUSCLES spectra and set environment variable
+
+If you want to use the function `tools.generate_muscles_spectrum()`, you will need to download the MUSCLES data separately. For your convenience, you can download all spectra supported by `p-winds` in [this compressed file](https://stsci.box.com/s/f2u1gp6b4i7yqxmt1h70pwb9cz9rmup7).
+
+After unzipping the compressed file, move the fits files to a path of your choosing; in this example, I will use the path `/$HOME/Data/MUSCLES_spectra`. Next, set an environment variable called `$MUSCLES_DIR` that points to this path; this is done by running the following code in the command line:
+
+```angular2html
+export $MUSCLES_DIR="/$HOME/Data/MUSCLES_spectra"
+```
+
+If you do not want to set this environment variable every time you start a new session, you can add this line to your Record Columnar file (or `rc`) in your user folder. Usually, this file is `~/.bashrc` if you use a bash shell, or `~/.zshrc` if you use zshell. 
 
 Quickstart example
 ------------------

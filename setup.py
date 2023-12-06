@@ -15,7 +15,7 @@ if sys.argv[-1] == "publish":
 
 setup(
     name="p_winds",
-    version="1.4.4b",
+    version="1.4.5",
     author="Leonardo dos Santos",
     author_email="ldsantos@stsci.edu",
     packages=["p_winds"],
@@ -25,7 +25,7 @@ setup(
     install_requires=[line.strip() for line in
                       open('requirements.txt', 'r').readlines()],
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",

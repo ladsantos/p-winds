@@ -22,7 +22,7 @@ copyright = '2023, Leonardo A. dos Santos'
 author = 'Leonardo A. dos Santos'
 
 # The full version, including alpha/beta/rc tags
-release = 'v1.4.4b'
+release = 'v1.4.5'
 
 
 # -- General configuration ---------------------------------------------------
