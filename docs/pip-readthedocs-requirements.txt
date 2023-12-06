@@ -1,5 +1,6 @@
 numpy
 scipy>=1.5
+matplotlib
 astropy
 flatstar
 ipykernel
