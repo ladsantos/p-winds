@@ -45,7 +45,8 @@ in the future.
 .. _Wilson et al. (2021): https://ui.adsabs.harvard.edu/abs/2021ApJ...911...18W/abstract
 .. _Behr et al. (2023): https://ui.adsabs.harvard.edu/abs/2023AJ....166...35B/abstract
 
-    Notice: As of version 1.4.5, ``p-winds`` does not include the MUSCLES data anymore to make the package leaner. You will need to download this data separately and set an environment variable containing the path to the data. Follow the :ref:`installation guide <installation>`.
+.. warning::
+    As of version 1.4.5, ``p-winds`` does not include the MUSCLES data anymore to make the package leaner. You will need to download this data separately and set an environment variable containing the path to the data. Follow the :ref:`installation guide <installation>`.
 
 If you want to use the code without installing it locally, you can always run it
 on the cloud (see `this Google Colaboratory quickstart notebook
