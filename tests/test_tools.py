@@ -31,7 +31,7 @@ def test_make_spectrum_from_file(precision_threshold=1E-6):
 def test_generate_muscles_spectrum(precision_threshold=1E-6):
     spectrum = tools.generate_muscles_spectrum('gj436',
                                                semi_major_axis=2.0,
-                                               muscles_dir='../data/')
+                                               muscles_dir='data/')
     test_value = (spectrum['flux_lambda'][0] * spectrum['flux_unit']).to(
         u.W / u.m ** 2 / u.angstrom).value
     assert abs((test_value - 0.0170225) / test_value) < precision_threshold
