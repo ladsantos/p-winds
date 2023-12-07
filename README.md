@@ -84,3 +84,5 @@ You can contribute to the development of ``p-winds`` either by submitting issues
 Future features and known problems
 --------
 Check out the [open issues](https://github.com/ladsantos/p-winds/issues).
+
+In version 2.0 of `p-winds` we plan on implementing more a more self-consistent formulation that uses fluid dynamics (similar to [Allan et al. 2023](https://ui.adsabs.harvard.edu/abs/2024MNRAS.527.4657A/abstract)) instead of the Parker-wind approximation. This effort can be found in the `dev` branch.
