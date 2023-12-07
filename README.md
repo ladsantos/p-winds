@@ -22,7 +22,7 @@ Requirements
 
 `p-winds` requires the following packages:
 
-* `python` version 3.8 or later; the code has been tested and validated in versions 3.9 and 3.10.
+* `python` version 3.7 or later; the code has also been tested and validated in versions 3.8 and 3.9.
 * `numpy`
 * `scipy` version 1.5 or later
 * `astropy`
