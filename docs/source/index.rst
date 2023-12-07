@@ -10,9 +10,6 @@ p-winds: Documentation
 .. image:: https://travis-ci.com/ladsantos/p-winds.svg?branch=main
     :target: https://travis-ci.com/ladsantos/p-winds
     :alt: Build
-.. image:: https://coveralls.io/repos/github/ladsantos/p-winds/badge.svg?branch=main
-    :target: https://coveralls.io/github/ladsantos/p-winds?branch=main
-    :alt: Coverage
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4551621.svg
     :target: https://doi.org/10.5281/zenodo.4551621
     :alt: DOI

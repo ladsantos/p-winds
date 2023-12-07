@@ -11,11 +11,22 @@ A [paper describing `p-winds`](https://ui.adsabs.harvard.edu/abs/2022A%26A...659
 
 `p-winds` contains and distributes data products from the [MUSCLES and Mega-MUSCLES treasury surveys](https://archive.stsci.edu/prepds/muscles/). If you use the `tools.generate_muscles_spectrum()` function in your study, we highly encourage you to cite [France et al. 2016](http://adsabs.harvard.edu/abs/2016ApJ...820...89F), [Youngblood et al. 2016](http://adsabs.harvard.edu/abs/2016arXiv160401032Y), [Loyd et al. 2016](http://adsabs.harvard.edu/abs/2016arXiv160404776P), [Wilson et al. 2021](https://ui.adsabs.harvard.edu/abs/2021ApJ...911...18W/abstract) and [Behr et al. 2023](https://ui.adsabs.harvard.edu/abs/2023AJ....166...35B/abstract). 
 
-> **Notice**: As of version 1.4.5, `p-winds` does not include the MUSCLES data anymore to make the package leaner. You will need to download this data separately and set an environment variable containing the path to the data. Follow the installation instructions below.
+> **Warning**: As of version 1.4.5, `p-winds` does not include the MUSCLES data anymore to make the package leaner. You will need to download this data separately and set an environment variable containing the path to the data. Follow the installation instructions below.
 
 Background
 ----------
 `p-winds` is largely based on the theoretical framework of [Oklopčić & Hirata (2018)](https://ui.adsabs.harvard.edu/abs/2018ApJ...855L..11O/abstract) and [Lampón et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020A%26A...636A..13L/abstract), which themselves based their work on the stellar wind model of [Parker (1958)](https://ui.adsabs.harvard.edu/abs/1958ApJ...128..664P/abstract). A description about the implementation of tidal effects is discussed in [Vissapragada et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022AJ....164..234V/abstract).
+
+Requirements
+------------
+
+`p-winds` requires the following packages:
+
+* `python` version 3.8 or later; the code has been tested and validated in versions 3.9 and 3.10.
+* `numpy`
+* `scipy` version 1.5 or later
+* `astropy`
+* [`flatstar`](https://github.com/ladsantos/flatstar)
 
 Installation
 ------------
