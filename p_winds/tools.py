@@ -55,8 +55,8 @@ def generate_muscles_spectrum(host_star_name, semi_major_axis,
     """
     Construct a dictionary containing an input spectrum from a MUSCLES spectrum.
     MUSCLES reports spectra as observed at Earth, the code scales this to the
-    spectrum received at your planet provided a value for the scaled semi-major
-    axis a_rs.
+    spectrum received at your planet provided a value for the scaled
+    ``semi_major_axis``.
 
     Parameters
     ----------
