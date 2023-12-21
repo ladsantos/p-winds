@@ -129,7 +129,7 @@ def standard_spectrum(stellar_type, semi_major_axis,
                                              truncate_wavelength_grid,
                                              cutoff_thresh)
     except KeyError:
-        prefix = _PWINDS_REFSPEC_DIR
+        prefix = reference_spectra_dir
 
         # Check if prefix has a trailing forward slash
         if prefix[-1] == '/':
