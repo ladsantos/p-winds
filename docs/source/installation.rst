@@ -35,7 +35,7 @@ install ``pytest`` first):
 
    pytest tests
 
-Download MUSCLES spectra and set environment variable
+Download reference spectra and set environment variable
 -----------------------------------------------------
 
 If you want to use the function ``tools.generate_muscles_spectrum()`` or ``tools.standard_spectrum()``, you will need to download the reference data separately and set the environment variable ``$PWINDS_REFSPEC_DIR``. For your convenience, you can download all spectra supported by ``p-winds`` in `this compressed file
