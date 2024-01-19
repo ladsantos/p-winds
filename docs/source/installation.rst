@@ -45,6 +45,6 @@ After unzipping the compressed file, move the fits files to a path of your choos
 
 .. code-block:: bash
 
-   export $PWINDS_REFSPEC_DIR="/$HOME/Data/p-winds_reference_spectra"
+   export PWINDS_REFSPEC_DIR="$HOME/Data/p-winds_reference_spectra"
 
 If you do not want to set this environment variable every time you start a new session, you can add this line to your Record Columnar file (or ``rc``) in your user folder. Usually, this file is ``~/.bashrc`` if you use the bash shell, or ``~/.zshrc`` if you use the z-shell.

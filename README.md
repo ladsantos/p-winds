@@ -66,7 +66,7 @@ If you want to use the function `tools.generate_muscles_spectrum()` or `tools.st
 After unzipping the compressed file, move the fits files to a path of your choosing; in this example, I will use the path `/$HOME/Data/p-winds_reference_spectra`. Next, set an environment variable `$PWINDS_REFSPEC_DIR` that points to this path; this is done by running the following code in the command line:
 
 ```angular2html
-export $PWINDS_REFSPEC_DIR="/$HOME/Data/p-winds_reference_spectra"
+export PWINDS_REFSPEC_DIR="$HOME/Data/p-winds_reference_spectra"
 ```
 
 If you do not want to set this environment variable every time you start a new session, you can add this line to your Record Columnar file (or `rc`) in your user folder. Usually, this file is `~/.bashrc` if you use a bash shell, or `~/.zshrc` if you use zshell. 
