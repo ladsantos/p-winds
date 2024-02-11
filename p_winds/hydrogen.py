@@ -225,11 +225,10 @@ def recombination(temperature):
 # Fraction of ionized hydrogen vs. radius profile
 def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                  mass_loss_rate, planet_mass, mean_molecular_weight_0=1.0,
-                 star_mass = 1.0, semimajor_axis = 1.0,
-                 spectrum_at_planet=None, flux_euv=None, initial_f_ion=0.0,
-                 relax_solution=False, convergence=0.01, max_n_relax=10,
-                 exact_phi=False, return_mu=False, return_rates=False,
-                 **options_solve_ivp):
+                 star_mass=1.0, semimajor_axis=1.0, spectrum_at_planet=None,
+                 flux_euv=None, initial_f_ion=0.0, relax_solution=False,
+                 convergence=0.01, max_n_relax=10, exact_phi=False,
+                 return_mu=False, return_rates=False, **options_solve_ivp):
     """
     Calculate the fraction of ionized hydrogen in the upper atmosphere in
     function of the radius in unit of planetary radius.
@@ -350,7 +349,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     # from the host star, in unit of 1 / s.
     vs = parker.sound_speed(temperature, mean_molecular_weight_0)
     rs = parker.radius_sonic_point_tidal(planet_mass, vs, star_mass,
-                                            semimajor_axis)
+                                         semimajor_axis)
     if exact_phi and spectrum_at_planet is not None:
         rhos = parker.density_sonic_point(mass_loss_rate, rs, vs)
         _, rho_norm = parker.structure_tidal(
