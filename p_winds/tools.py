@@ -13,15 +13,15 @@ from warnings import warn
 from astropy.io import fits
 
 
-__all__ = ["nearest_index", "generate_muscles_spectrum",
+__all__ = ["nearest_index", "standard_spectrum", "generate_muscles_spectrum",
            "make_spectrum_from_file"]
 
-# Find $MUSCLES_DIR environment variable
+# Find $PWINDS_REFSPEC_DIR environment variable
 try:
-    _MUSCLES_DIR = os.environ["MUSCLES_DIR"]
+    _PWINDS_REFSPEC_DIR = os.environ["PWINDS_REFSPEC_DIR"]
 except KeyError:
-    _MUSCLES_DIR = None
-    warn("Environment variable $MUSCLES_DIR is not set.")
+    _PWINDS_REFSPEC_DIR = None
+    warn("Environment variable PWINDS_REFSPEC_DIR is not set.")
 
 
 def nearest_index(array, target_value):
@@ -48,15 +48,152 @@ def nearest_index(array, target_value):
     return index
 
 
+def standard_spectrum(stellar_type, semi_major_axis,
+                      reference_spectra_dir=_PWINDS_REFSPEC_DIR,
+                      stellar_radius=None, truncate_wavelength_grid=False,
+                      cutoff_thresh=13.6):
+    """
+    Construct a dictionary containing an input spectrum for a given spectral
+    type. The code scales this to the spectrum received at your planet provided
+    a value for the scaled ``semi_major_axis``.
+
+    Spectrum of iota Horologii was kindly provided by Jorge Sanz-Forcada (priv.
+    comm.). Spectrum of HD 108147 and HR 8799 were obtained from the
+    X-exoplanets database and combined with PHOENIX atmosphere models for the
+    NUV. Solar spectrum comes from the Whole Heliosphere Interval (WHI)
+    Reference Spectra obtained from the LASP Interactive Solar Irradiance
+    Datacenter. All other spectra are from the MUSCLES survey.
+
+    Parameters
+    ----------
+    stellar_type : ``str``
+        Define the stellar type. The available options are:
+        - ``'mid-A'`` (based on HR 8799)
+        - ``'early-F'`` (based on WASP-17)
+        - ``'late-F'`` (based on HD 108147)
+        - ``'early-G'`` (based on HD 149026)
+        - ``'solar'`` (based on the Sun)
+        - ``'young-sun'`` (based on iota Horologii)
+        - ``'late-G'`` (based on TOI-193)
+        - ``'active-K'`` (based on epsilon Eridanii)
+        - ``'early-K'`` (based on HD 97658)
+        - ``'late-k'`` (based on WASP-43)
+        - ``'active-M'`` (based on Proxima Centauri)
+        - ``'early-M'`` (based on GJ 436)
+        - ``'late-M'`` (based on TRAPPIST-1)
+
+    semi_major_axis : ``float``
+        Semi-major axis of the planet in units of stellar radii. The code first
+        converts the MUSCLES spectrum to what it would be at R_star;
+        ``semi_major_axis`` is needed to get the spectrum at the planet.
+
+    reference_spectra_dir : ``str``, optional
+        Path to the directory with the MUSCLES data. Default value is defined by
+        the environment variable ``$PWINDS_REFSPEC_DIR``.
+
+    stellar_radius : ``float``, optional
+        Stellar radius in unit of solar radii. Setting a value for this
+        parameter allows the spectrum to be scaled to an arbitrary stellar
+        radius instead of the radius of the MUSCLES star. If ``None``, then the
+        scaling is performed using the radius of the MUSCLES star. Default is
+        ``None``.
+
+    truncate_wavelength_grid : ``bool``, optional
+        If ``True``, will only return the spectrum with energy > 13.6 eV. This
+        may be useful for computational expediency. If False, returns the whole
+        spectrum. Default is ``False``.
+
+    cutoff_thresh : ``float``, optional
+        If ``truncate_wavelength_grid`` is set to ``True``, then the truncation
+        happens for energies whose value in eV is above this threshold, also in
+        eV. Default is ``13.6``.
+
+    Returns
+    -------
+    spectrum : ``dict``
+        Spectrum dictionary with entries for the wavelength and flux, and their
+        units.
+    """
+    muscles_match = {'early-A': None, 'late-A': None, 'early-F': 'wasp-17',
+                     'late-F': None, 'early-G': 'hd-149026',
+                     'late-G': 'toi-193', 'solar': None, 'young-Sun': None,
+                     'active-K': 'v-eps-eri', 'early-K': 'hd97658',
+                     'late-K': 'wasp-43', 'active-M': 'gj551',
+                     'early-M': 'gj436', 'late-M': 'trappist-1'}
+
+    try:
+        spectrum = generate_muscles_spectrum(muscles_match[stellar_type],
+                                             semi_major_axis,
+                                             reference_spectra_dir,
+                                             stellar_radius,
+                                             truncate_wavelength_grid,
+                                             cutoff_thresh)
+    except KeyError:
+        prefix = reference_spectra_dir
+
+        # Check if prefix has a trailing forward slash
+        if prefix[-1] == '/':
+            pass
+        # If not, add it
+        else:
+            prefix += '/'
+
+        if stellar_type == 'solar':
+            spectrum_array = np.loadtxt(
+                prefix + 'ref_solar_irradiance_whi-2008_ver2.dat', skiprows=142,
+                usecols=(0, 2))
+            i1 = nearest_index(spectrum_array[:, 0], 300)
+            wavelength = (spectrum_array[:i1, 0] * u.nm).to(u.angstrom).value
+            flux = (spectrum_array[:i1, 1] * u.W / u.m ** 2 / u.nm).to(
+                u.erg / u.s / u.cm ** 2 / u.angstrom).value
+            r_star_origin = 1.00 * u.solRad
+            dist = 1 * u.au
+        elif stellar_type == 'young-Sun':
+            spectrum_array = np.loadtxt(prefix + 'spec_hr810_1au.dat')
+            wavelength = spectrum_array[:, 0]
+            flux = spectrum_array[:, 1]
+            r_star_origin = 1.00 * u.solRad  # Assumption
+            dist = 1 * u.au
+        elif stellar_type == 'mid-A':
+            spectrum_array = np.loadtxt(prefix + 'spec_hr8799_1au.dat')
+            wavelength = spectrum_array[:, 0]
+            flux = spectrum_array[:, 1]
+            r_star_origin = 1.44 * u.solRad  # From Gaia DR2 for HR 8799
+            dist = 1 * u.au
+        elif stellar_type == 'late-F':
+            spectrum_array = np.loadtxt(prefix + 'spec_hd108147_1au.dat')
+            wavelength = spectrum_array[:, 0]
+            flux = spectrum_array[:, 1]
+            r_star_origin = 1.23 * u.solRad  # From Gaia DR2 for HD 108147
+            dist = 1 * u.au
+        else:
+            raise ValueError('Specified stellar type not recognized')
+
+        if stellar_radius is None:
+            r_star = r_star_origin
+        else:
+            r_star = stellar_radius * u.solRad
+
+        conv = float((dist / r_star) ** 2)  # conversion to
+        # spectrum at R_star
+        spectrum = {'wavelength': wavelength,
+                    'flux_lambda': flux * conv * semi_major_axis ** (-2),
+                    'wavelength_unit': u.AA,
+                    'flux_unit': u.erg / u.s / u.cm / u.cm / u.AA}
+
+    return spectrum
+
+
 def generate_muscles_spectrum(host_star_name, semi_major_axis,
-                              muscles_dir=_MUSCLES_DIR, stellar_radius=None,
+                              reference_spectra_dir=_PWINDS_REFSPEC_DIR,
+                              stellar_radius=None,
                               truncate_wavelength_grid=False,
                               cutoff_thresh=13.6):
     """
     Construct a dictionary containing an input spectrum from a MUSCLES spectrum.
     MUSCLES reports spectra as observed at Earth, the code scales this to the
     spectrum received at your planet provided a value for the scaled
-    ``semi_major_axis``.
+    ``semi-major-axis``.
 
     Parameters
     ----------
@@ -73,9 +210,9 @@ def generate_muscles_spectrum(host_star_name, semi_major_axis,
         converts the MUSCLES spectrum to what it would be at R_star;
         ``semi_major_axis`` is needed to get the spectrum at the planet.
 
-    muscles_dir : ``str``, optional
-        Path to the directory with the MUSCLES data. Default value is defined by
-        the environment variable ``$MUSCLES_DIR``.
+    reference_spectra_dir : ``str``, optional
+        Path to the directory with the reference spectra. Default value is
+        defined by the environment variable ``$PWINDS_REFSPEC_DIR``.
 
     stellar_radius : ``float``, optional
         Stellar radius in unit of solar radii. Setting a value for this
@@ -164,15 +301,15 @@ def generate_muscles_spectrum(host_star_name, semi_major_axis,
         rstar = stellar_radius * u.solRad
     conv = float((dist / rstar) ** 2)  # conversion to spectrum at R_star
 
-    # First check if MUSCLES_DIR has a trailing forward slash
-    if muscles_dir[-1] == '/':
+    # First check if reference_spectra_dir has a trailing forward slash
+    if reference_spectra_dir[-1] == '/':
         pass
     # If not, add it
     else:
-        muscles_dir += '/'
+        reference_spectra_dir += '/'
 
     # Read the MUSCLES spectrum
-    spec = fits.getdata(muscles_dir +
+    spec = fits.getdata(reference_spectra_dir +
                         f'hlsp_muscles_multi_multi_{host_star_name}_broadband_'
                         f'{vnumber}_adapt-const-res-sed.fits',
                         1)

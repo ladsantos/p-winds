@@ -122,13 +122,13 @@ def radius_sonic_point(planet_mass, sound_speed_0):
 
     Returns
     -------
-    radius_sonic_point : ``float``
+    r_sonic_point : ``float``
         Radius of the sonic point in unit of Jupiter radius.
     """
     grav = 1772.0378503888546  # Gravitational constant in unit of
     # jupiterRad * km ** 2 / s ** 2 / jupiterMass
-    radius_sonic_point = grav * planet_mass / 2 / sound_speed_0 ** 2
-    return radius_sonic_point
+    r_sonic_point = grav * planet_mass / 2 / sound_speed_0 ** 2
+    return r_sonic_point
 
 
 # Density at the sonic point
@@ -195,9 +195,9 @@ def structure(r, v_guess=None):
 
     # The transcendental equation above has many solutions. In order to converge
     # to the physical solution for a planetary wind, we need to provide
-    # different first guesses depending if the radius at which we are evaluating
-    # the velocity is either above or below the sonic radius. The user has the
-    # option of passing a `v_guess`.
+    # different first guesses depending on the radius at which we are evaluating
+    # the velocity being either above or below the sonic radius. The user has
+    # the option of passing a `v_guess`.
 
     if v_guess is not None:
         velocity_r = so.newton(_eq_to_solve, x0=v_guess, args=(r,))
@@ -222,6 +222,7 @@ def structure(r, v_guess=None):
 
     return velocity_r, density_r
 
+
 def radius_sonic_point_tidal(planet_mass, sound_speed_0, star_mass,
                              semi_major_axis):
     """
@@ -244,7 +245,7 @@ def radius_sonic_point_tidal(planet_mass, sound_speed_0, star_mass,
 
     Returns
     -------
-    radius_sonic_point : ``float``
+    r_sonic_point : ``float``
         Radius of the sonic point in units of Jupiter radius.
     """
     grav = 1772.0378503888546  # Gravitational constant in unit of
@@ -256,16 +257,18 @@ def radius_sonic_point_tidal(planet_mass, sound_speed_0, star_mass,
     semi_major_axis = 2092.51203911 * semi_major_axis
 
     # Calculate the radius at the sonic point
-    v_K = np.sqrt(grav * star_mass / semi_major_axis)
+    v_k = np.sqrt(grav * star_mass / semi_major_axis)
     m1 = np.sqrt(planet_mass ** 2 / 4 + 8 * star_mass ** 2 / 81 *
-                 (sound_speed_0 / v_K) ** 6)
-    radius_sonic_point = \
-        semi_major_axis * (((m1 + planet_mass / 2)/(3 * star_mass)) ** (1 / 3) \
-        - ((m1 - planet_mass / 2) / (3 * star_mass)) ** (1 / 3))
-    return radius_sonic_point
+                 (sound_speed_0 / v_k) ** 6)
+    r_sonic_point = \
+        semi_major_axis * (((m1 + planet_mass / 2)/(3 * star_mass)) ** (1 / 3) -
+                           ((m1 - planet_mass / 2) / (3 * star_mass)) **
+                           (1 / 3))
+    return r_sonic_point
+
 
 # Velocity and density in function of radius at the sonic point
-def structure_tidal(r, sound_speed_0, radius_sonic_point, planet_mass,
+def structure_tidal(r, sound_speed_0, r_sonic_point, planet_mass,
                     star_mass, semi_major_axis):
     """
     Calculate the velocity and density of the atmosphere in function of radius
@@ -282,7 +285,7 @@ def structure_tidal(r, sound_speed_0, radius_sonic_point, planet_mass,
     sound_speed_0 : ``float``
         Constant speed of sound in unit of km / s.
 
-    radius_sonic_point : ``float``
+    r_sonic_point : ``float``
         Sonic radius in unit of Jupiter radius. Note: ensure that this is
         computed with ``radius_sonic_point_tidal``.
 
@@ -308,18 +311,19 @@ def structure_tidal(r, sound_speed_0, radius_sonic_point, planet_mass,
 
     # First make all quantities cgs, then work with values only
     sound_speed_0 = 100000. * sound_speed_0
-    radius_sonic_point = 7.1492e+09 * radius_sonic_point
+    r_sonic_point = 7.1492e+09 * r_sonic_point
     planet_mass = 1.8981246e+30 * planet_mass
     star_mass = 1.98840987e+33 * star_mass
     semi_major_axis = 1.49597871e+13 * semi_major_axis
     grav = c.G.to(u.cm ** 3 / u.g / u.s ** 2).value
 
     # Equation for the velocity profile
-    def _eq_to_solve(v, r, c_s, r_s, M_p, M_star, a):
-        eq = v * np.exp(-v ** 2 / 2) - (1 / r) ** 2 * np.exp(
-            - grav * M_p / (c_s ** 2 * (r * r_s)) + grav * M_p / (c_s ** 2 * r_s) \
-            - 3 * grav * M_star * (r * r_s) ** 2 / (2 * a ** 3 * c_s ** 2) \
-            + 3 * grav * M_star * r_s ** 2 / (2 * a ** 3 * c_s ** 2) - 0.5
+    def _eq_to_solve(v, rk, c_s, r_s, m_p, m_star, a):
+        eq = v * np.exp(-v ** 2 / 2) - (1 / rk) ** 2 * np.exp(
+            - grav * m_p / (c_s ** 2 * (rk * r_s)) + grav * m_p /
+            (c_s ** 2 * r_s)
+            - 3 * grav * m_star * (rk * r_s) ** 2 / (2 * a ** 3 * c_s ** 2)
+            + 3 * grav * m_star * r_s ** 2 / (2 * a ** 3 * c_s ** 2) - 0.5
         )
         return eq
 
@@ -330,25 +334,26 @@ def structure_tidal(r, sound_speed_0, radius_sonic_point, planet_mass,
 
         # Compute velocity profile
         velocity_r = so.newton(_eq_to_solve, x0=v_init,
-            args=(r, sound_speed_0, radius_sonic_point, planet_mass,
-                  star_mass, semi_major_axis), maxiter=1000)
+                               args=(r, sound_speed_0, r_sonic_point,
+                                     planet_mass, star_mass, semi_major_axis),
+                               maxiter=1000)
     elif r <= 1.0:
         velocity_r = so.newton(_eq_to_solve, x0=1E-1,
-                               args=(r, sound_speed_0, radius_sonic_point,
+                               args=(r, sound_speed_0, r_sonic_point,
                                      planet_mass, star_mass, semi_major_axis))
     else:
         velocity_r = so.newton(_eq_to_solve, x0=2.0,
-                               args=(r, sound_speed_0, radius_sonic_point,
+                               args=(r, sound_speed_0, r_sonic_point,
                                      planet_mass, star_mass, semi_major_axis))
 
     # Some useful definitions to make the code cleaner
-    k1 = sound_speed_0 ** 2 * (r * radius_sonic_point)
-    k2 = sound_speed_0 ** 2 * radius_sonic_point
+    k1 = sound_speed_0 ** 2 * (r * r_sonic_point)
+    k2 = sound_speed_0 ** 2 * r_sonic_point
     k3 = 2 * semi_major_axis ** 3 * sound_speed_0 ** 2
-    density_r = np.exp(grav * planet_mass / k1 - grav * planet_mass / k2 \
-        + 3 * grav * star_mass * (r * radius_sonic_point) ** 2 / k3 \
-        - 3 * grav * star_mass * radius_sonic_point ** 2 / k3 + 0.5 - \
-        np.array(velocity_r) ** 2 / 2)
+    density_r = np.exp(grav * planet_mass / k1 - grav * planet_mass / k2 +
+                       3 * grav * star_mass * (r * r_sonic_point) ** 2 / k3 -
+                       3 * grav * star_mass * r_sonic_point ** 2 / k3 + 0.5 -
+                       np.array(velocity_r) ** 2 / 2)
 
     return velocity_r, density_r
 

@@ -33,6 +33,11 @@ def radiative_processes(spectrum_at_planet, combined_ionization=False):
         least up to the wavelength corresponding to the energy to ionize
         helium (4.8 eV, or 2593 Angstrom).
 
+    combined_ionization : ``bool``
+        If ``combined_ionization`` is ``False``, the code returns the rates for
+        singlet and triplet individually. Otherwise, they are combined. Default
+        is ``False``.
+
     Returns
     -------
     phi_1 : ``float``
@@ -163,11 +168,11 @@ def radiative_processes(spectrum_at_planet, combined_ionization=False):
         a_lambda_h = microphysics.hydrogen_cross_section(
             wavelength=wavelength_cut_1)
         a_h = abs(simps(flux_lambda_cut_1 * a_lambda_h, wavelength_cut_1) /
-                    simps(flux_lambda_cut_1, wavelength_cut_1))
+                  simps(flux_lambda_cut_1, wavelength_cut_1))
 
         # Calculate the photoionization rates
         phi = abs(simps(flux_lambda_cut_1 * a_lambda / energy_cut_1,
-                          wavelength_cut_1))
+                        wavelength_cut_1))
 
         return phi, a_he, a_h
 
@@ -231,7 +236,8 @@ def radiative_processes_mono(flux_euv, flux_fuv,
         absorbed by helium triplet in unit of cm ** 2.
     """
     # Average cross-section to ionize helium singlet
-    a_1 = microphysics.helium_singlet_cross_section(average_euv_photon_wavelength)
+    a_1 = microphysics.helium_singlet_cross_section(
+        average_euv_photon_wavelength)
 
     # The photoionization cross-section of He triplet
     wavelength_3, a_lambda_3 = microphysics.helium_triplet_cross_section()

@@ -20,7 +20,7 @@ filterwarnings(action='ignore', category=RuntimeWarning)
 __all__ = ["hydrogen_cross_section", "helium_total_cross_section",
            "helium_singlet_cross_section", "helium_triplet_cross_section",
            "he_collisional_strength", "general_cross_section",
-           "sigma_properties_v1996", "collisional_excitation"]
+           "sigma_properties_v1996"]
 
 
 # Photoionization cross-section of hydrogen

@@ -33,7 +33,7 @@ wavelength-dependent transit depths in the metastable helium triplet at 1.083
 microns, and some metal lines in the UV (such as O I and C II). More species will be implemented
 in the future.
 
-``p-winds`` contains and distributes data products from the `MUSCLES and Mega-MUSCLES treasury surveys`_. If you use the ``tools.generate_muscles_spectrum()`` function in your study, we highly encourage you to cite `France et al. (2016)`_, `Youngblood et al. (2016)`_, `Loyd et al. (2016)`_, `Wilson et al. (2021)`_ and `Behr et al. (2023)`_.
+``p-winds`` contains and distributes data products from the `MUSCLES and Mega-MUSCLES treasury surveys`_. If you use the ``tools.generate_muscles_spectrum()`` or ``tools.standard_spectrum()`` functions in your study, we highly encourage you to cite `France et al. (2016)`_, `Youngblood et al. (2016)`_, `Loyd et al. (2016)`_, `Wilson et al. (2021)`_ and `Behr et al. (2023)`_.
 
 .. _MUSCLES and Mega-MUSCLES treasury surveys: https://archive.stsci.edu/prepds/muscles/
 .. _France et al. (2016): http://adsabs.harvard.edu/abs/2016ApJ...820...89F
