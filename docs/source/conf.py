@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath('../../p_winds'))
 # -- Project information -----------------------------------------------------
 
 project = 'p-winds'
-copyright = '2023, Leonardo A. dos Santos'
+copyright = '2024, Leonardo A. dos Santos'
 author = 'Leonardo A. dos Santos'
 
 # The full version, including alpha/beta/rc tags
