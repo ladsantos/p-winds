@@ -14,7 +14,15 @@ module only works with the custom version.
 import os
 import subprocess
 import glob
+
+import numpy as np
+
+from scipy.integrate import trapezoid
 from warnings import warn
+
+
+__all__ = ["ates_model", "run_ates", "make_ates_input_file"]
+
 
 # Find $ATES_DIR environment variable
 try:
@@ -131,5 +139,75 @@ def run_ates():
     subprocess.run(execute_str)
 
 
-def make_input_file():
-    pass
+def make_ates_input_file(planet_radius, planet_mass,
+                         planet_equilibrium_temperature, semi_major_axis,
+                         stellar_mass, stellar_spectrum, he_h_ratio=0.1111,
+                         escape_radius=2.0, log_base_density=14.0,
+                         momentum_threshold=0.05):
+
+    # Open input file and clean contents if file exists
+    input_file = _ATES_DIR + "/input.inp"
+    open(input_file, 'w').close()
+
+    # X-rays wavelength range is 10-100 Angstrom
+    xray_lim = [10, 100]
+    # Extreme-UV wavelength range is 100-921 Angstrom
+    euv_lim = [100, 921]
+
+    # Read stellar spectrum and calculate luminosity in the X-rays and EUV parts
+    au_to_cm = 1.49597871E+13
+    flux_to_lum = 4 * np.pi * (semi_major_axis * au_to_cm) ** 2
+    wavelength = stellar_spectrum['wavelength']  # Angstrom
+    flux_density = stellar_spectrum['flux_lambda']  # erg / s / cm ** 2 / AA
+
+    # Define the ranges in index space
+    wavelength_xray = wavelength[
+        np.bitwise_and(wavelength > xray_lim[0], wavelength < xray_lim[1])
+    ]
+    flux_density_xray = flux_density[
+        np.bitwise_and(wavelength > xray_lim[0], wavelength < xray_lim[1])
+    ]
+    wavelength_euv = wavelength[
+        np.bitwise_and(wavelength > euv_lim[0], wavelength < euv_lim[1])
+    ]
+    flux_density_euv = flux_density[
+        np.bitwise_and(wavelength > euv_lim[0], wavelength < euv_lim[1])
+    ]
+
+    # Calculate luminosities
+    lum_xray = trapezoid(flux_density_xray, wavelength_xray) * flux_to_lum
+    lum_euv = trapezoid(flux_density_euv, wavelength_euv) * flux_to_lum
+    log_lx = np.log10(lum_xray)
+    log_leuv = np.log10(lum_euv)
+
+    input_strings = [
+        "Planet name: Undefined",
+        "\nLog10 lower boundary number density [cm^-3]: " + str(
+            log_base_density),
+        "\nPlanet radius [R_J]: " + str(planet_radius),
+        "\nPlanet mass [M_J]: " + str(planet_mass),
+        "\nEquilibrium temperature [K]: " + str(planet_equilibrium_temperature),
+        "\nOrbital distance [AU]: " + str(semi_major_axis),
+        "\nEscape radius [R_p]: " + str(escape_radius),
+        "\nHe/H number ratio: " + str(he_h_ratio),
+        "\n2D approximate method: Rate/2 + Mdot/2",
+        "\nParent star mass [M_sun]: " + str(stellar_mass),
+        "\nSpectrum type: Load from file..",
+        "\nSpectrum file: user-defined p-winds spectrum",
+        "\nUse only EUV? False",
+        "\n[E_low,E_mid,E_high] = [ 13.60 - 123.98 - 1.24e3 ]",
+        "\nLog10 of X-ray luminosity [erg/s]: " + str(log_lx),
+        "\nLog10 of EUV luminosity [erg/s]: " + str(log_leuv),
+        "\nGrid type: Mixed",
+        "\nNumerical flux: HLLC",
+        "\nReconstruction scheme: PLM",
+        "\nRelative momentum threshold: " + str(momentum_threshold),
+        "\nInclude He23S? False",
+        "\nLoad IC? False",
+        "\nDo only PP: False",
+        "\nForce start: False"
+    ]
+
+    with open(input_file, 'a') as f:
+        for in_str in input_strings:
+            f.write(in_str)
