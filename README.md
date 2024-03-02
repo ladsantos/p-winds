@@ -32,7 +32,7 @@ Requirements
 
 If you wish to use the ATES wrapper in the `fluid` module, further requirements are necessary:
 * A Fortran compiler: either `gfortran` or `ifort` needs to be available in your PATH
-* The **custom version** of ATES forked from the [original](https://github.com/AndreaCaldiroli/ATES-Code) and available [here](https://github.com/ladsantos/ATES-Code). The wrapper in the `fluid` module will not work with the original ATES code, only with the custom version.
+* The **custom version** of ATES forked from the [original](https://github.com/AndreaCaldiroli/ATES-Code) and available [here](https://github.com/ladsantos/ATES-Code/releases). The wrapper in the `fluid` module will not work with the original ATES code, only with the custom version.
 
 Installation
 ------------
@@ -67,7 +67,7 @@ pytest tests
 
 ### Download the custom ATES code and set environment variable
 
-If you wish to use the ATES wrapper available in the `fluid` module, you will need to download a custom ATES code [here](https://github.com/ladsantos/ATES-Code). The wrapper is not compatible with the original ATES code.
+If you wish to use the ATES wrapper available in the `fluid` module, you will need to download a custom ATES code [here](https://github.com/ladsantos/ATES-Code/releases). The wrapper is not compatible with the original ATES code.
 
 After downloading it, you will need to set the environment variable `$ATES_DIR` to the location of the ATES code in your computer. For this example, I will use `$HOME/ATES-Code`. This is done by running the following code in the command line:
 
