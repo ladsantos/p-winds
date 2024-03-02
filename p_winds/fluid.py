@@ -14,6 +14,7 @@ module only works with the custom version.
 import os
 import subprocess
 import glob
+import shutil
 
 import numpy as np
 
@@ -31,16 +32,136 @@ except KeyError:
     _ATES_DIR = None
     warn("Environment variable ATES_DIR is not set.")
 
+# Check if either gfortran or ifort are available
+check_gfortran = shutil.which("gfortran")
+check_ifort = shutil.which("ifort")
+if check_gfortran is None and check_ifort is None:
+    warn("No Fortran compiler found in your PATH.")
+else:
+    pass
+
 
 # General warning
-warn("This code is in development and not ready for production yet.")
+warn("The `fluid` module is in beta status.")
 
 
 # Run the ATES code using a Python wrapper
 def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
-               semi_major_axis, stellar_mass, stellar_spectrum,
+               semi_major_axis, stellar_mass, spectrum_at_planet,
                he_h_ratio=0.1111, escape_radius=2.0, log_base_density=14.0,
-               momentum_threshold=0.05, compiler='gfortran'):
+               momentum_threshold=0.05, compiler='gfortran', use_euv_only=False,
+               grid_type='Mixed', twod_approx_method='Rate/2 + Mdot/2',
+               numerical_flux="HLLC", reconstruction="PLM", load_ic=False,
+               post_processing_only=False, force_start=False
+               ):
+    """
+    Calculates the one-dimensional hydrodynamic escape model for a planet with
+    given parameters using the ATES code.
+
+    Parameters
+    ----------
+    planet_radius : ``float``
+        Planetary radius in unit of Jupiter radius.
+
+    planet_mass : ``float``
+        Planetary mass in unit of Jupiter masses.
+
+    planet_equilibrium_temperature : ``float``
+        Planetary equilibrium temperature in Kelvin.
+
+    semi_major_axis : ``float``
+        Semi-major axis in unit of astronomical unit.
+
+    stellar_mass : ``float``
+        Stellar host mass in unit of solar masses.
+
+    spectrum_at_planet : ``dict``
+        Spectrum of the host star arriving at the planet covering fluxes at
+        least up to the wavelength corresponding to the energy to populate the
+        helium states (4.8 eV, or 2593 Angstrom). Can be generated using
+        ``tools.make_spectrum_dict``.
+
+    he_h_ratio : ``float``, optional
+        Helium to hydrogen number ratio. Default value is 0.1111 (solar
+        composition of 10 / 90).
+
+    escape_radius : ``float``, optional
+        Escape radius for constant momentum in unit of planetary radii. Default
+        value is 2.0.
+
+    log_base_density : ``float``, optional
+        Log mass density at the base of the outflow. Default value is 14.0.
+
+    momentum_threshold : ``float``, optional
+        Relative momentum change threshold to consider the simulation as
+        converged. Default value is 0.05.
+
+    compiler : ``str``, optional
+        Fortran compiler to be used. The available options are ``'gfortran'``
+        and ``'ifort'``. Default is ``'gfortran'``.
+
+    use_euv_only : ``bool``, optional
+        Use only EUV for the simulation. Default is ``False``.
+
+    grid_type : ``str``, optional
+        Defines the type of the radial grid. The available options are
+        ``'Uniform'`` (suitable for problems that do not involve large
+        gradients), ``'Stretched'`` (suitable for solutions with moderately high
+        gradients close to the planet surface) or ``'Mixed'`` (suitable for
+        large gradients). Default value is ``'Mixed'``.
+
+    twod_approx_method : ``str``, optional
+        Approximation to be used to calculate 2D effects in the mass-loss rate.
+        The available options are ``'Mdot/4'``, ``'Rate/2 + Mdot/2'``,
+        ``'Rate/4 + Mdot'`` or ``'alpha = n'`` where ``n`` is a user-defined
+        number. See Caldiroli+2021 (A&A 655) for a detailed discussion about
+        which option better fits your needs. The default value is
+        ``'Rate/2 + Mdot/2'``.
+
+    numerical_flux : ``str``, optional
+        Defines which Riemann solver to use in the calculation of cell fluxes.
+        The available options are ``'HLLC'``, ``'ROE'`` or ``'LLF'``. See
+        Caldiroli+2021 (A&A 655) for a detailed discussion about which option
+        better fits your needs. Default value is ``'HLLC'``.
+
+    reconstruction : ``str``, optional
+        Defines the reconstruction scheme of the left and right states at a
+        given interface; determines the overall spatial accuracy of the
+        numerical scheme. The available options are ``'PLM'`` or ``'WENO3'``.
+        See Caldiroli+2021 (A&A 655) for a detailed discussion about which
+        option better fits your needs. Default value is ``'PLM'``.
+
+    load_ic : ``bool``, optional
+        Defines whether to load an initial condition from a previous simulation
+        Default is ``False``.
+
+    post_processing_only : ``bool``, optional
+        Defines whether to calculate a simulation that only does post-processing
+        in a previous simulation. Default is ``False``.
+
+    force_start : ``bool``, optional
+        Defines whether to force the start of a simulation. Default is
+        ``False``.
+
+    Returns
+    -------
+    results : ``dict``
+        Dictionary containing the results of the ATES simulation. Here is a
+        short description of the dict keys:
+
+        * `r`: Radial distance in Planetary radii
+        * `density`: Mass density in unit of proton mass
+        * `velocity`: Velocity in unit of scale velocity
+        * `pressure`: Pressure in units of cgs
+        * `temperature`: Temperature in unit of K
+        * `heating_rate`: Heating rate in units of cgs
+        * `cooling_rate`: Cooling rate in units of cgs
+        * `n_h_i`: Neutral H number density
+        * `n_h_ii`: Ionized H number density
+        * `n_he_i`: Neutral He number density
+        * `n_he_ii`: Singly-ionized He number density
+        * `n_he_iii`: Doubly-ionized He number density
+    """
 
     # Open input file and clean contents if file exists
     input_file = "input.inp"
@@ -48,14 +169,14 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
 
     # X-rays wavelength range is 10-100 Angstrom
     xray_lim = [10, 100]
-    # Extreme-UV wavelength range is 100-921 Angstrom
-    euv_lim = [100, 921]
+    # Extreme-UV wavelength range is 100-912 Angstrom
+    euv_lim = [100, 912]
 
     # Read stellar spectrum and calculate luminosity in the X-rays and EUV parts
     au_to_cm = 1.49597871E+13
     flux_to_lum = 4 * np.pi * (semi_major_axis * au_to_cm) ** 2
-    wavelength = stellar_spectrum['wavelength']  # Angstrom
-    flux_density = stellar_spectrum['flux_lambda']  # erg / s / cm ** 2 / AA
+    wavelength = spectrum_at_planet['wavelength']  # Angstrom
+    flux_density = spectrum_at_planet['flux_lambda']  # erg / s / cm ** 2 / AA
 
     # Define the ranges in index space
     wavelength_xray = wavelength[
@@ -77,6 +198,10 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
     log_lx = np.log10(lum_xray)
     log_leuv = np.log10(lum_euv)
 
+    # Save spectrum to temporary file (necessary for ATES)
+    array_to_save = np.array([wavelength, flux_density]).T
+    np.savetxt('spectrum_temp.txt', array_to_save)
+
     input_strings = [
         "Planet name: Undefined",
         "\nLog10 lower boundary number density [cm^-3]: " + str(
@@ -87,22 +212,22 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
         "\nOrbital distance [AU]: " + str(semi_major_axis),
         "\nEscape radius [R_p]: " + str(escape_radius),
         "\nHe/H number ratio: " + str(he_h_ratio),
-        "\n2D approximate method: Rate/2 + Mdot/2",
+        "\n2D approximate method: " + twod_approx_method,
         "\nParent star mass [M_sun]: " + str(stellar_mass),
         "\nSpectrum type: Load from file..",
-        "\nSpectrum file: user-defined p-winds spectrum",
-        "\nUse only EUV? False",
+        "\nSpectrum file: spectrum_temp.txt",
+        "\nUse only EUV? " + str(use_euv_only),
         "\n[E_low,E_mid,E_high] = [ 13.60 - 123.98 - 1.24e3 ]",
         "\nLog10 of X-ray luminosity [erg/s]: " + str(log_lx),
         "\nLog10 of EUV luminosity [erg/s]: " + str(log_leuv),
-        "\nGrid type: Mixed",
-        "\nNumerical flux: HLLC",
-        "\nReconstruction scheme: PLM",
+        "\nGrid type: " + grid_type,
+        "\nNumerical flux: " + numerical_flux,
+        "\nReconstruction scheme: " + reconstruction,
         "\nRelative momentum threshold: " + str(momentum_threshold),
         "\nInclude He23S? False",
-        "\nLoad IC? False",
-        "\nDo only PP: False",
-        "\nForce start: False"
+        "\nLoad IC? " + str(load_ic),
+        "\nDo only PP: " + str(post_processing_only),
+        "\nForce start: " + str(force_start)
     ]
 
     with open(input_file, 'a') as f:
@@ -110,8 +235,19 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
             f.write(in_str)
     f.close()
 
+    # Load initial condition if necessary
+    if load_ic is True:
+        shutil.copyfile('output/Hydro_ioniz.txt',
+                        'output/Hydro_ioniz_IC.txt')
+        shutil.copyfile('output/Ion_species.txt',
+                        'output/Ion_species_IC.txt')
+
     # Compile and execute ATES
     run_ates(compiler)
+
+    # Remove the temporary files
+    # os.remove(input_file)
+    # os.remove('spectrum_temp.txt')
 
     # Read output files
     output_data_0 = np.loadtxt(_ATES_DIR + "/output/Hydro_ioniz.txt")
@@ -163,7 +299,7 @@ def run_ates(compiler='gfortran'):
     DIR_RAD = SRC_DIR + "modules/radiation/"
     DIR_STAT = SRC_DIR + "modules/states/"
     DIR_TIME = SRC_DIR + "modules/time_step/"
-    output_dir = ATES_DIR + "output/"
+    output_dir = "output/"
 
     # Create some directories if necessary
     if os.path.exists(output_dir) is not True:
@@ -263,7 +399,7 @@ def run_ates(compiler='gfortran'):
     subprocess.run(compile_str)
 
     # And now run ATES
-    print('Running the main loop.')
+    print('ATES startup.')
     execute_str = ATES_DIR + "ATES.x"
     subprocess.run(execute_str)
     print('ATES shutdown.')
