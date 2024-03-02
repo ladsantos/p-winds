@@ -2,7 +2,7 @@ Installation
 ============
 
 ``p-winds`` requires the packages ``numpy``, ``scipy``, ``astropy``, and
-``flatstar`` for running its core calculations.
+``flatstar`` for running its core calculations. For hydrodyamic simulations with the ATES wrapper, ``p-winds`` also requires a Fortran compiler (either ``gfortran`` or ``ifort``) and a custom version of the ATES code available for download `here <https://github.com/ladsantos/ATES-Code>`_.
 
 Option 1: Using ``pip`` (stable version)
 --------------------------------------------------------------
@@ -34,6 +34,19 @@ install ``pytest`` first):
 .. code-block:: bash
 
    pytest tests
+
+Download the custom ATES code and set environment variable
+----------------------------------------------------------
+
+If you wish to use the ATES wrapper available in the ``fluid`` module, you will need to download a custom ATES code `here <https://github.com/ladsantos/ATES-Code>`_. The wrapper is not compatible with the original ATES code.
+
+After downloading it, you will need to set the environment variable ``$ATES_DIR`` to the location of the ATES code in your computer. For this example, I will use ``$HOME/ATES-Code``. This is done by running the following code in the command line:
+
+.. code-block:: bash
+
+    export ATES_DIR="$HOME/ATES-Code"
+
+If you do not want to set this environment variable every time you start a new session, you can add this line to your Record Columnar file (or ``rc``) in your user folder. Usually, this file is ``~/.bashrc`` if you use a bash shell, or ``~/.zshrc`` if you use zshell.
 
 Download reference spectra and set environment variable
 -----------------------------------------------------
