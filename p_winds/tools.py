@@ -68,6 +68,7 @@ def standard_spectrum(stellar_type, semi_major_axis,
     ----------
     stellar_type : ``str``
         Define the stellar type. The available options are:
+
         - ``'mid-A'`` (based on HR 8799)
         - ``'early-F'`` (based on WASP-17)
         - ``'late-F'`` (based on HD 108147)
