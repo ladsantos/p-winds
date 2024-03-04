@@ -14,17 +14,27 @@ p-winds: Documentation
     :target: https://doi.org/10.5281/zenodo.4551621
     :alt: DOI
 
-``p-winds`` is an open-source Python implementation of Parker wind models for
-planetary atmospheres, more specifically their upper atmosphere or corona. A paper
-describing ``p-winds`` was published in `Dos Santos et al. (2022)`_. The
-code is largely based on the theoretical framework of `Oklopčić & Hirata
-(2018)`_ and `Lampón et al. (2020)`_, which themselves based their work on the
-stellar wind model of `Parker (1958)`_.
+Python implementation of Parker wind models for planetary atmospheres. ``p-winds`` produces simplified, 1-D models of the upper atmosphere of a planet, and perform radiative transfer to calculate observable spectral signatures.
 
-.. _Dos Santos et al. (2022): https://ui.adsabs.harvard.edu/abs/2022A%26A...659A..62D/abstract
+The scalable implementation of 1D isothermal models allows for atmospheric retrievals to calculate atmospheric escape rates and temperatures. In addition, the modular implementation allows for a smooth plugging-in of more complex descriptions to forward model their corresponding spectral signatures (e.g., self-consistent or 3D models).
+
+As of version 2.0, ``p-winds`` also includes a Python wrapper for the self-consistent, hydrodynamic escape simulation code `ATES <https://github.com/AndreaCaldiroli/ATES-Code>`_, originally developed by `Andrea Caldiroli <https://github.com/AndreaCaldiroli>`_. See instructions on how to use it below and in the API documentation of the ``fluid`` module.
+
+Scientific background
+---------------------
+
+The isothermal models of ``p-winds`` are largely based on the theoretical framework of `Oklopčić & Hirata
+(2018)`_ and `Lampón et al. (2020)`_, which themselves based their work on the stellar wind model of `Parker (1958)`_. A description about the implementation of tidal effects is discussed in `Vissapragada et al. (2022)`_.
+
 .. _Oklopčić & Hirata (2018): https://ui.adsabs.harvard.edu/abs/2018ApJ...855L..11O/abstract
 .. _Lampón et al. (2020): https://ui.adsabs.harvard.edu/abs/2020A%26A...636A..13L/abstract
 .. _Parker (1958): https://ui.adsabs.harvard.edu/abs/1958ApJ...128..664P/abstract
+.. _Vissapragada et al. (2022): https://ui.adsabs.harvard.edu/abs/2022AJ....164..234V/abstract
+
+A paper describing ``p-winds`` (`Dos Santos et al. (2022)`_) and its usage for research-grade astronomical applications was published in the journal Astronomy & Astrophysics. If you use this code in your research, please consider citing it. If you use the ATES interface within the ``fluid`` module, please consider citing `Caldiroli et al. (2021)`_.
+
+.. _Dos Santos et al. (2022): https://ui.adsabs.harvard.edu/abs/2022A%26A...659A..62D/abstract
+.. _Caldiroli et al. (2021): https://ui.adsabs.harvard.edu/abs/2021A%26A...655A..30C/abstract
 
 In the current version, the code solves the stead-state ionization distribution
 of hydrogen and helium around the planet based on its physical parameters and
