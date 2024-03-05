@@ -51,9 +51,9 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
                he_h_ratio=0.1111, escape_radius=2.0, log_base_density=14.0,
                momentum_threshold=0.05, compiler='gfortran', use_euv_only=False,
                grid_type='Mixed', twod_approx_method='Rate/2 + Mdot/2',
-               numerical_flux="HLLC", reconstruction="PLM", load_ic=False,
-               post_processing_only=False, force_start=False
-               ):
+               numerical_flux="HLLC", reconstruction="PLM",
+               include_metastable_helium=True, load_ic=False,
+               post_processing_only=False, force_start=False):
     """
     Calculates the one-dimensional hydrodynamic escape model for a planet with
     given parameters using the ATES code.
@@ -131,6 +131,10 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
         See Caldiroli+2021 (A&A 655) for a detailed discussion about which
         option better fits your needs. Default value is ``'PLM'``.
 
+    include_metastable_helium : ``str``, optional
+        Defines whether to include metastable He in the simulation. Default is
+        ``True``.
+
     load_ic : ``bool``, optional
         Defines whether to load an initial condition from a previous simulation
         Default is ``False``.
@@ -161,6 +165,7 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
         * `n_he_i`: Neutral He number density
         * `n_he_ii`: Singly-ionized He number density
         * `n_he_iii`: Doubly-ionized He number density
+        * `n_he_23s`: Metastable He number density
     """
 
     # Open input file and clean contents if file exists
@@ -224,7 +229,7 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
         "\nNumerical flux: " + numerical_flux,
         "\nReconstruction scheme: " + reconstruction,
         "\nRelative momentum threshold: " + str(momentum_threshold),
-        "\nInclude He23S? False",
+        "\nInclude He23S? " + str(include_metastable_helium),
         "\nLoad IC? " + str(load_ic),
         "\nDo only PP: " + str(post_processing_only),
         "\nForce start: " + str(force_start)
@@ -250,23 +255,26 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
     # os.remove('spectrum_temp.txt')
 
     # Read output files
-    output_data_0 = np.loadtxt(_ATES_DIR + "/output/Hydro_ioniz.txt")
-    output_data_1 = np.loadtxt(_ATES_DIR + "/output/Ion_species.txt")
+    output_data_0 = np.loadtxt("output/Hydro_ioniz.txt")
+    output_data_1 = np.loadtxt("output/Ion_species.txt")
+
+    proton_mass = 1.67262192369e-24  # g
 
     results = {
         'r': output_data_0[:, 0],  # Radial distance in Planetary radii
-        'density': output_data_0[:, 1],  # Mass density in unit of proton mass
-        'velocity': output_data_0[:, 2],  # Velocity in unit of scale velocity
+        'density': output_data_0[:, 1] * proton_mass,  # Mass density in cgs
+        'velocity': output_data_0[:, 2] * 1E-5,  # Velocity in km / s
         'pressure': output_data_0[:, 3],  # In units of cgs
         'temperature': output_data_0[:, 4],  # In unit of K
-        'heating_rate': output_data_0[:, 5],  # In units of CGS
-        'cooling_rate': output_data_0[:, 6],  # In units of CGS
+        'heating_rate': output_data_0[:, 5],  # In units of cgs
+        'cooling_rate': output_data_0[:, 6],  # In units of cgs
         # 'heating_efficiency': output_data_0[:, 7],  # Adimensional
         'n_h_i': output_data_1[:, 1],  # Neutral H number density
         'n_h_ii': output_data_1[:, 2],  # Ionized H number density
         'n_he_i': output_data_1[:, 3],  # Neutral He number density
         'n_he_ii': output_data_1[:, 4],  # Singly-ionized He number density
-        'n_he_iii': output_data_1[:, 5]  # Doubly-ionized He number density
+        'n_he_iii': output_data_1[:, 5],  # Doubly-ionized He number density
+        'n_he_23s': output_data_1[:, 6]  # Metastable He number density
     }
 
     return results
