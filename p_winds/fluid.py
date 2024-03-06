@@ -260,6 +260,13 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
 
     proton_mass = 1.67262192369e-24  # g
 
+    # Get mass-loss rate from output file
+    with open('ATES.out', 'r') as f:
+        for line in f:
+            pass
+        last_line = line
+        log_m_dot = float(last_line[-9:-5])
+
     results = {
         'r': output_data_0[:, 0],  # Radial distance in Planetary radii
         'density': output_data_0[:, 1] * proton_mass,  # Mass density in cgs
@@ -274,7 +281,8 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
         'n_he_i': output_data_1[:, 3],  # Neutral He number density
         'n_he_ii': output_data_1[:, 4],  # Singly-ionized He number density
         'n_he_iii': output_data_1[:, 5],  # Doubly-ionized He number density
-        'n_he_23s': output_data_1[:, 6]  # Metastable He number density
+        'n_he_23s': output_data_1[:, 6],  # Metastable He number density
+        'log_m_dot': log_m_dot,  # Log10 of mass-loss rate in g / s
     }
 
     return results
