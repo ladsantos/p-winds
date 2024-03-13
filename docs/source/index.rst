@@ -31,7 +31,7 @@ The isothermal models of ``p-winds`` are largely based on the theoretical framew
 .. _Parker (1958): https://ui.adsabs.harvard.edu/abs/1958ApJ...128..664P/abstract
 .. _Vissapragada et al. (2022): https://ui.adsabs.harvard.edu/abs/2022AJ....164..234V/abstract
 
-A paper describing ``p-winds`` (`Dos Santos et al. (2022)`_) and its usage for research-grade astronomical applications was published in the journal Astronomy & Astrophysics. If you use this code in your research, please consider citing it. If you use the ATES interface within the ``fluid`` module, please consider citing `Caldiroli et al. (2021)`_.
+A description of ``p-winds`` and its usage for research-grade astronomical applications was published in `Dos Santos et al. (2022)`_. If you use this code in your research, please consider citing it. If you use the ATES interface within the ``fluid`` module, please consider citing `Caldiroli et al. (2021)`_.
 
 .. _Dos Santos et al. (2022): https://ui.adsabs.harvard.edu/abs/2022A%26A...659A..62D/abstract
 .. _Caldiroli et al. (2021): https://ui.adsabs.harvard.edu/abs/2021A%26A...655A..30C/abstract

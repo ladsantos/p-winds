@@ -131,7 +131,7 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
         See Caldiroli+2021 (A&A 655) for a detailed discussion about which
         option better fits your needs. Default value is ``'PLM'``.
 
-    include_metastable_helium : ``str``, optional
+    include_metastable_helium : ``bool``, optional
         Defines whether to include metastable He in the simulation. Default is
         ``True``.
 
@@ -166,6 +166,7 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
         * `n_he_ii`: Singly-ionized He number density
         * `n_he_iii`: Doubly-ionized He number density
         * `n_he_23s`: Metastable He number density
+        * `log_m_dot` : Log10 of mass loss rate in g / s
     """
 
     # Open input file and clean contents if file exists
