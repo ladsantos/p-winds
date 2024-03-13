@@ -266,7 +266,7 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
         for line in f:
             pass
         last_line = line
-        log_m_dot = float(last_line[-9:-5])
+        log_m_dot = float(last_line[-10:-5])
 
     results = {
         'r': output_data_0[:, 0],  # Radial distance in Planetary radii
