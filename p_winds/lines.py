@@ -161,3 +161,65 @@ def o_i_properties():
     a_ij_2 = 6.76e+07
 
     return lambda_0, lambda_1, lambda_2, f_0, f_1, f_2, a_ij_0, a_ij_1, a_ij_2
+
+
+# Line properties of the C I line available with HST/COS taken from the NIST
+# database https://www.nist.gov/pml/atomic-spectra-database
+def c_i_properties():
+    """
+    Returns the central wavelengths in air, oscillator strengths and the
+    Einstein coefficient of the C I lines in the COS FUV wavelength range. The
+    values were taken from the NIST database:
+    https://www.nist.gov/pml/atomic-spectra-database
+
+    Returns
+    -------
+    lambda_0 : ``float``
+        Central wavelength in air of line 0 in unit of m.
+
+    lambda_1 : ``float``
+        Central wavelength in air of line 1 in unit of m.
+
+    lambda_2 : ``float``
+        Central wavelength in air of line 2 in unit of m.
+
+    f_0 : ``float``
+        Oscillator strength of line 0 (unitless).
+
+    f_1 : ``float``
+        Oscillator strength of line 1 (unitless).
+
+    f_2 : ``float``
+        Oscillator strength of line 2 (unitless).
+
+    a_ij_0 : ``float``
+        Einstein coefficient of line 0 in unit of 1 / s.
+
+    a_ij_1 : ``float``
+        Einstein coefficient of line 1 in unit of 1 / s.
+
+    a_ij_2 : ``float``
+        Einstein coefficient of line 2 in unit of 1 / s.
+    """
+    # Central wavelengths in units of m
+    lambda_0 = 1656.26674 * 1E-10
+    lambda_1 = 1656.92821 * 1E-10
+    lambda_2 = 1657.00751 * 1E-10
+    lambda_3 = 1657.37863 * 1E-10
+    lambda_4 = 1657.90661 * 1E-10
+    # Oscillator strengths
+    f_0 = 5.98e-02
+    f_1 = 1.43e-01
+    f_2 = 1.07e-01
+    f_3 = 3.57e-02
+    f_4 = 4.77e-02
+    # Einstein coefficient in units of s ** (-1)
+    a_ij_0 = 8.7e+07
+    a_ij_1 = 1.16e+08
+    a_ij_2 = 2.61e+08
+    a_ij_3 = 8.7e+07
+    a_ij_4 = 3.47e+08
+
+    return (lambda_0, lambda_1, lambda_2, lambda_3, lambda_4,
+            f_0, f_1, f_2, f_3, f_4,
+            a_ij_0, a_ij_1, a_ij_2, a_ij_3, a_ij_4)
