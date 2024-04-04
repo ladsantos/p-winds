@@ -154,8 +154,8 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
         short description of the dict keys:
 
         * `r`: Radial distance in Planetary radii
-        * `density`: Mass density in unit of proton mass
-        * `velocity`: Velocity in unit of scale velocity
+        * `density`: Mass density in unit of g / cm^3
+        * `velocity`: Velocity in unit of km / s
         * `pressure`: Pressure in units of cgs
         * `temperature`: Temperature in unit of K
         * `heating_rate`: Heating rate in units of cgs
