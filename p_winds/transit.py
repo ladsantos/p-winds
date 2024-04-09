@@ -169,8 +169,9 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
     wavelength_grid : ``numpy.ndarray``
         Wavelengths to calculate the profile in unit of m.
 
-    gas_temperature : ``float``
-        Gas temperature in K.
+    gas_temperature : ``float`` or ``numpy.ndarray``
+        1-D profile of temperatures in function of radius. Unit has to be K. If
+        defined as ``float``, then the model assumes isothermal gas.
 
     particle_mass : ``float``
         Mass of the particle corresponding to the transition in unit of kg.
@@ -230,7 +231,8 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
 
 
 # Density and velocity profiles in the line of sight
-def profile_los(radius_profile, density_profile, velocity_profile, z_grid_size):
+def profile_los(radius_profile, density_profile, velocity_profile,
+                z_grid_size, temperature_profile=None):
     """
     Calculate the profiles of radius and line-of-sight velocities in function of
     sky-projected radial distance from the planet (axis 0) and the line of sight
@@ -252,6 +254,11 @@ def profile_los(radius_profile, density_profile, velocity_profile, z_grid_size):
 
     z_grid_size : ``int``, optional
         Grid size for the line of sight direction.
+
+    temperature_profile : ``numpy.ndarray``, optional
+        1-D profile of temperatures in function of radius, in whatever unit you
+        want to work with. If ``None``, then the code assumes isothermal
+        temperature. Default is ``None``.
 
     Returns
     -------
@@ -288,7 +295,16 @@ def profile_los(radius_profile, density_profile, velocity_profile, z_grid_size):
                    fill_value=0.0)
     los_density_r_z = d_v(distances)
 
-    return los_density_r_z, los_velocity_r_z, los_z
+    if temperature_profile is not None:
+        # Calculate the line-of-sight temperature
+        t_v = interp1d(radius_profile, temperature_profile, bounds_error=False,
+                       fill_value=0.0)
+        los_temperature_r_z = t_v(distances)
+
+        return los_density_r_z, los_velocity_r_z, los_temperature_r_z, los_z
+
+    else:
+        return los_density_r_z, los_velocity_r_z, los_z
 
 
 # Optical depth in function of cylindrical radius from the planet and
@@ -336,13 +352,14 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
     wavelength_grid : ``numpy.ndarray``
         Wavelengths to calculate the profile in unit of m.
 
-    gas_temperature : ``float``
-        Gas temperature in K.
+    gas_temperature : ``float`` or ``numpy.ndarray``
+        1-D profile of temperatures in function of radius. Unit has to be K. If
+        defined as ``float``, then the model assumes isothermal gas.
 
     particle_mass : ``float``
         Mass of the particle corresponding to the transition in unit of kg.
 
-    z_grid_size : ``int``, optional
+    z_grid_size : ``int``
         Grid size for the line of sight direction.
 
     bulk_los_velocity : ``float``, optional
@@ -373,11 +390,23 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
         Optical depth in function of radial distance from the center of the
         planet (axis 0) and in function of wavelength (axis 1).
     """
-    # Calculate density and velocity profiles in the line of sight
-    density_los, velocity_los, z_los = \
-        profile_los(radius_profile, density_profile, velocity_profile,
-                    z_grid_size)
-    spatial_shape = np.shape(density_los)
+    # Calculate density, velocity profiles and, if necessary, temperature
+    # profile in the line of sight
+    if isinstance(gas_temperature, float) or isinstance(gas_temperature, int):
+        density_los, velocity_los, z_los = \
+            profile_los(radius_profile, density_profile, velocity_profile,
+                        z_grid_size)
+        spatial_shape = np.shape(density_los)
+        temp = gas_temperature
+    elif isinstance(gas_temperature, np.ndarray):
+        density_los, velocity_los, temperature_los, z_los = \
+            profile_los(radius_profile, density_profile, velocity_profile,
+                        z_grid_size=z_grid_size,
+                        temperature_profile=gas_temperature)
+        temp = temperature_los
+    else:
+        raise ValueError('`gas_temperature` has to be either `float` or '
+                         '`np.ndarray`.')
 
     # Spectral line properties
     w0 = central_wavelength  # Reference wavelength in m
@@ -409,7 +438,6 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
     nu_grid_rest = c_speed / wl_grid
     v_bulk = bulk_los_velocity
     rv_planet = planet_radial_velocity
-    temp = gas_temperature
     mass = particle_mass
 
     # Change the shape of `nu_grid_rest` to allow for proper array broadcasting
@@ -434,7 +462,7 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
         if _method == 'formal':
             # Calculate Doppler width (standard deviation) of the Voigt profile
             alpha_nu = \
-                nu0_k / c_speed * (2 * k_b * temp / mass) ** 0.5
+                nu0_k / c_speed * (k_b * temp / mass) ** 0.5
 
             # Calculate the frequency shifts due to wind and bulk motion
             delta_nu_wind = (velocity_los + v_bulk +
@@ -453,15 +481,20 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
                 (np.sum(velocity_los ** 2 * weights) /
                  np.sum(weights)) ** 0.5
 
+            if isinstance(temp, np.ndarray):
+                average_temp = np.sum(temp * weights) / np.sum(weights)
+            elif isinstance(temp, float) or isinstance(temp, int):
+                average_temp = temp
+
             if turbulence_broadening is True:
                 # Similar to Lampon et al. (2020), calculate the broadening
-                # as the turbulent velocity = sqrt(5/3 * kT / m)
-                turbulence_velocity = np.sqrt(5 / 3 * k_b * temp / mass)
+                # as the turbulent velocity = sqrt(5/3 * kT / 2m)
+                turbulence_velocity = np.sqrt(5 / 6 * k_b * average_temp / mass)
             else:
                 turbulence_velocity = 0.0
 
             # Calculate Doppler width of the Voigt profile
-            alpha_nu = nu0_k / c_speed * (2 * k_b * temp / mass +
+            alpha_nu = nu0_k / c_speed * (k_b * average_temp / mass +
                                           wind_broadening_velocity ** 2 +
                                           turbulence_velocity ** 2) ** 0.5
 
