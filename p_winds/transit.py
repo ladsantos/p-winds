@@ -462,7 +462,7 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
         if _method == 'formal':
             # Calculate Doppler width (standard deviation) of the Voigt profile
             alpha_nu = \
-                nu0_k / c_speed * (2 * k_b * temp / mass) ** 0.5
+                nu0_k / c_speed * (k_b * temp / mass) ** 0.5
 
             # Calculate the frequency shifts due to wind and bulk motion
             delta_nu_wind = (velocity_los + v_bulk +
@@ -488,13 +488,13 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
 
             if turbulence_broadening is True:
                 # Similar to Lampon et al. (2020), calculate the broadening
-                # as the turbulent velocity = sqrt(5/3 * kT / m)
-                turbulence_velocity = np.sqrt(5 / 3 * k_b * average_temp / mass)
+                # as the turbulent velocity = sqrt(5/3 * kT / 2m)
+                turbulence_velocity = np.sqrt(5 / 6 * k_b * average_temp / mass)
             else:
                 turbulence_velocity = 0.0
 
             # Calculate Doppler width of the Voigt profile
-            alpha_nu = nu0_k / c_speed * (2 * k_b * average_temp / mass +
+            alpha_nu = nu0_k / c_speed * (k_b * average_temp / mass +
                                           wind_broadening_velocity ** 2 +
                                           turbulence_velocity ** 2) ** 0.5
 
