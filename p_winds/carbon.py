@@ -10,7 +10,7 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 import astropy.units as u
 import astropy.constants as c
-from scipy.integrate import simps, solve_ivp, odeint
+from scipy.integrate import simpson, solve_ivp, odeint
 from p_winds import tools, microphysics
 import warnings
 
@@ -101,32 +101,32 @@ def radiative_processes(spectrum_at_planet):
                                                       species='C II')
 
     # The flux-averaged photoionization cross-section of C I and C II
-    a_ci = abs(simps(flux_lambda_cut_1 * a_lambda_ci, wavelength_cut_1) /
-               simps(flux_lambda_cut_1, wavelength_cut_1))
-    a_cii = abs(simps(flux_lambda_cut_2 * a_lambda_cii, wavelength_cut_2) /
-                simps(flux_lambda_cut_2, wavelength_cut_2))
+    a_ci = abs(simpson(flux_lambda_cut_1 * a_lambda_ci, wavelength_cut_1) /
+               simpson(flux_lambda_cut_1, wavelength_cut_1))
+    a_cii = abs(simpson(flux_lambda_cut_2 * a_lambda_cii, wavelength_cut_2) /
+                simpson(flux_lambda_cut_2, wavelength_cut_2))
 
     # The flux-averaged photoionization cross-section of H is also going to be
     # needed because it adds to the optical depth that C I and C II see.
     a_lambda_h_ci = microphysics.hydrogen_cross_section(
         wavelength=wavelength_cut_1)
-    a_h_ci = abs(simps(flux_lambda_cut_1 * a_lambda_h_ci, wavelength_cut_1) /
-                 simps(flux_lambda_cut_1, wavelength_cut_1))
+    a_h_ci = abs(simpson(flux_lambda_cut_1 * a_lambda_h_ci, wavelength_cut_1) /
+                 simpson(flux_lambda_cut_1, wavelength_cut_1))
     a_lambda_h_cii = microphysics.hydrogen_cross_section(
         wavelength=wavelength_cut_2)
-    a_h_cii = abs(simps(flux_lambda_cut_2 * a_lambda_h_cii, wavelength_cut_2) /
-                  simps(flux_lambda_cut_2, wavelength_cut_2))
+    a_h_cii = abs(simpson(flux_lambda_cut_2 * a_lambda_h_cii, wavelength_cut_2) /
+                  simpson(flux_lambda_cut_2, wavelength_cut_2))
 
     # Same for the He atoms, but only up to the He ionization threshold
     a_lambda_he = microphysics.helium_total_cross_section(wavelength_cut_0)
-    a_he = abs(simps(flux_lambda_cut_0 * a_lambda_he, wavelength_cut_0) /
-               simps(flux_lambda_cut_0, wavelength_cut_0))
+    a_he = abs(simpson(flux_lambda_cut_0 * a_lambda_he, wavelength_cut_0) /
+               simpson(flux_lambda_cut_0, wavelength_cut_0))
 
     # Calculate the photoionization rates
-    phi_ci = abs(simps(flux_lambda_cut_1 * a_lambda_ci / energy_cut_1,
+    phi_ci = abs(simpson(flux_lambda_cut_1 * a_lambda_ci / energy_cut_1,
                  wavelength_cut_1))
-    phi_cii = abs(simps(flux_lambda_cut_2 * a_lambda_cii / energy_cut_2,
-                        wavelength_cut_2))
+    phi_cii = abs(simpson(flux_lambda_cut_2 * a_lambda_cii / energy_cut_2,
+                          wavelength_cut_2))
 
     return phi_ci, phi_cii, a_ci, a_cii, a_h_ci, a_h_cii, a_he
 

@@ -10,7 +10,7 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 import astropy.units as u
 import astropy.constants as c
-from scipy.integrate import simps, solve_ivp, odeint
+from scipy.integrate import simpson, solve_ivp, odeint
 from p_winds import tools, microphysics
 import warnings
 
@@ -80,24 +80,24 @@ def radiative_processes(spectrum_at_planet):
                                                      species='O I')
 
     # The flux-averaged photoionization cross-section of O I
-    a_oi = abs(simps(flux_lambda_cut_1 * a_lambda_oi, wavelength_cut_1) /
-               simps(flux_lambda_cut_1, wavelength_cut_1))
+    a_oi = abs(simpson(flux_lambda_cut_1 * a_lambda_oi, wavelength_cut_1) /
+               simpson(flux_lambda_cut_1, wavelength_cut_1))
 
     # The flux-averaged photoionization cross-section of H is also going to be
     # needed because it adds to the optical depth that O I see.
     a_lambda_h_oi = microphysics.hydrogen_cross_section(
         wavelength=wavelength_cut_1)
-    a_h_oi = abs(simps(flux_lambda_cut_1 * a_lambda_h_oi, wavelength_cut_1) /
-                 simps(flux_lambda_cut_1, wavelength_cut_1))
+    a_h_oi = abs(simpson(flux_lambda_cut_1 * a_lambda_h_oi, wavelength_cut_1) /
+                 simpson(flux_lambda_cut_1, wavelength_cut_1))
 
     # Same for the He atoms, but only up to the He ionization threshold
     a_lambda_he = microphysics.helium_total_cross_section(wavelength_cut_0)
-    a_he = abs(simps(flux_lambda_cut_0 * a_lambda_he, wavelength_cut_0) /
-               simps(flux_lambda_cut_0, wavelength_cut_0))
+    a_he = abs(simpson(flux_lambda_cut_0 * a_lambda_he, wavelength_cut_0) /
+               simpson(flux_lambda_cut_0, wavelength_cut_0))
 
     # Calculate the photoionization rates
-    phi_oi = abs(simps(flux_lambda_cut_1 * a_lambda_oi / energy_cut_1,
-                       wavelength_cut_1))
+    phi_oi = abs(simpson(flux_lambda_cut_1 * a_lambda_oi / energy_cut_1,
+                         wavelength_cut_1))
 
     return phi_oi, a_oi, a_h_oi, a_he
 

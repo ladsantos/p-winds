@@ -10,7 +10,7 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 import astropy.units as u
 import astropy.constants as c
-from scipy.integrate import simps, solve_ivp, odeint
+from scipy.integrate import simpson, solve_ivp, odeint
 from p_winds import tools, microphysics
 import warnings
 
@@ -125,10 +125,10 @@ def radiative_processes(spectrum_at_planet, combined_ionization=False):
         # may yield negative results when the flux varies by a few orders of
         # magnitude at the edges of integration. So we take the absolute values
         # of a_1 and a_3 here.
-        a_1 = abs(simps(flux_lambda_cut_1 * a_lambda_1, wavelength_cut_1) /
-                  simps(flux_lambda_cut_1, wavelength_cut_1))
-        a_3 = abs(simps(flux_lambda_cut_3 * a_lambda_3, wavelength_cut_3) /
-                  simps(flux_lambda_cut_3, wavelength_cut_3))
+        a_1 = abs(simpson(flux_lambda_cut_1 * a_lambda_1, wavelength_cut_1) /
+                  simpson(flux_lambda_cut_1, wavelength_cut_1))
+        a_3 = abs(simpson(flux_lambda_cut_3 * a_lambda_3, wavelength_cut_3) /
+                  simpson(flux_lambda_cut_3, wavelength_cut_3))
 
         # The flux-averaged photoionization cross-section of H is also going to
         # be needed because it adds to the optical depth that the He atoms see.
@@ -139,16 +139,16 @@ def radiative_processes(spectrum_at_planet, combined_ionization=False):
         # Contribution to the optical depth seen by He singlet atoms:
         # Note: the same ``scipy.integrate.simps`` behavior may happen here, so
         # again we take the absolute values of a_h_n and phi_n
-        a_h_1 = abs(simps(flux_lambda_cut_1 * a_lambda_h_1, wavelength_cut_1) /
-                    simps(flux_lambda_cut_1, wavelength_cut_1))
+        a_h_1 = abs(simpson(flux_lambda_cut_1 * a_lambda_h_1, wavelength_cut_1) /
+                    simpson(flux_lambda_cut_1, wavelength_cut_1))
         # Contribution to the optical depth seen by He triplet atoms:
-        a_h_3 = abs(simps(flux_lambda_cut_0 * a_lambda_h_3, wavelength_cut_0) /
-                    simps(flux_lambda_cut_3, wavelength_cut_3))
+        a_h_3 = abs(simpson(flux_lambda_cut_0 * a_lambda_h_3, wavelength_cut_0) /
+                    simpson(flux_lambda_cut_3, wavelength_cut_3))
 
         # Calculate the photoionization rates
-        phi_1 = abs(simps(flux_lambda_cut_1 * a_lambda_1 / energy_cut_1,
+        phi_1 = abs(simpson(flux_lambda_cut_1 * a_lambda_1 / energy_cut_1,
                     wavelength_cut_1))
-        phi_3 = abs(simps(flux_lambda_cut_3 * a_lambda_3 / energy_cut_3,
+        phi_3 = abs(simpson(flux_lambda_cut_3 * a_lambda_3 / energy_cut_3,
                     wavelength_cut_3))
 
         return phi_1, phi_3, a_1, a_3, a_h_1, a_h_3
@@ -160,18 +160,18 @@ def radiative_processes(spectrum_at_planet, combined_ionization=False):
         a_lambda = microphysics.helium_total_cross_section(wavelength_cut_1)
 
         # Flux-averaged photoionization cross-sections of He
-        a_he = abs(simps(flux_lambda_cut_1 * a_lambda, wavelength_cut_1) /
-                   simps(flux_lambda_cut_1, wavelength_cut_1))
+        a_he = abs(simpson(flux_lambda_cut_1 * a_lambda, wavelength_cut_1) /
+                   simpson(flux_lambda_cut_1, wavelength_cut_1))
 
         # The flux-averaged photoionization cross-section of H is also going to
         # be needed because it adds to the optical depth that the He atoms see.
         a_lambda_h = microphysics.hydrogen_cross_section(
             wavelength=wavelength_cut_1)
-        a_h = abs(simps(flux_lambda_cut_1 * a_lambda_h, wavelength_cut_1) /
-                  simps(flux_lambda_cut_1, wavelength_cut_1))
+        a_h = abs(simpson(flux_lambda_cut_1 * a_lambda_h, wavelength_cut_1) /
+                  simpson(flux_lambda_cut_1, wavelength_cut_1))
 
         # Calculate the photoionization rates
-        phi = abs(simps(flux_lambda_cut_1 * a_lambda / energy_cut_1,
+        phi = abs(simpson(flux_lambda_cut_1 * a_lambda / energy_cut_1,
                         wavelength_cut_1))
 
         return phi, a_he, a_h

@@ -10,7 +10,7 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 import astropy.units as u
 import astropy.constants as c
-from scipy.integrate import simps, solve_ivp, cumtrapz
+from scipy.integrate import simpson, solve_ivp, cumulative_trapezoid
 from p_winds import parker, tools, microphysics
 
 
@@ -96,19 +96,19 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_h_r,
         n_he = n_hetot * (1 - f_he_r)  # This is more correct
 
     n_h_temp = n_h[::-1]
-    column_h = cumtrapz(n_h_temp, r_grid_temp, initial=0)
+    column_h = cumulative_trapezoid(n_h_temp, r_grid_temp, initial=0)
     column_density_h = -column_h[::-1]
     tau_rnu = column_density_h[:, None] * a_lambda
 
     # Optical depth to helium photoionization
     n_he_temp = n_he[::-1]
-    column_he = cumtrapz(n_he_temp, r_grid_temp, initial=0)
+    column_he = cumulative_trapezoid(n_he_temp, r_grid_temp, initial=0)
     column_density_he = -column_he[::-1]
     a_lambda_he = microphysics.helium_total_cross_section(wavelength=xx)
     tau_rnu += column_density_he[:, None] * a_lambda_he
 
     # Finally calculate the photoionization rate
-    phi_prime = abs(simps(flux_lambda_cut * a_lambda / energy_cut *
+    phi_prime = abs(simpson(flux_lambda_cut * a_lambda / energy_cut *
                     np.exp(-tau_rnu), wavelength_cut, axis=-1))
 
     return phi_prime
@@ -160,11 +160,11 @@ def radiative_processes(spectrum_at_planet):
     # Note: For some reason the Simpson's rule implementation of ``scipy`` may
     # yield negative results when the flux varies by a few orders of magnitude
     # at the edges of integration. So we take the absolute values of a_0 and phi
-    a_0 = abs(simps(flux_lambda_cut * a_lambda, wavelength_cut) /
-              simps(flux_lambda_cut, wavelength_cut))
+    a_0 = abs(simpson(flux_lambda_cut * a_lambda, wavelength_cut) /
+              simpson(flux_lambda_cut, wavelength_cut))
 
     # Finally calculate the photoionization rate
-    phi = abs(simps(flux_lambda_cut * a_lambda / energy_cut, wavelength_cut))
+    phi = abs(simpson(flux_lambda_cut * a_lambda / energy_cut, wavelength_cut))
     return phi, a_0
 
 
