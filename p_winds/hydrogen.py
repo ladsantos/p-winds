@@ -108,8 +108,8 @@ def radiative_processes_exact(spectrum_at_planet, r_grid, density, f_h_r,
     tau_rnu += column_density_he[:, None] * a_lambda_he
 
     # Finally calculate the photoionization rate
-    phi_prime = abs(simpson(flux_lambda_cut * a_lambda / energy_cut *
-                    np.exp(-tau_rnu), wavelength_cut, axis=-1))
+    phi_prime = abs(simpson(y=flux_lambda_cut * a_lambda / energy_cut *
+                    np.exp(-tau_rnu), x=wavelength_cut, axis=-1))
 
     return phi_prime
 
@@ -160,11 +160,12 @@ def radiative_processes(spectrum_at_planet):
     # Note: For some reason the Simpson's rule implementation of ``scipy`` may
     # yield negative results when the flux varies by a few orders of magnitude
     # at the edges of integration. So we take the absolute values of a_0 and phi
-    a_0 = abs(simpson(flux_lambda_cut * a_lambda, wavelength_cut) /
-              simpson(flux_lambda_cut, wavelength_cut))
+    a_0 = abs(simpson(flux_lambda_cut * a_lambda, x=wavelength_cut) /
+              simpson(flux_lambda_cut, x=wavelength_cut))
 
     # Finally calculate the photoionization rate
-    phi = abs(simpson(flux_lambda_cut * a_lambda / energy_cut, wavelength_cut))
+    phi = abs(simpson(flux_lambda_cut * a_lambda / energy_cut,
+                      x=wavelength_cut))
     return phi, a_0
 
 
