@@ -17,7 +17,7 @@ from p_winds import parker, tools, microphysics
 __all__ = ["radiative_processes_exact", "radiative_processes",
            "radiative_processes_mono", "recombination", "ion_fraction",
            "boltzmann_distribution", "saha_distribution",
-           "relation_boltzmann_saha", "halpha_scale"]
+           "relation_boltzmann_saha", "balmer_fraction"]
 
 
 # Exact calculation of hydrogen photoionization
@@ -722,7 +722,7 @@ def relation_boltzmann_saha(temperature, n, electron_density, nlte_scaling=1.):
     return total_fraction
 
 
-def halpha_scale(temperature, n_e, g_factor, n_shell):
+def balmer_fraction(temperature, n_e, g_factor, n_shell):
     """
     Calculates the scaling factor of the hydrogen density for the Balmer lines
     after Wyttenbach et al. 2020 eq. 9.

@@ -73,3 +73,4 @@ using GitHub.
    tidal_effects
    advanced_tutorial
    exospheric_metals
+   balmer_series
