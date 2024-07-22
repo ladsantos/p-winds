@@ -6,7 +6,9 @@ escape detection.
 """
 
 
-__all__ = ["he_3_properties", "c_ii_properties", "o_i_properties", "balmer_halpha_properties", "balmer_hbeta_properties", "balmer_hgamma_properties"]
+__all__ = ["he_3_properties", "c_ii_properties", "o_i_properties",
+           "balmer_halpha_properties", "balmer_hbeta_properties",
+           "balmer_hgamma_properties"]
 
 
 # Line properties of the 1.083 microns He triplet taken from the NIST database
