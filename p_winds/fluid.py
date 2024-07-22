@@ -256,8 +256,9 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
     # os.remove('spectrum_temp.txt')
 
     # Read output files
-    output_data_0 = np.loadtxt("output/Hydro_ioniz.txt")
-    output_data_1 = np.loadtxt("output/Ion_species.txt")
+    current_file_path = os.getcwd()
+    output_data_0 = np.loadtxt(current_file_path + "/output/Hydro_ioniz.txt")
+    output_data_1 = np.loadtxt(current_file_path + "/output/Ion_species.txt")
 
     proton_mass = 1.67262192369e-24  # g
 
