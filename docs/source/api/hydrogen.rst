@@ -10,4 +10,4 @@
 .. autofunction:: hydrogen.boltzmann_distribution
 .. autofunction:: hydrogen.saha_distribution
 .. autofunction:: hydrogen.relation_boltzmann_saha
-.. autofunction:: hydrogen.halpha_scale
+.. autofunction:: hydrogen.balmer_fraction
