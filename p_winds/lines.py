@@ -163,14 +163,13 @@ def o_i_properties():
     return lambda_0, lambda_1, lambda_2, f_0, f_1, f_2, a_ij_0, a_ij_1, a_ij_2
 
 
-# Line properties of the Balmer series lines (alpha, beta, gamma) taken from the NIST
-# database https://www.nist.gov/pml/atomic-spectra-database
+# Line properties of the Balmer series lines (alpha, beta, gamma) taken from the
+# NIST database https://www.nist.gov/pml/atomic-spectra-database
 def balmer_halpha_properties():
     """
-    Returns the central wavelengths in air, shell number and the
-    Einstein coefficient of the Balmer lines. The
-    values were taken from the NIST database:
-    https://www.nist.gov/pml/atomic-spectra-database
+    Returns the central wavelengths in air, shell number and the Einstein
+    coefficient of the Balmer lines. The values were taken from the NIST
+    database: https://www.nist.gov/pml/atomic-spectra-database
 
     Returns
     -------
@@ -189,7 +188,6 @@ def balmer_halpha_properties():
 
     a_alpha : ``float``
         Einstein coefficient of the H-alpha line in unit of 1 / s.
-
     """
     # Central wavelengths in units of m
     lambda_alpha = 6562.79 * 1E-10
@@ -206,15 +204,14 @@ def balmer_halpha_properties():
     # Einstein coefficient in units of s ** (-1)
     a_alpha = 4.4101e+07
 
-
     return lambda_alpha, n_alpha, f_alpha, g_alpha, a_alpha
+
 
 def balmer_hbeta_properties():
     """
-    Returns the central wavelengths in air, shell number and the
-    Einstein coefficient of the Balmer lines. The
-    values were taken from the NIST database:
-    https://www.nist.gov/pml/atomic-spectra-database
+    Returns the central wavelengths in air, shell number and the Einstein
+    coefficient of the Balmer lines. The values were taken from the NIST
+    database: https://www.nist.gov/pml/atomic-spectra-database
 
     Returns
     -------
@@ -251,12 +248,12 @@ def balmer_hbeta_properties():
 
     return lambda_beta, n_beta, f_beta, g_beta,  a_beta
 
+
 def balmer_hgamma_properties():
     """
-    Returns the central wavelengths in air, shell number and the
-    Einstein coefficient of the Balmer lines. The
-    values were taken from the NIST database:
-    https://www.nist.gov/pml/atomic-spectra-database
+    Returns the central wavelengths in air, shell number and the Einstein
+    coefficient of the Balmer lines. The values were taken from the NIST
+    database: https://www.nist.gov/pml/atomic-spectra-database
 
     Returns
     -------
