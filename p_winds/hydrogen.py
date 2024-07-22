@@ -730,7 +730,7 @@ def halpha_scale(T_0,n_e, g_factor, n_shell):
     g_n = 2 * n_shell ** 2
     g_2 = 2 * 2 ** 2
     
-    n_H_2n_scale = g_shell * (frac_ground/g_2 - frac_n/g_n)
+    n_H_2n_scale = g_factor * (frac_ground/g_2 - frac_n/g_n)
 
     return n_H_2n_scale
 
