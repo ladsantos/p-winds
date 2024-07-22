@@ -398,7 +398,7 @@ def make_spectrum_from_file(filename, units, path='', skiprows=0,
     conv_pc_to_au = 206264.8062471  # Conversion from pc to au
     if star_distance is not None and semi_major_axis is not None:
         scale_to_planet = \
-            (star_distance * conv_pc_to_au / semi_major_axis) ** (-2)
+            (star_distance * conv_pc_to_au / semi_major_axis) ** 2
     else:
         scale_to_planet = 1.0
 

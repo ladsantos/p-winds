@@ -1,6 +1,6 @@
 # p-winds
 
-[![Documentation Status](https://readthedocs.org/projects/p-winds/badge/?version=latest)](https://p-winds.readthedocs.io/en/latest/?badge=latest) [![Build Status](https://travis-ci.com/ladsantos/p-winds.svg?branch=main)](https://travis-ci.com/github/ladsantos/p-winds)  [![arXiv](https://img.shields.io/badge/arXiv-2111.11370-b31b1b.svg)](https://arxiv.org/abs/2111.11370)
+[![Documentation Status](https://readthedocs.org/projects/p-winds/badge/?version=latest)](https://p-winds.readthedocs.io/en/latest/?badge=latest) [![Build Status](https://app.travis-ci.com/ladsantos/p-winds.svg?token=dQGc2JwA9auSxvuCg1bH&branch=main)](https://travis-ci.com/github/ladsantos/p-winds)  [![arXiv](https://img.shields.io/badge/arXiv-2111.11370-b31b1b.svg)](https://arxiv.org/abs/2111.11370)
  [![Code DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4551621.svg)](https://doi.org/10.5281/zenodo.4551621)
 
 > **Warning**: This is the development branch. Version 2.0 of `p-winds` implements self-consistent, fluid dynamics models in addition to Parker-wind models. If you would like to contribute, please submit a pull request to this branch.
