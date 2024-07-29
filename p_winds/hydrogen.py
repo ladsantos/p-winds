@@ -584,7 +584,7 @@ def boltzmann_distribution(temperature, n, nlte_scaling=1.):
 
     Parameters
     ----------
-    temperature: ``float``
+    temperature : ``float``
         Temperature in K.
     
     n : ``int``
@@ -600,15 +600,18 @@ def boltzmann_distribution(temperature, n, nlte_scaling=1.):
         Unitless fraction of Hydrogen population in the needed atomic shell for
         the specific Balmer-line.
     """
+    # Boltzmann constant in ev / K
+    k_b = 8.617333262E-5
+
     # Energy of the nth state in the Balmer series as a difference to the ground
     # state. The ground state energy for hydrogen is 13.6 eV
     # E_n = E1 - E(n) in our case with E(n) = E1/n**2 for the Balmer series
-    E_n = 13.6 * (1 - 1 / n ** 2) * u.eV
+    E_n = 13.6 * (1 - 1 / n ** 2)  # unit = eV
     
     # Population distribution via the Boltzmann equation
     # This is the limit case for a large population of atoms as applicable in
     # atmospheres.
-    # Boltzmann_n = g_n/g_1 * np.exp(-E_n / (const.k_B * T))
+    # Boltzmann_n = g_n/g_1 * np.exp(-E_n / (k_b * temperature))
     # g_1 in our case is a constant and always 2
     # g_n are the statistical weights of the electronic levels due to their
     # degeneracies to generalise this function for other elements, simply let
@@ -616,11 +619,11 @@ def boltzmann_distribution(temperature, n, nlte_scaling=1.):
     g_n = 2. * n ** 2.
 
     # Partition function for hydrogen
-    # is the sum over all quantum states for the atom where the electron could
-    # be, thus the sum over g_n*exp(-(E1-En)/(kb*T)
-    # in the case of hydrogen any contributions beyond n=2 are negligible
-    U_i = (2. * np.exp(-13.6 * u.eV / (c.k_B * temperature * u.K)) + 8. *
-           np.exp(-13.6 * u.eV / (2 ** 2 * c.k_B * temperature * u.K)))
+    # This is the sum over all quantum states for the atom where the electron
+    # could be, thus the sum over g_n*exp(-(E1-En)/(kb*T)
+    # In the case of hydrogen any contributions beyond n=2 are negligible
+    U_i = (2. * np.exp(-13.6 / (k_b * temperature)) + 8. *
+           np.exp(-13.6 / (2 ** 2 * k_b * temperature)))
     
     # The NLTE scaling is defined as
     # NLTE_scaling = Boltzmann_n (NLTE) / Boltzmann_n (LTE)
@@ -629,8 +632,8 @@ def boltzmann_distribution(temperature, n, nlte_scaling=1.):
     # from Huang et al. 2017, and Garcia Munoz and Schneider (2019)
     
     # Calculate fraction of level population
-    boltzmann_n = (nlte_scaling * (g_n/U_i) *
-                   np.exp(-E_n / (c.k_B * temperature * u.K)).decompose().value)
+    boltzmann_n = (
+            nlte_scaling * (g_n / U_i) * np.exp(-E_n / (k_b * temperature)))
 
     return boltzmann_n
 
@@ -642,10 +645,10 @@ def saha_distribution(temperature, electron_density):
 
     Parameters
     ----------
-    temperature: ``float``
+    temperature : ``float``
         Temperature in K
         
-    electron_density: ``float``
+    electron_density : ``float``
         the electron density (most likely coming from the background, but tbd).
         If only one level of ionisation is important then n1 = ne
         The electron density has to have units of (cm**-3)
@@ -656,11 +659,11 @@ def saha_distribution(temperature, electron_density):
         Unitless fraction of ionised Hydrogen from total Hydrogen for the
         specific Balmer-line.
     """
-    # Boltzmann constant in eV/K
-    # k_B = c.k_B.to(u.eV / u.K)
+    k_b = 8.61733326e-05  # Boltzmann constant in eV / K
+    constant_inverse_debroglie = 1.79986565e+10  # In 1 / K / cm ** 2
 
     # Ionization potential of hydrogen (eV)
-    ionization_potential = 13.6 * u.eV
+    ionization_potential = 13.6
 
     # Partition function for hydrogen
     # is the sum over all quantum states for the atom where the electron could
@@ -669,8 +672,7 @@ def saha_distribution(temperature, electron_density):
     U_i = 0.5  # ZII = 1 and ZI = g1 = 2
     
     # thermal deBroglie wavelength ** (-1)
-    debroglie_rev = np.sqrt(2 * np.pi * c.m_e * c.k_B *
-                            temperature * u.K / (c.h ** 2))
+    debroglie_rev = np.sqrt(constant_inverse_debroglie * temperature)
 
     # Population distribution
     # in reality the equation is not divided by U_i but multliplied by
@@ -678,7 +680,7 @@ def saha_distribution(temperature, electron_density):
     # For the Balmer series, H II is the naked proton core, as hydrogen only has
     # one electron. Therefore, U_i(H II) = 1
     saha_n = (2. / (electron_density * U_i) * debroglie_rev ** 3 *
-              np.exp(-ionization_potential / (c.k_B * temperature * u.K)))
+              np.exp(-ionization_potential / (k_b * temperature)))
   
     return saha_n
 
@@ -690,13 +692,13 @@ def relation_boltzmann_saha(temperature, n, electron_density, nlte_scaling=1.):
 
     Parameters
     ----------
-    temperature: ``float``
+    temperature : ``float``
         Temperature in K
 
     n : ``integer``
         Number of the atomic shell
 
-    electron_density: ``float``
+    electron_density : ``float``
         the electron density (most likely coming from the background, but tbd).
         If only one level of ionisation is important then n1 = ne
         The electron density has to have units of (cm**-3)
@@ -722,26 +724,30 @@ def relation_boltzmann_saha(temperature, n, electron_density, nlte_scaling=1.):
     return total_fraction
 
 
-def balmer_fraction(temperature, n_e, g_factor, n_shell):
+def balmer_fraction(temperature, n_e, g_factor, n_shell, nlte_scaling=1.0):
     """
     Calculates the scaling factor of the hydrogen density for the Balmer lines
     after Wyttenbach et al. 2020 eq. 9.
 
     Parameters
     ----------
-    temperature: ``float``
+    temperature : ``float``
         Temperature in K.
         
-    n_e: ``float``
+    n_e : ``float``
         the electron density (most likely coming from the background, but tbd).
         If only one level of ionisation is important then n1 = ne
         The electron density has to have units of (cm**-3)
         
-    g_factor: ''float''
+    g_factor : ''float''
         the g scaling factor of the line in question from lines.py
     
     n_shell : ``integer``
         Number of the atomic shell
+
+    nlte_scaling : ``float``
+        If NLTE is assumed, the scaling factor can be a free fitting parameter
+        in the retrieval on the data. Default: 1. (LTE, no scaling).
 
     Returns
     -------
@@ -749,14 +755,13 @@ def balmer_fraction(temperature, n_e, g_factor, n_shell):
         Unitless fraction to adjust the hydrogen density for the specific Balmer
         line.
     """
-
-    frac_n = relation_boltzmann_saha(temperature, n_shell, n_e)
+    frac_n = relation_boltzmann_saha(temperature, n_shell, n_e, nlte_scaling)
 
     frac_ground = relation_boltzmann_saha(temperature, 2, n_e)
     
     g_n = 2 * n_shell ** 2
     g_2 = 2 * 2 ** 2
     
-    n_H_2n_scale = g_factor * (frac_ground/g_2 - frac_n/g_n)
+    n_H_2n_scale = g_factor * (frac_ground / g_2 - frac_n / g_n)
 
     return n_H_2n_scale
