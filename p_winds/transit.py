@@ -403,6 +403,7 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
             profile_los(radius_profile, density_profile, velocity_profile,
                         z_grid_size=z_grid_size,
                         temperature_profile=gas_temperature)
+        spatial_shape = np.shape(density_los)
         temp = temperature_los
     else:
         raise ValueError('`gas_temperature` has to be either `float` or '
@@ -463,6 +464,7 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
             # Calculate Doppler width (standard deviation) of the Voigt profile
             alpha_nu = \
                 nu0_k / c_speed * (k_b * temp / mass) ** 0.5
+            alpha_nu = np.reshape(alpha_nu, spatial_shape + (1,))
 
             # Calculate the frequency shifts due to wind and bulk motion
             delta_nu_wind = (velocity_los + v_bulk +
