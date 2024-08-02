@@ -168,10 +168,10 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
         * `n_he_23s`: Metastable He number density
         * `log_m_dot` : Log10 of mass loss rate in g / s
     """
-
     # Open input file and clean contents if file exists
+    current_file_path = os.getcwd() + '/'
     input_file = "input.inp"
-    open(input_file, 'w').close()
+    open(current_file_path + input_file, 'w').close()
 
     # X-rays wavelength range is 10-100 Angstrom
     xray_lim = [10, 100]
@@ -206,7 +206,7 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
 
     # Save spectrum to temporary file (necessary for ATES)
     array_to_save = np.array([wavelength, flux_density]).T
-    np.savetxt('spectrum_temp.txt', array_to_save)
+    np.savetxt(current_file_path + 'spectrum_temp.txt', array_to_save)
 
     input_strings = [
         "Planet name: Undefined",
@@ -236,17 +236,17 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
         "\nForce start: " + str(force_start)
     ]
 
-    with open(input_file, 'a') as f:
+    with open(current_file_path + input_file, 'a') as f:
         for in_str in input_strings:
             f.write(in_str)
     f.close()
 
     # Load initial condition if necessary
     if load_ic is True:
-        shutil.copyfile('output/Hydro_ioniz.txt',
-                        'output/Hydro_ioniz_IC.txt')
-        shutil.copyfile('output/Ion_species.txt',
-                        'output/Ion_species_IC.txt')
+        shutil.copyfile(current_file_path + 'output/Hydro_ioniz.txt',
+                        current_file_path + 'output/Hydro_ioniz_IC.txt')
+        shutil.copyfile(current_file_path + 'output/Ion_species.txt',
+                        current_file_path + 'output/Ion_species_IC.txt')
 
     # Compile and execute ATES
     run_ates(compiler)
@@ -256,14 +256,13 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
     # os.remove('spectrum_temp.txt')
 
     # Read output files
-    current_file_path = os.getcwd()
     output_data_0 = np.loadtxt(current_file_path + "/output/Hydro_ioniz.txt")
     output_data_1 = np.loadtxt(current_file_path + "/output/Ion_species.txt")
 
     proton_mass = 1.67262192369e-24  # g
 
     # Get mass-loss rate from output file
-    with open('ATES.out', 'r') as f:
+    with open(current_file_path + 'ATES.out', 'r') as f:
         for line in f:
             pass
         last_line = line
@@ -273,7 +272,7 @@ def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
         'r': output_data_0[:, 0],  # Radial distance in Planetary radii
         'density': output_data_0[:, 1] * proton_mass,  # Mass density in cgs
         'velocity': output_data_0[:, 2] * 1E-5,  # Velocity in km / s
-        'pressure': output_data_0[:, 3],  # In units of cgs
+        'pressure': output_data_0[:, 3],  # In units of erg / cm ** 3
         'temperature': output_data_0[:, 4],  # In unit of K
         'heating_rate': output_data_0[:, 5],  # In units of cgs
         'cooling_rate': output_data_0[:, 6],  # In units of cgs
@@ -305,6 +304,7 @@ def run_ates(compiler='gfortran'):
     print('Compiling the ATES Fortran modules using {}.'.format(compiler))
 
     # Define some important directory locations
+    current_file_path = os.getcwd() + '/'
     ATES_DIR = _ATES_DIR + "/"
     SRC_DIR = ATES_DIR + "src/"
     DIR_MOD = SRC_DIR + "mod/"
@@ -317,7 +317,7 @@ def run_ates(compiler='gfortran'):
     DIR_RAD = SRC_DIR + "modules/radiation/"
     DIR_STAT = SRC_DIR + "modules/states/"
     DIR_TIME = SRC_DIR + "modules/time_step/"
-    output_dir = "output/"
+    output_dir = current_file_path + "output/"
 
     # Create some directories if necessary
     if os.path.exists(output_dir) is not True:
