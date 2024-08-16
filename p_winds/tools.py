@@ -74,7 +74,7 @@ def standard_spectrum(stellar_type, semi_major_axis,
         - ``'late-F'`` (based on HD 108147)
         - ``'early-G'`` (based on HD 149026)
         - ``'solar'`` (based on the Sun)
-        - ``'young-sun'`` (based on iota Horologii)
+        - ``'young-Sun'`` (based on iota Horologii)
         - ``'late-G'`` (based on TOI-193)
         - ``'active-K'`` (based on epsilon Eridanii)
         - ``'early-K'`` (based on HD 97658)
