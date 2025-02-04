@@ -123,7 +123,7 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
                           wavelength_grid, gas_temperature, particle_mass,
                           bulk_los_velocity=0.0, planet_radial_velocity=0.0,
                           wind_broadening_method='average', z_grid_size=200,
-                          turbulence_broadening=False):
+                          turbulence_broadening=False, v_rotation=0.0):
     """
     Calculate the absorbed intensity profile in a wavelength grid.
 
@@ -201,6 +201,10 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
         If ``True``, adds a turbulence broadening, defined as in Lampón et al.
         2020, to the Gaussian term of the Voigt profile. Default is ``False``.
 
+    v_rotation : ``float``, optional
+        Rotational velocity, in the same unit as ``velocity_profile``. Default
+        is 0.
+
     Returns
     -------
     intensity : ``numpy.ndarray``
@@ -213,7 +217,7 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
         oscillator_strength, einstein_coefficient, wavelength_grid,
         gas_temperature, particle_mass, z_grid_size, bulk_los_velocity,
         planet_radial_velocity, wind_broadening_method,
-        turbulence_broadening
+        turbulence_broadening, v_rotation
     )
 
     # Now we interpolate the optical depths to each radius from the planet
@@ -232,7 +236,7 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
 
 # Density and velocity profiles in the line of sight
 def profile_los(radius_profile, density_profile, velocity_profile,
-                z_grid_size, temperature_profile=None):
+                z_grid_size, temperature_profile=None, v_rotation=0.0):
     """
     Calculate the profiles of radius and line-of-sight velocities in function of
     sky-projected radial distance from the planet (axis 0) and the line of sight
@@ -260,6 +264,10 @@ def profile_los(radius_profile, density_profile, velocity_profile,
         want to work with. If ``None``, then the code assumes isothermal
         temperature. Default is ``None``.
 
+    v_rotation : ``float``, optional
+        Rotational velocity, in the same unit as ``velocity_profile``. Default
+        is 0.
+
     Returns
     -------
     los_density_r_z : ``numpy.ndarray``
@@ -279,7 +287,7 @@ def profile_los(radius_profile, density_profile, velocity_profile,
     coordinates = np.array(np.meshgrid(radius_profile, los_z))
     distances = np.sum(coordinates ** 2, axis=0) ** 0.5
 
-    # The line-of-sight wind velocity is given by Eq. 6 in Seidel et al.
+    # The line-of-sight wind velocity is given by Eqs. 6 and 7 in Seidel et al.
     # (2020)
     # (https://ui.adsabs.harvard.edu/abs/2020A%26A...633A..86S/abstract)
     f_v = interp1d(radius_profile, velocity_profile, bounds_error=False,
@@ -287,8 +295,15 @@ def profile_los(radius_profile, density_profile, velocity_profile,
     v_vertical = f_v(distances)
     # We need to add one dimension to `z` to allow for proper array broadcasting
     z_expanded = np.expand_dims(los_z, axis=1)
-    los_velocity_r_z = v_vertical * z_expanded / \
+    los_velocity_rad_z = v_vertical * z_expanded / \
         (z_expanded ** 2 + radius_profile ** 2) ** 0.5
+
+    # Rotational wind component
+    los_velocity_rot_z = v_rotation * radius_profile / \
+        (z_expanded ** 2 + radius_profile ** 2) ** 0.5
+
+    los_velocity_r_z_morn = los_velocity_rad_z - los_velocity_rot_z  # Morning
+    los_velocity_r_z_even = los_velocity_rad_z + los_velocity_rot_z  # Evening
 
     # Calculate the line-of-sight density
     d_v = interp1d(radius_profile, density_profile, bounds_error=False,
@@ -301,10 +316,12 @@ def profile_los(radius_profile, density_profile, velocity_profile,
                        fill_value=0.0)
         los_temperature_r_z = t_v(distances)
 
-        return los_density_r_z, los_velocity_r_z, los_temperature_r_z, los_z
+        return (los_density_r_z, los_velocity_r_z_morn, los_velocity_r_z_even,
+                los_temperature_r_z, los_z)
 
     else:
-        return los_density_r_z, los_velocity_r_z, los_z
+        return (los_density_r_z, los_velocity_r_z_morn, los_velocity_r_z_even,
+                los_z)
 
 
 # Optical depth in function of cylindrical radius from the planet and
@@ -315,7 +332,7 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
                      particle_mass, z_grid_size, bulk_los_velocity=0.0,
                      planet_radial_velocity=0.0,
                      wind_broadening_method='average',
-                     turbulence_broadening=False):
+                     turbulence_broadening=False, v_rotation=0.0):
     """
     Calculate the optical depth in function of cylindrical radius from the
     planet and the wavelength.
@@ -384,6 +401,10 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
         2020, to the Gaussian term of the Voigt profile. Only used if
         ``wind_broadening_method`` is set to ``'average'``. Default is ``False``.
 
+    v_rotation : ``float``, optional
+        Rotational velocity, in the same unit as ``velocity_profile``. Default
+        is 0.
+
     Returns
     -------
     optical_depth_array : ``numpy.ndarray``
@@ -393,16 +414,17 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
     # Calculate density, velocity profiles and, if necessary, temperature
     # profile in the line of sight
     if isinstance(gas_temperature, float) or isinstance(gas_temperature, int):
-        density_los, velocity_los, z_los = \
+        density_los, velocity_los_morn, velocity_los_even, z_los = \
             profile_los(radius_profile, density_profile, velocity_profile,
-                        z_grid_size)
+                        z_grid_size, v_rotation=v_rotation)
         spatial_shape = np.shape(density_los)
         temp = gas_temperature
     elif isinstance(gas_temperature, np.ndarray):
-        density_los, velocity_los, temperature_los, z_los = \
-            profile_los(radius_profile, density_profile, velocity_profile,
-                        z_grid_size=z_grid_size,
-                        temperature_profile=gas_temperature)
+        (density_los, velocity_los_morn, velocity_los_even, temperature_los,
+         z_los) = profile_los(radius_profile, density_profile, velocity_profile,
+                              z_grid_size=z_grid_size,
+                              temperature_profile=gas_temperature,
+                              v_rotation=v_rotation)
         spatial_shape = np.shape(density_los)
         temp = temperature_los
     else:
@@ -461,16 +483,32 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
 
         # Formal calculation of optical depth (slower)
         if _method == 'formal':
+
+            if turbulence_broadening is True:
+                # Similar to Lampon et al. (2020), calculate the broadening
+                # as the turbulent velocity = sqrt(5/3 * kT / 2m)
+                turbulence_velocity = np.sqrt(5 / 6 * k_b * temp / mass)
+            else:
+                turbulence_velocity = 0.0
+
             # Calculate Doppler width (standard deviation) of the Voigt profile
             alpha_nu = \
-                nu0_k / c_speed * (k_b * temp / mass) ** 0.5
+                nu0_k / c_speed * (k_b * temp / mass +
+                                   turbulence_velocity ** 2) ** 0.5
             if isinstance(gas_temperature, np.ndarray):
                 alpha_nu = np.reshape(alpha_nu, spatial_shape + (1,))
+            alpha_nu_morn = alpha_nu  # Morning limb
+            alpha_nu_even = alpha_nu  # Evening limb
 
             # Calculate the frequency shifts due to wind and bulk motion
-            delta_nu_wind = (velocity_los + v_bulk +
+            delta_nu_wind_morn = (velocity_los_morn + v_bulk +
                              rv_planet) / c_speed * nu0_k
-            delta_nu_add = np.reshape(delta_nu_wind, spatial_shape + (1,))
+            delta_nu_wind_even = (velocity_los_even + v_bulk +
+                                  rv_planet) / c_speed * nu0_k
+            delta_nu_add_morn = np.reshape(delta_nu_wind_morn,
+                                           spatial_shape + (1,)) # Morning limb
+            delta_nu_add_even = np.reshape(delta_nu_wind_even,
+                                           spatial_shape + (1,)) # Evening limb
 
         # Faster calculation of optical depth: We assume that the Parker wind
         # broadening has a Gaussian shape. To this end, we take a wind velocity
@@ -480,9 +518,12 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
             # Calculate the wind broadening velocity as the density-averaged
             # line-of-sight velocity of the Parker wind
             weights = density_los
-            wind_broadening_velocity = \
-                (np.sum(velocity_los ** 2 * weights) /
-                 np.sum(weights)) ** 0.5
+            wind_broadening_velocity_morn = \
+                (np.sum(velocity_los_morn ** 2 * weights) /
+                 np.sum(weights)) ** 0.5  # Morning limb
+            wind_broadening_velocity_even = \
+                (np.sum(velocity_los_even ** 2 * weights) /
+                 np.sum(weights)) ** 0.5  # Evening limb
 
             if isinstance(temp, np.ndarray):
                 average_temp = np.sum(temp * weights) / np.sum(weights)
@@ -497,21 +538,29 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
                 turbulence_velocity = 0.0
 
             # Calculate Doppler width of the Voigt profile
-            alpha_nu = nu0_k / c_speed * (k_b * average_temp / mass +
-                                          wind_broadening_velocity ** 2 +
+            alpha_nu_morn = nu0_k / c_speed * (k_b * average_temp / mass +
+                                          wind_broadening_velocity_morn ** 2 +
                                           turbulence_velocity ** 2) ** 0.5
+            alpha_nu_even = nu0_k / c_speed * (k_b * average_temp / mass +
+                                            wind_broadening_velocity_even ** 2 +
+                                            turbulence_velocity ** 2) ** 0.5
 
             # Frequency shift due to bulk line-of-sight velocity (not to be
             # confused with the Parker wind velocity).
-            delta_nu_add = (v_bulk + rv_planet) / c_speed * nu0_k
+            delta_nu_add_morn = (v_bulk + rv_planet) / c_speed * nu0_k
+            delta_nu_add_even = (v_bulk + rv_planet) / c_speed * nu0_k
 
         else:
             raise ValueError('The chosen ``wind_broadening_method`` is not '
                              'implemented.')
 
         # Finally calculate the Voigt profiles
-        profiles = voigt_profile(delta_nu_grid + delta_nu_add, alpha_nu,
-                                 gamma)
+        profiles_morn = voigt_profile(delta_nu_grid + delta_nu_add_morn,
+                                      alpha_nu_morn, gamma)
+        profiles_even = voigt_profile(delta_nu_grid + delta_nu_add_even,
+                                      alpha_nu_even, gamma)
+
+        profiles = 0.5 * profiles_morn + 0.5 * profiles_even
 
         # Calculate the optical depths divided by the cross section
         density_expanded = np.expand_dims(density_los, axis=-1)
