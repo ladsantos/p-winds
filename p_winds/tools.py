@@ -414,11 +414,11 @@ def xray_scale(original_spectrum, scale_factor, wavelength_dependence=True,
                xrays_anchor_wavelength=10.0, wavelength_end=912.0):
     """
     Applies a multiplicative factor to the X-ray emission of an input spectrum.
-    If wavelength dependence is desired, then the spectrum is scaled linearly
-    from an anchor wavelength to the end of the high-energy spectrum (nominally
-    set to 912 Angstrom, but the end can be user modified). If wavelength
-    dependence is not desired, then the spectrum is scaled to a constant value
-    up to the anchor wavelength.
+    If wavelength dependence is desired, then the spectrum is scaled
+    log-linearly from an anchor wavelength to the end of the high-energy
+    spectrum (nominally set to 912 Angstrom, but the end can be user modified).
+    If wavelength dependence is not desired, then the spectrum is scaled to a
+    constant value up to the anchor wavelength.
 
     Parameters
     ----------
@@ -431,7 +431,7 @@ def xray_scale(original_spectrum, scale_factor, wavelength_dependence=True,
         wavelength.
 
     wavelength_dependence : ``bool``, optional
-        If ``True``, the spectrum is scaled by a linear function with
+        If ``True``, the spectrum is scaled by a log-linear function with
         wavelength from the anchor wavelength to the end wavelength. If
         ``False``, the scaling is applied only to wavelengths up to the anchor
         wavelength. Default is ``True``.
