@@ -14,7 +14,7 @@ from astropy.io import fits
 
 
 __all__ = ["nearest_index", "standard_spectrum", "generate_muscles_spectrum",
-           "make_spectrum_from_file"]
+           "make_spectrum_from_file", "xray_scale"]
 
 # Find $PWINDS_REFSPEC_DIR environment variable
 try:
