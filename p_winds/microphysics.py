@@ -314,6 +314,8 @@ def sigma_properties_v1996():
                    2.805E-1, 0, 0],
         'Mg II':  [1.504E1, 6.569E1, 8.139E0, 3.278E0, 4.341E7, 3.610E0,
                    0, 0, 0],
+        'Mg III': [8.014E1, 1.317E3, 1.086E1, 5.377E2, 9.779E0, 7.117E0,
+                   2.604E0, 4.860E0, 3.722E0],
         'Si I':   [8.152E0, 1.060E2, 2.317E1, 2.506E1, 2.057E1, 3.546E0,
                    2.837E-1, 1.672E-5, 4.207E-1],
         'Si II':  [1.635E1, 1.186E2, 2.556E0, 4.140E0, 1.337E1, 1.191E1,
@@ -332,3 +334,28 @@ def sigma_properties_v1996():
                    1.141E1, 9.272E1, 1.075E2],
     }
     return parameters_dict
+
+
+# Magnesium recombination rates
+def magnesium_recombination_rate(temperature):
+    """
+    Calculates the magnesium recombination rate of Mg II and Mg III in function
+    of temperature. This is a linear interpolation between the values tabulated
+    in Jacobs et al (1979, ApJ 230).
+
+    Parameters
+    ----------
+    temperature : ``float``
+        Isothermal temperature of the upper atmosphere in unit of Kelvin.
+
+    Returns
+    -------
+    alpha_rec_mgii : ``float``
+        Recombination rate of Mg II in units of cm ** 3 / s.
+
+    alpha_rec_mgii : ``float``
+        Recombination rate of Mg III in units of cm ** 3 / s.
+    """
+    log10_temperature_table = np.array([
+        4.0, 4.2, 4.4, 4.6,
+    ])

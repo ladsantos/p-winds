@@ -10,6 +10,8 @@ from scipy.interpolate import interp1d
 from scipy.special import voigt_profile
 from scipy.integrate import trapezoid
 from flatstar import draw, utils
+from p_winds.tools import pseudo_voigt
+from numba import njit
 
 
 __all__ = ["draw_transit", "radiative_transfer_2d", "profile_los",
@@ -122,7 +124,8 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
                           oscillator_strength, einstein_coefficient,
                           wavelength_grid, gas_temperature, particle_mass,
                           bulk_los_velocity=0.0, planet_radial_velocity=0.0,
-                          wind_broadening_method='average', z_grid_size=200,
+                          wind_broadening_method='average',
+                          voigt_method='fast', z_grid_size=100,
                           turbulence_broadening=False, v_rotation=0.0):
     """
     Calculate the absorbed intensity profile in a wavelength grid.
@@ -193,9 +196,16 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
         Gaussian term of the Voigt profile with an additive factor proportional
         to the square of the density-averaged, line-of-sight velocity (faster).
 
+    voigt_method : ``str``, optional
+        Method of calculation for the Voigt profile. There are two options:
+        1) ``'formal'``: the formal definition of a Voigt profile calculated
+        with SciPy (slower);
+        2) ``'fast'`` : the pseudo-Voigt approximation from Ida et al. 2000
+        (faster).
+
     z_grid_size : ``int``, optional
         Grid size for the line of sight direction. This is used only if
-        ``wind_broadening_method`` is set to ``'formal'``. Default is 200.
+        ``wind_broadening_method`` is set to ``'formal'``. Default is 100.
 
     turbulence_broadening : ``bool``, optional
         If ``True``, adds a turbulence broadening, defined as in Lampón et al.
@@ -216,7 +226,7 @@ def radiative_transfer_2d(intensity_0, r_from_planet, radius_profile,
         radius_profile, density_profile, velocity_profile, central_wavelength,
         oscillator_strength, einstein_coefficient, wavelength_grid,
         gas_temperature, particle_mass, z_grid_size, bulk_los_velocity,
-        planet_radial_velocity, wind_broadening_method,
+        planet_radial_velocity, wind_broadening_method, voigt_method,
         turbulence_broadening, v_rotation
     )
 
@@ -313,7 +323,7 @@ def profile_los(radius_profile, density_profile, velocity_profile,
     if temperature_profile is not None:
         # Calculate the line-of-sight temperature
         t_v = interp1d(radius_profile, temperature_profile, bounds_error=False,
-                       fill_value=0.0)
+                       fill_value=1E-10)
         los_temperature_r_z = t_v(distances)
 
         return (los_density_r_z, los_velocity_r_z_morn, los_velocity_r_z_even,
@@ -326,12 +336,14 @@ def profile_los(radius_profile, density_profile, velocity_profile,
 
 # Optical depth in function of cylindrical radius from the planet and
 # wavelength. Hold on to your hat because this code is very complex.
+
 def optical_depth_2d(radius_profile, density_profile, velocity_profile,
                      central_wavelength, oscillator_strength,
                      einstein_coefficient, wavelength_grid, gas_temperature,
                      particle_mass, z_grid_size, bulk_los_velocity=0.0,
                      planet_radial_velocity=0.0,
                      wind_broadening_method='average',
+                     voigt_method='formal',
                      turbulence_broadening=False, v_rotation=0.0):
     """
     Calculate the optical depth in function of cylindrical radius from the
@@ -395,6 +407,13 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
         2) ``'average'``: assumes the Parker wind broadening contributes to the
         Gaussian term of the Voigt profile with an additive factor proportional
         to the square of the density-averaged, line-of-sight velocity (faster).
+
+    voigt_method : ``str``, optional
+        Method of calculation for the Voigt profile. There are two options:
+        1) ``'formal'``: the formal definition of a Voigt profile calculated
+        with SciPy (slower);
+        2) ``'fast'`` : the pseudo-Voigt approximation from Ida et al. 2000
+        (faster).
 
     turbulence_broadening : ``bool``, optional
         If ``True``, adds a turbulence broadening, defined as in Lampón et al.
@@ -555,10 +574,18 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
                              'implemented.')
 
         # Finally calculate the Voigt profiles
-        profiles_morn = voigt_profile(delta_nu_grid + delta_nu_add_morn,
-                                      alpha_nu_morn, gamma)
-        profiles_even = voigt_profile(delta_nu_grid + delta_nu_add_even,
-                                      alpha_nu_even, gamma)
+        if voigt_method == 'formal':
+            profiles_morn = voigt_profile(delta_nu_grid + delta_nu_add_morn,
+                                          alpha_nu_morn, gamma)
+            profiles_even = voigt_profile(delta_nu_grid + delta_nu_add_even,
+                                          alpha_nu_even, gamma)
+        elif voigt_method == 'fast':
+            profiles_morn = pseudo_voigt(delta_nu_grid + delta_nu_add_morn,
+                                          alpha_nu_morn, gamma)
+            profiles_even = pseudo_voigt(delta_nu_grid + delta_nu_add_even,
+                                          alpha_nu_even, gamma)
+        else:
+            raise ValueError('The chosen voigt_method is not implemented.')
 
         profiles = 0.5 * profiles_morn + 0.5 * profiles_even
 

@@ -11,10 +11,11 @@ import astropy.units as u
 import os
 from warnings import warn
 from astropy.io import fits
+from numba import njit
 
 
-__all__ = ["nearest_index", "standard_spectrum", "generate_muscles_spectrum",
-           "make_spectrum_from_file", "xray_scale"]
+__all__ = ["pseudo_voigt", "nearest_index", "standard_spectrum",
+           "generate_muscles_spectrum", "make_spectrum_from_file", "xray_scale"]
 
 # Find $PWINDS_REFSPEC_DIR environment variable
 try:
@@ -22,6 +23,57 @@ try:
 except KeyError:
     _PWINDS_REFSPEC_DIR = None
     warn("Environment variable PWINDS_REFSPEC_DIR is not set.")
+
+
+@njit
+def pseudo_voigt(x, sigma, gamma, eta=None):
+    """
+    Pseudo Voigt approximation from Ida et al. 2000
+    (https://ui.adsabs.harvard.edu/abs/2000JApCr..33.1311I/abstract). This
+    approximation is usually faster than the formal implementation from SciPy.
+
+    Parameters
+    ----------
+    x : ``numpy.ndarray``
+        Real argument.
+
+    sigma : ``numpy.ndarray``
+        The standard deviation of the Normal distribution part.
+
+    gamma : ``numpy.ndarray``
+        The half-width at half-maximum of the Cauchy distribution part.
+
+    eta : ``float``, optional
+        Mixing coefficient of the approximation. If ``None``, then the
+        coefficient is calculated using Equations 9 and 10 from Ida et al. 2000.
+        Default is ``None``.
+
+    Returns
+    -------
+
+    """
+    gaussian = np.exp(-0.5 * (x / sigma) ** 2) / (sigma * np.sqrt(2 * np.pi))
+    lorentzian = gamma / (np.pi * (x * x + gamma * gamma))
+
+    if eta is None:
+        # Convert sigma to FWHM
+        gaussian_fwhm = 2.35482 * sigma
+        lorentzian_fwhm = 2 * gamma
+        tch_1 = gaussian_fwhm ** 5
+        tch_2 = 2.69269 * gaussian_fwhm ** 4 * lorentzian_fwhm
+        tch_3 = 2.42843 * gaussian_fwhm ** 3 * lorentzian_fwhm ** 2
+        tch_4 = 4.47163 * gaussian_fwhm ** 2 * lorentzian_fwhm ** 3
+        tch_5 = 0.07842 * gaussian_fwhm * lorentzian_fwhm ** 4
+        tch_6 = lorentzian_fwhm ** 5
+        tch = (tch_1 + tch_2 + tch_3 + tch_4 + tch_5 + tch_6) ** (1 / 5)
+        eta = (1.36603 * (lorentzian_fwhm / tch) - 0.47719 *
+               (lorentzian_fwhm / tch) ** 2 + 0.11116 *
+               (lorentzian_fwhm / tch) ** 3)
+    else:
+        pass
+
+    profile = eta * lorentzian + (1 - eta) * gaussian
+    return profile
 
 
 def nearest_index(array, target_value):
