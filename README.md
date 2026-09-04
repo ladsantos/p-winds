@@ -26,6 +26,7 @@ Requirements
 * `numpy`
 * `scipy` version 1.5 or later
 * `astropy`
+* `numba`
 * [`flatstar`](https://github.com/ladsantos/flatstar)
 
 If you wish to use the ATES wrapper in the `fluid` module, further requirements are necessary:
