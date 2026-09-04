@@ -130,12 +130,10 @@ dmypy.json
 
 # Other stuff
 experiments/
-docs/source/behind_the_curtains.ipynb
 raw.githubusercontent.com/
 recipe/
 /docs/source/gist.githubusercontent.com/
-/tests/hd189733b.py
-/docs/source/level_population.ipynb
-
-# To-do
-carbon.py
+/docs/source/output/
+*.out
+*.inp
+/docs/source/spectrum_temp.txt
