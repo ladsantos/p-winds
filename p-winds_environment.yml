@@ -19,5 +19,6 @@ dependencies:
   - numpydoc
   - sphinx_rtd_theme
   - setuptools
+  - numba
   - pip:
       - flatstar

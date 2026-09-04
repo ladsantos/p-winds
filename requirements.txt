@@ -2,3 +2,4 @@ numpy
 scipy>=1.5
 astropy
 flatstar
+numba
