@@ -2,6 +2,7 @@
 `tools`
 =======
 
+.. autofunction:: tools.pseudo_voigt
 .. autofunction:: tools.nearest_index
 .. autofunction:: tools.standard_spectrum
 .. autofunction:: tools.generate_muscles_spectrum
