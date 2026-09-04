@@ -731,6 +731,7 @@ def balmer_fraction(temperature, n_e, g_factor, n_shell, nlte_scaling=1.0):
 
     Parameters
     ----------
+
     temperature : ``float``
         Temperature in K.
         
@@ -751,7 +752,8 @@ def balmer_fraction(temperature, n_e, g_factor, n_shell, nlte_scaling=1.0):
 
     Returns
     -------
-        n_H_2n_scale : ``float``
+
+    n_H_2n_scale : ``float``
         Unitless fraction to adjust the hydrogen density for the specific Balmer
         line.
     """

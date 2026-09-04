@@ -41,10 +41,6 @@ else:
     pass
 
 
-# General warning
-warn("The `fluid` module is in beta status.")
-
-
 # Run the ATES code using a Python wrapper
 def ates_model(planet_radius, planet_mass, planet_equilibrium_temperature,
                semi_major_axis, stellar_mass, spectrum_at_planet,
