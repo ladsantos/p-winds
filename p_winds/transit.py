@@ -588,11 +588,23 @@ def optical_depth_2d(radius_profile, density_profile, velocity_profile,
             raise ValueError('The chosen voigt_method is not implemented.')
 
         profiles = 0.5 * profiles_morn + 0.5 * profiles_even
+        # `profiles` dimensions by wind broadening method:
+        # 'average': (n_wavelengths,)
+        # 'formal': (n_z, n_radii, n_wavelengths)
 
         # Calculate the optical depths divided by the cross section
-        density_expanded = np.expand_dims(density_los, axis=-1)
-        opt_depth_over_cross_section_r_nu = \
-            trapezoid(profiles * density_expanded, z_los, axis=0)
+        profile_is_spatially_constant = profiles.ndim == 1
+        # Keep empty integrals on the direct path: zero * NaN would give NaN.
+        if profile_is_spatially_constant and z_los.size > 1:
+            # True in 'average' mode. We can factor the profile out of the
+            # integral over z.
+            column_density = trapezoid(density_los, z_los, axis=0)
+            opt_depth_over_cross_section_r_nu = \
+                column_density[:, None] * profiles
+        else:
+            density_expanded = np.expand_dims(density_los, axis=-1)
+            opt_depth_over_cross_section_r_nu = \
+                trapezoid(profiles * density_expanded, z_los, axis=0)
 
         return opt_depth_over_cross_section_r_nu
 
