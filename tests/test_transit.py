@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pytest
 from p_winds import lines, transit
 
 
@@ -46,3 +47,17 @@ def test_draw_transit_and_radiative_transfer(precision_threshold=5E-3):
                                              wind_broadening_method='average')
     test_value_2 = spectrum[60]
     assert abs((test_value_2 - 0.97946) / test_value_2) < precision_threshold
+
+
+@pytest.mark.parametrize('z_grid_size', [0, 1, 23])
+def test_average_and_formal_optical_depth_agree_without_wind_broadening(z_grid_size):
+    radius = r[::25]
+    # With zero wind and uniform temperature, both methods use the same Voigt
+    # profile. Empty integrals must also agree, even if the average is undefined.
+    args = (radius, n_he_3[::25], np.zeros_like(radius), w_array, f_array,
+            a_array, wl[::10], t_0, m_He, z_grid_size)
+    with np.errstate(invalid='ignore'):
+        average = transit.optical_depth_2d(*args, wind_broadening_method='average')
+        formal = transit.optical_depth_2d(*args, wind_broadening_method='formal')
+    np.testing.assert_allclose(average, formal, rtol=1e-14, atol=0.0,
+                               equal_nan=False)
