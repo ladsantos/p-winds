@@ -253,10 +253,11 @@ def generate_muscles_spectrum(host_star_name, semi_major_axis,
     host_star_name : ``str``
         Name of the MUSCLES stellar spectrum you want to use. Must be one of:
         ['gj176', 'gj436', 'gj551', 'gj581', 'gj667c', 'gj832', 'gj876',
-        'gj1214', 'hd40307', 'hd85512', 'hd97658', 'v-eps-eri', 'gj1132',
-        'hat-p-12', 'hat-p-26', 'hd-149026', 'l-98-59', 'l-678-39', 'l-980-5',
-        'lhs-2686', 'lp-791-18', 'toi-193', 'trappist-1', 'wasp-17', 'wasp-43',
-        'wasp-77a', 'wasp-127'].
+        'gj1214', 'hd40307', 'hd85512', 'hd97658', 'v-eps-eri', 'gj15a',
+        'gj163', 'gj649', 'gj674', 'gj676a', 'gj699', 'gj729', 'gj849',
+        'gj1132', 'hat-p-12', 'hat-p-26', 'hd-149026', 'l-98-59', 'l-678-39',
+        'l-980-5', 'lhs-2686', 'lp-791-18', 'toi-193', 'trappist-1', 'wasp-17',
+        'wasp-43', 'wasp-77a', 'wasp-127'].
 
     semi_major_axis : ``float``
         Semi-major axis of the planet in units of stellar radii. The code first
@@ -299,7 +300,7 @@ def generate_muscles_spectrum(host_star_name, semi_major_axis,
         'gj176', 'gj436', 'gj551', 'gj581', 'gj667c', 'gj832', 'gj876',
         'gj1214', 'hd40307', 'hd85512', 'hd97658', 'v-eps-eri',
         # New ones
-        #'gj15a', 'gj163', 'gj649', 'gj674', 'gj676a', 'gj699', 'gj729', 'gj849',
+        'gj15a', 'gj163', 'gj649', 'gj674', 'gj676a', 'gj699', 'gj729', 'gj849',
         'gj1132', 'hat-p-12', 'hat-p-26', 'hd-149026', 'l-98-59', 'l-678-39',
         'l-980-5', 'lhs-2686', 'lp-791-18', 'toi-193', 'trappist-1', 'wasp-17',
         'wasp-43', 'wasp-77a', 'wasp-127'
@@ -309,7 +310,7 @@ def generate_muscles_spectrum(host_star_name, semi_major_axis,
         'v22', 'v22', 'v22', 'v22', 'v22', 'v22', 'v22',
         'v22', 'v22', 'v22', 'v22', 'v22',
         # New ones
-        #'v23', 'v23', 'v23', 'v23', 'v23', 'v23', 'v23', 'v23',
+        'v23', 'v23', 'v23', 'v23', 'v23', 'v23', 'v23', 'v23',
         'v23', 'v24', 'v24', 'v24', 'v24', 'v24',
         'v23', 'v23', 'v24', 'v24', 'v23', 'v24',
         'v24', 'v24', 'v24'
@@ -319,7 +320,7 @@ def generate_muscles_spectrum(host_star_name, semi_major_axis,
         0.46, 0.449, 0.154, 0.3297020, 0.42, 0.45, 0.35, 0.22,
         0.71, 0.69, 0.74, 0.77,
         # New ones
-        #
+        0.38, 0.43, 0.50, 0.36, 0.69, 0.185, 0.22, 0.45,
         0.21, 0.7, 0.87, 1.41, 0.3, 0.34,
         0.22,  # L 980-5 radius assumed to be the same as GJ 1214
         0.449,  # LHS 2686 radius assumed to be the same as GJ 436
@@ -331,7 +332,7 @@ def generate_muscles_spectrum(host_star_name, semi_major_axis,
         4.67517, 14.6427, 12.9363, 11.2810, 21.5618,
         3.20260,
         # New ones
-        #3.56244, 15.1353,
+        3.56244, 15.1353, 10.37960, 4.548960, 16.0272, 1.826550, 2.97, 8.800580,
         12.613, 142.751, 141.837, 75.8643, 10.6194, 9.44181, 13.3731, 12.1893,
         26.4927, 80.4373, 12.4298888, 405.908, 86.7467, 105.6758, 159.507
     ]) * u.pc
