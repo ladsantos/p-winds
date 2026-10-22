@@ -26,7 +26,7 @@ And then compile ``p-winds`` from source:
 
 .. code-block:: bash
 
-   python setup.py install
+   pip install .
 
 You can test the installation from source with ``pytest`` (you may need to
 install ``pytest`` first):

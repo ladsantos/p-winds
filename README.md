@@ -1,6 +1,6 @@
 # p-winds
 
-[![Documentation Status](https://readthedocs.org/projects/p-winds/badge/?version=latest)](https://p-winds.readthedocs.io/en/latest/?badge=latest) [![Build Status](https://travis-ci.com/ladsantos/p-winds.svg?branch=main)](https://travis-ci.com/github/ladsantos/p-winds)  [![arXiv](https://img.shields.io/badge/arXiv-2111.11370-b31b1b.svg)](https://arxiv.org/abs/2111.11370)
+[![Documentation Status](https://readthedocs.org/projects/p-winds/badge/?version=latest)](https://p-winds.readthedocs.io/en/latest/?badge=latest) [![Tests](https://github.com/ladsantos/p-winds/actions/workflows/tests.yml/badge.svg)](https://github.com/ladsantos/p-winds/actions/workflows/tests.yml)  [![arXiv](https://img.shields.io/badge/arXiv-2111.11370-b31b1b.svg)](https://arxiv.org/abs/2111.11370)
  [![Code DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4551621.svg)](https://doi.org/10.5281/zenodo.4551621)
 
 Python implementation of Parker wind models for planetary atmospheres. `p-winds` produces simplified, 1-D models of the upper atmosphere of a planet, and perform radiative transfer to calculate observable spectral signatures. 
@@ -54,7 +54,7 @@ cd p-winds
 
 And then compile it from source:
 ```angular2html
-python setup.py install
+pip install .
 ```
 
 You can test the installation from source with ``pytest`` (you may need to

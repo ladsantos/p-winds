@@ -7,8 +7,8 @@ p-winds: Documentation
 .. image:: https://readthedocs.org/projects/p-winds/badge/?version=latest
     :target: https://p-winds.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
-.. image:: https://travis-ci.com/ladsantos/p-winds.svg?branch=main
-    :target: https://travis-ci.com/github/ladsantos/p-winds
+.. image:: https://github.com/ladsantos/p-winds/actions/workflows/tests.yml/badge.svg
+    :target: https://github.com/ladsantos/p-winds/actions/workflows/tests.yml
     :alt: Build
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4551621.svg
     :target: https://doi.org/10.5281/zenodo.4551621

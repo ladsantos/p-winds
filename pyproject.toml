@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "p_winds"
+version = "2.0.2"
+description = "Parker wind models for planetary atmospheres"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.8"
+authors = [{ name = "Leonardo dos Santos", email = "ldsantos@stsci.edu" }]
+dependencies = [
+    "numpy",
+    "scipy>=1.5",
+    "astropy",
+    "flatstar",
+    "numba",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+]
+
+[project.urls]
+Homepage = "https://github.com/ladsantos/p-winds"
+
+[tool.setuptools]
+packages = ["p_winds"]
