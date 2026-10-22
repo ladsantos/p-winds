@@ -321,8 +321,11 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
     **options_solve_ivp:
         Options to be passed to the ``scipy.integrate.solve_ivp()`` solver. You
         may want to change the options ``method`` (integration method; default
-        is ``'RK45'``), ``atol`` (absolute tolerance; default is 1E-6) or
-        ``rtol`` (relative tolerance; default is 1E-3). If you are having
+        is ``'LSODA'``, because the equation can be stiff), ``atol`` (absolute
+        tolerance; default is 1E-8) or ``rtol`` (relative tolerance; default is
+        1E-4). If the chosen solver fails, the integration is retried with
+        ``'Radau'`` and tighter tolerances. The result is clipped to [0, 1]. If
+        you are having
         numerical issues, you may want to decrease the tolerance by a factor of
         10 or 100, or 1000 in extreme cases.
 
@@ -442,6 +445,10 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
         _v = np.interp(_r, r, velocity)
         _rho = np.interp(_r, r, density)
 
+        # The ion fraction is physically bounded, so we clip it to prevent the
+        # solver from wandering into unphysical values during trial steps
+        _f = np.clip(_f, 0., 1.)
+
         # In terms 1 and 2 we use the values of k2 and phi from above
         term1 = (1. - _f) / _v * _phi_prime
         term2 = _k2 * _rho * _f ** 2 / _v
@@ -449,17 +456,48 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
 
         return df_dr
 
-    # We solve it using `scipy.solve_ivp`
-    sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
-                    t_eval=r, args=(phi, k2,), 
-                    **options_solve_ivp)
-    f_r = sol['y'][0]
+    # Analytical Jacobian, which helps implicit solvers
+    def _jac(_r, _f, _phi, _k2):
+        if exact_phi:
+            _phi_prime = np.interp(_r, r, phi)
+        else:
+            _t = np.interp(_r, r, tau)
+            _phi_prime = np.exp(-_t) * _phi
+        _v = np.interp(_r, r, velocity)
+        _rho = np.interp(_r, r, density)
+        return np.array([[-(_phi_prime + 2 * _k2 * _rho * _f[0]) / _v]])
 
-    # When `solve_ivp` has problems, it may return an array with different
-    # size than `r`. So we raise an exception if this happens
-    if len(f_r) != len(r):
-        raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
-                           ' solution.')
+    def _solve(_phi, _k2):
+        # The equation is stiff in the dense lower atmosphere (recombination
+        # balances photoionization over very short length scales), where
+        # explicit methods such as RK45 are unstable. By default we use an
+        # implicit method with an analytical Jacobian.
+        opts = dict(options_solve_ivp)
+        opts.setdefault('method', 'LSODA')
+        opts.setdefault('rtol', 1E-4)
+        opts.setdefault('atol', 1E-8)
+        if opts['method'] in ('Radau', 'BDF', 'LSODA'):
+            opts.setdefault('jac', _jac)
+        _sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
+                         t_eval=r, args=(_phi, _k2,), **opts)
+
+        # Fall back to a robust implicit solver with tighter tolerances
+        if not _sol.success or _sol['y'].shape[1] != len(r) or \
+                not np.all(np.isfinite(_sol['y'])):
+            fallback = dict(opts, method='Radau', jac=_jac,
+                            rtol=min(opts['rtol'], 1E-6),
+                            atol=min(opts['atol'], 1E-10))
+            _sol = solve_ivp(_fun, (r[0], r[-1],),
+                             np.array([initial_f_ion, ]), t_eval=r,
+                             args=(_phi, _k2,), **fallback)
+
+        if not _sol.success or _sol['y'].shape[1] != len(r):
+            raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
+                               ' solution: ' + str(_sol.message))
+        return np.clip(_sol['y'][0], 0., 1.)
+
+    # We solve it using `scipy.solve_ivp`
+    f_r = _solve(phi, k2)
 
     # Calculate the average mean molecular weight using Eq. A.3 from Lampón et
     # al. 2020
@@ -503,16 +541,7 @@ def ion_fraction(radius_profile, planet_radius, temperature, h_fraction,
                 tau = k1 * column_density
             
             # And solve it again
-            sol = solve_ivp(_fun, (r[0], r[-1],), np.array([initial_f_ion, ]),
-                            t_eval=r, args=(phi, k2,), 
-                            **options_solve_ivp)
-            f_r = sol['y'][0]
-
-            # Raise an error if the length of `f_r` is different from the length
-            # of `r`
-            if len(f_r) != len(r):
-                raise RuntimeError('The solver ``solve_ivp`` failed to obtain a'
-                                   ' solution.')
+            f_r = _solve(phi, k2)
 
             # Here we update the average mean molecular weight
             mu_bar = parker.average_molecular_weight(
